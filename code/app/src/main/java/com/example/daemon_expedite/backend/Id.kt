@@ -10,6 +10,7 @@ import kotlin.uuid.Uuid
 *  @param value: Uuid. This is the value of the id. If no id is provided, it generates a random v7 Uuid.
 *  @throws IllegalArgumentException: If the id is not a valid v7 Uuid or Uuid is not 36 characters long.
 * */
+
 class Id
     @OptIn(ExperimentalUuidApi::class)
     constructor(
