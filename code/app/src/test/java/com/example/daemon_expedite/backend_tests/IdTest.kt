@@ -1,4 +1,4 @@
-package com.example.daemon_expedite.Backend_tests
+package com.example.daemon_expedite.backend_tests
 
 import com.example.daemon_expedite.backend.Id
 import org.junit.Test
@@ -29,6 +29,7 @@ class IdTest {
         )
         try {
             Id(Uuid.parse(id2))
+            assert(false)
         } catch (e: IllegalArgumentException) {
             assert(e.message == "Invalid UUID version: $id2")
         }
