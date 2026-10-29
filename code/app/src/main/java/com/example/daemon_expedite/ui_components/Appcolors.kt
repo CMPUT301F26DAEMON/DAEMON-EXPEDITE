@@ -75,6 +75,12 @@ object AppColors {
     /** Form field fill (white at 9%). */
     val FillField = Color(0x17FFFFFF)
 
+    /** White at 80% opacity. */
+    val SearchBarBackground = Color(0xCCFFFFFF)
+
+    /** Dark green used for search bar icons. */
+    val SearchBarIcon = Color(0xFF161D15)
+
     /** Tint behind owner-side messages and selection states (primary at 8%). */
     val PrimaryTint = Color(0x14437657)
 
