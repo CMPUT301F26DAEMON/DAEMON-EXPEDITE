@@ -43,6 +43,8 @@ object AppColors {
 
     /** Destructive actions and warnings, such as leaving a waiting list. */
     val Danger = Color(0xFFD57A72)
+
+    val LowOpacityDanger = Color(0x14D57A72)
     // endregion
 
     // region Text
