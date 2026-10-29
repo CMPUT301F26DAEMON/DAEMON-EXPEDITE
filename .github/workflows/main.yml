@@ -18,5 +18,7 @@ jobs:
         run: chmod +x gradlew
         working-directory: ./code
       - name: Build and test with Gradle
-        run: ./gradlew build --configuration-cache
+        run: make
         working-directory: ./code
+        env:
+          GOOGLE_SERVICES_B64: ${{ secrets.GOOGLE_SERVICES_JSON }}
