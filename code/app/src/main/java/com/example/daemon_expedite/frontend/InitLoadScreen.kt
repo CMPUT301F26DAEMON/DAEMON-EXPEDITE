@@ -19,6 +19,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.R
 
+/**
+ * Displays the initial loading screen for the EXPEDITE application.
+ *
+ * It contains the Expedite logo and three concentric circles which make the background.
+ */
 @Composable
 fun InitLoadScreen() {
     Box(
@@ -58,7 +63,9 @@ fun InitLoadScreen() {
     }
 }
 
-
+/**
+ * Gives preview of the initial loading screen inside Android Studio.
+ */
 @Preview(showBackground = true)
 @Composable
 fun InitLoadScreenPreview() {
