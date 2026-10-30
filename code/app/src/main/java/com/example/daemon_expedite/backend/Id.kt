@@ -31,6 +31,6 @@ class Id
          *
          * @return Instant: The time of the id creation.
          * */
-        fun getTime(): Instant? =
+        fun getTime(): Instant =
             Instant.ofEpochMilli((value.toString().substring(0..7) + value.toString().substring(9..12)).toLong(radix = 16))
     }

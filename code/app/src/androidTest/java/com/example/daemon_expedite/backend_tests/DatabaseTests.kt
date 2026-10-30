@@ -22,9 +22,8 @@ class DatabaseTest {
             // Ensure we test the anonymous sign-in path.
             auth.signOut()
 
-            val database = Database.create()
+            Database.init()
 
-            assertNotNull(database)
             assertNotNull(auth.currentUser)
             assertTrue(auth.currentUser!!.isAnonymous)
         }
@@ -33,7 +32,7 @@ class DatabaseTest {
     @Test
     fun add_testUser() {
         runBlocking {
-            val database = Database.create()
+            Database.init()
             val randomId = "01a17b5a-7d88-75c9-98a0-831fa7ffc7ce"
             val user =
                 User(
@@ -46,7 +45,19 @@ class DatabaseTest {
                     List(1) { Id(Uuid.parse(randomId)) },
                     List(1) { Id(Uuid.parse(randomId)) },
                 )
-            database.addUser(user)
+            Database.addUser(user)
+        }
+    }
+
+    @Test
+    fun test_ImageFunction() {
+        runBlocking {
+            Database.init()
+            println(
+                Database.getImage(
+                    "campsites/01a18eca-6027-7c70-82a8-12b2a05cf4c2/01a18f07-3600-76fc-bd41-e46057e7da7d.jpg",
+                ),
+            )
         }
     }
 }
