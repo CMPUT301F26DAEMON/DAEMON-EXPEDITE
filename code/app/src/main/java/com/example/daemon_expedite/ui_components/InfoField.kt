@@ -33,7 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
  * @param showEdit Boolean to decide whether to show edit button on the right
  * @param onEditClick Action to perform when the edit button is clicked.
  * @param onDeleteClick Action to perform when the delete button is clicked.
-
+ * @param customHeight The height of the button in dp. Defaults to 58 dp.
+ * @param customWidth The width of the button in dp. Defaults to 356 dp.
  *
  */
 @Composable
@@ -44,27 +45,32 @@ fun InfoCard(
     showDelete: Boolean,
     showEdit: Boolean,
     onEditClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {}
+    onDeleteClick: () -> Unit = {},
+    customHeight: Int = 72,
+    customWidth: Int = 356
 ) {
     Card(
+        modifier = Modifier
+            .width(customWidth.dp)
+            .height(customHeight.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = AppColors.FillSubtle),
         border = BorderStroke(1.dp, AppColors.OutlineSubtle)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (icon != null){
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = AppColors.TextOnPrimary
-            )
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = AppColors.TextOnPrimary
+                )
 
-            Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(16.dp))
             }
 
             Column(modifier = Modifier.weight(1f)) {
@@ -78,8 +84,7 @@ fun InfoCard(
                     text = value,
                     fontFamily = AppFonts.Inter,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 18
-                        .sp,
+                    fontSize = 18.sp,
                     color = AppColors.TextPrimary
                 )
             }
