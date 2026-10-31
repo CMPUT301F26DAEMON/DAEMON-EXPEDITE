@@ -99,14 +99,14 @@ fun EntrantHomeScreen() {
                 text = "Find your next hideaway",
                 fontFamily = AppFonts.Inter,
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
+                fontSize = 24.sp,
                 color = AppColors.TextPrimary
             )
             Text(
                 text = "Campsites for you",
                 fontFamily = AppFonts.Inter,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 17.sp,
+                fontSize = 15.sp,
                 color = AppColors.TextPrimary,
                 modifier = Modifier.padding(top = 20.dp)
             )
