@@ -15,7 +15,7 @@ import kotlin.uuid.Uuid
 interface DatabaseInterface {
     suspend fun addUser(user: User)
 
-    suspend fun fetchUser(userId: String): User
+    suspend fun fetchUser(userId: String): Map<String, String>
 
     fun fetchOwnUser(deviceId: String): User
 
@@ -90,8 +90,6 @@ interface DatabaseInterface {
  * */
 
 private class DatabaseInner private constructor() : DatabaseInterface {
-    private val cachedImages = mutableListOf<Image>()
-    private val cachedChats = mutableListOf<Chat>()
     private val chatListeners =
         mutableMapOf<String, ListenerRegistration>()
     private val dbStorage = Firebase.storage
@@ -118,121 +116,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     /**
-     * Chat listener function for Firestore. Creates a listener object for all the cached chats and store them in an array.
-     * Logs errors if any while parsing individual messages.
-     * @throws Exception: If unable to fetch chat or due to any error while parsing chat.
-     * */
-    fun listenToChats() {
-        for (chat in cachedChats) {
-            val chatIdCached = chat.id
-
-            if (chatIdCached.toString() !in chatListeners) {
-                val listener =
-                    db
-                        .collection("chats")
-                        .document(chatIdCached.toString())
-                        .addSnapshotListener { snapshot, error ->
-                            if (error != null) {
-                                throw Exception("Listener error: ${error.message}")
-                            }
-
-                            if (snapshot != null && snapshot.exists()) {
-                                val chatJson =
-                                    snapshot.data
-                                val chatId = (chatJson?.get("id") ?: throw Exception("Chat id not found $chatIdCached")) as String
-                                val ownUser = (chatJson["ownUser"] ?: throw Exception("Own user not found $chatIdCached")) as String
-                                val otherUser = (chatJson["otherUser"] ?: throw Exception("Other user not found $chatIdCached")) as String
-                                val messageOwnStringId =
-                                    (
-                                        chatJson["messageOwn"] ?: throw Exception(
-                                            "Message own not found $chatIdCached",
-                                        )
-                                    ) as ArrayList<*>
-                                val messageOtherStringId =
-                                    (
-                                        chatJson["messageOther"] ?: throw Exception(
-                                            "Message other not found $chatIdCached",
-                                        )
-                                    ) as ArrayList<*>
-                                val messageOwnId = mutableListOf<Id>()
-                                val messageOtherId = mutableListOf<Id>()
-                                for (id in messageOwnStringId) {
-                                    messageOwnId.add(Id(Uuid.parse(id as String)))
-                                }
-                                for (id in messageOtherStringId) {
-                                    messageOtherId.add(Id(Uuid.parse(id as String)))
-                                }
-                                val messageOwn = mutableListOf<Message>()
-                                val messageOther = mutableListOf<Message>()
-                                for (messageId in messageOwnId) {
-                                    val dbMessage =
-                                        db
-                                            .collection("messages")
-                                            .document(messageId.toString())
-                                            .get()
-                                            .addOnSuccessListener { messageDoc ->
-                                                if (messageDoc.exists()) {
-                                                    val messageJson = messageDoc.data
-                                                    val messageIdDb = messageJson?.get("id")
-                                                    val messageDb = messageJson?.get("message")
-                                                    if (messageIdDb == null || messageDb == null) {
-                                                        Log.e("Firestore", "Unable to parse Message $messageId")
-                                                    } else {
-                                                        messageOwn.add(
-                                                            Message(Id(Uuid.parse(messageIdDb.toString())), messageDb.toString()),
-                                                        )
-                                                    }
-                                                } else {
-                                                    Log.e("Firestore", "Message does not exist {messageId: $messageId}")
-                                                }
-                                            }.addOnFailureListener {
-                                                Log.e("Firestore", "Error trying to fetch Message $messageId")
-                                            }
-                                }
-                                for (messageId in messageOtherId) {
-                                    val dbMessage =
-                                        db
-                                            .collection("messages")
-                                            .document(messageId.toString())
-                                            .get()
-                                            .addOnSuccessListener { messageDoc ->
-                                                if (messageDoc.exists()) {
-                                                    val messageJson = messageDoc.data
-                                                    val messageIdDb = messageJson?.get("id")
-                                                    val messageDb = messageJson?.get("message")
-                                                    if (messageIdDb == null || messageDb == null) {
-                                                        Log.e("Firestore", "Unable to parse Message $messageId")
-                                                    } else {
-                                                        messageOther.add(
-                                                            Message(Id(Uuid.parse(messageIdDb.toString())), messageDb.toString()),
-                                                        )
-                                                    }
-                                                } else {
-                                                    Log.e("Firestore", "Message does not exist {messageId: $messageId}")
-                                                }
-                                            }.addOnFailureListener {
-                                                Log.e("Firestore", "Error trying to fetch Message $messageId")
-                                            }
-                                }
-
-                                cachedChats.add(
-                                    Chat(
-                                        Id(Uuid.parse(chatId)),
-                                        Id(Uuid.parse(ownUser)),
-                                        Id(Uuid.parse(otherUser)),
-                                        messageOwn,
-                                        messageOther,
-                                    ),
-                                )
-                            }
-                        }
-
-                chatListeners[chatIdCached.toString()] = listener
-            }
-        }
-    }
-
-    /**
      * Function to add a user to the Firestore database. That's about it. Not much to see here.
      * */
     override suspend fun addUser(user: User) {
@@ -254,14 +137,39 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .await()
     }
 
-    override suspend fun fetchUser(userId: String): User {
-//        val userData =
-//            db
-//                .collection("users")
-//                .document(userId)
-//                .get()
-//                .await()
-        TODO()
+    override suspend fun fetchUser(userId: String): Map<String, String> {
+        val userData =
+            db
+                .collection("users")
+                .document(userId)
+                .get()
+                .await()
+                .data
+        if (userData == null) {
+            throw Exception("User data is null")
+        }
+        val idData = userData["id"] as String
+        val name = userData["name"] as String
+        val email = userData["email"] as String
+        val phoneNumber = userData["phoneNumber"] as String
+        val profileImageData = userData["profileImage"] as String
+        val lotteriesData = userData["lotteries"] as List<*>
+        val reservationsData = userData["reservations"] as List<*>
+        val chatsData = userData["chats"] as List<*>
+        val lotteries = mutableListOf<Id>()
+        val reservations = mutableListOf<Id>()
+        val chats = mutableListOf<Id>()
+        for (item in lotteriesData) {
+            lotteries.add(Id(Uuid.parse(item as String)))
+        }
+        for (item in reservationsData) {
+            reservations.add(Id(Uuid.parse(item as String)))
+        }
+        for (item in chatsData) {
+            chats.add(Id(Uuid.parse(item as String)))
+        }
+
+        return mapOf<String, String>("id" to idData)
     }
 
     override fun fetchOwnUser(deviceId: String): User {
@@ -426,4 +334,8 @@ object Database {
     }
 
     suspend fun getImage(path: String): String = db.getImage(path)
+
+    suspend fun addLottery(lottery: Lottery) {
+        db.addLottery(lottery)
+    }
 }
