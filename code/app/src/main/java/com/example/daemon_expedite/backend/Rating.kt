@@ -1,5 +1,13 @@
 package com.example.daemon_expedite.backend
 
+/**
+ * Aggregates user ratings for a campsite or similar entity.
+ *
+ * The rating keeps a running total score and count of submissions so the average can be
+ * calculated without storing each individual review separately.
+ *
+ * @property id Unique identifier for the rating record.
+ */
 class Rating(
     val id: Id = Id(),
     totalScore: Int = 0,

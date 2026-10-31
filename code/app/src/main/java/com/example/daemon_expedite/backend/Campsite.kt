@@ -2,7 +2,16 @@ package com.example.daemon_expedite.backend
 
 import android.location.Location
 
-
+/**
+ * Represents a campsite listing that can be published by an owner and booked through a lottery.
+ *
+ * The class keeps track of the campsite's public details, pricing, occupancy limits,
+ * associated images, and related lottery records.
+ *
+ * @property id Unique identifier for the campsite.
+ * @property ownerId Identifier of the owner who manages this campsite.
+ * @property rating Aggregated user rating for the campsite.
+ */
 class Campsite(
     val id: Id = Id(),
     name: String,
@@ -48,7 +57,7 @@ class Campsite(
         this.pricePerNight = newRate
         this.maxOccupancy = newMaxOccupancy
 
-        Database.updateCampsite(this)
+        //Database.updateCampsite(this)
     }
 
     suspend fun addLottery(lottery: Lottery) {
@@ -61,7 +70,7 @@ class Campsite(
     suspend fun addImage(image: Image) {
         if (image !in _images) {
             _images.add(image)
-            Database.addImage(image)
+            //Database.addImage(image)
         }
     }
 
@@ -71,6 +80,6 @@ class Campsite(
 
     suspend fun updateRating(rating: Int) {
         this.rating.addRating(rating)
-        Database.updateCampsite(this)
+        //Database.updateCampsite(this)
     }
 }

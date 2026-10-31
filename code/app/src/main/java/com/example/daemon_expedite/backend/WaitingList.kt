@@ -1,5 +1,13 @@
 package com.example.daemon_expedite.backend
 
+/**
+ * Represents a capped queue of users waiting for access to a lottery or booking opportunity.
+ *
+ * Users can be added or removed from the waiting list while preserving insertion order and
+ * enforcing a maximum capacity.
+ *
+ * @property capacity Maximum number of entrants allowed in the list.
+ */
 class WaitingList(
     val capacity: Int = Int.MAX_VALUE,
     entrants: List<Id> = emptyList()

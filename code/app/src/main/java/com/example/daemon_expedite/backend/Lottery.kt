@@ -3,6 +3,15 @@ package com.example.daemon_expedite.backend
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+/**
+ * Represents a campsite booking lottery with registration and winner selection windows.
+ *
+ * A lottery tracks which campsites it applies to, when users can register, and which users
+ * ultimately win access to the available booking dates.
+ *
+ * @property id Unique identifier for the lottery.
+ * @property waitingList Queue of users waiting to participate in the lottery.
+ */
 class Lottery(
     val id: Id = Id(),
     campsites: List<Id> = emptyList(),
@@ -53,7 +62,7 @@ class Lottery(
     suspend fun joinWaitingList(user: Id): Boolean {
         if (!isActive()) return false
         if (waitingList.add(user)) {
-            Database.addEntrant(id, user)
+            //Database.addEntrant(id, user)
             return true
         }
         return false
@@ -62,7 +71,7 @@ class Lottery(
     suspend fun leaveWaitingList(user: Id): Boolean {
         if (!isActive()) return false
         if (waitingList.remove(user)) {
-            Database.removeEntrant(id, user)
+            //Database.removeEntrant(id, user)
             return true
         }
         return false
