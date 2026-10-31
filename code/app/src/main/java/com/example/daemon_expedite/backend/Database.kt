@@ -5,14 +5,17 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.storage
 import kotlinx.coroutines.tasks.await
 import java.util.Date
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.to
 import kotlin.uuid.Uuid
 
 interface DatabaseInterface {
     suspend fun addUser(user: User)
 
-    fun fetchUser(userId: String): User
+    suspend fun fetchUser(userId: String): User
 
     fun fetchOwnUser(deviceId: String): User
 
@@ -38,7 +41,7 @@ interface DatabaseInterface {
 
     fun deleteCampsite(id: Id)
 
-    fun addLottery(lottery: Lottery)
+    suspend fun addLottery(lottery: Lottery)
 
     fun fetchLottery(id: Id): Lottery
 
@@ -86,12 +89,12 @@ interface DatabaseInterface {
  * @throws Exception: If authentication fails.
  * */
 
-class Database private constructor() : DatabaseInterface {
+private class DatabaseInner private constructor() : DatabaseInterface {
     private val cachedImages = mutableListOf<Image>()
     private val cachedChats = mutableListOf<Chat>()
     private val chatListeners =
         mutableMapOf<String, ListenerRegistration>()
-
+    private val dbStorage = Firebase.storage
     private val db = Firebase.firestore
 
     companion object {
@@ -100,14 +103,14 @@ class Database private constructor() : DatabaseInterface {
          *
          * @throws Exception: If authentication fails.
          * */
-        suspend fun create(): Database {
+        suspend fun create(): DatabaseInner {
             val auth = FirebaseAuth.getInstance()
 
             if (auth.currentUser == null) {
                 auth.signInAnonymously().await()
             }
 
-            return Database()
+            return DatabaseInner()
         }
     }
 
@@ -235,7 +238,7 @@ class Database private constructor() : DatabaseInterface {
     override suspend fun addUser(user: User) {
         val userdata =
             mapOf(
-                "id" to user.id.toString(),
+                "id" to user.id.value.toString(),
                 "name" to user.name,
                 "email" to user.email,
                 "phoneNumber" to user.phoneNumber,
@@ -251,8 +254,13 @@ class Database private constructor() : DatabaseInterface {
             .await()
     }
 
-    override fun fetchUser(userId: String): User {
-//        val userData = db.collection("users").document(userId).get()
+    override suspend fun fetchUser(userId: String): User {
+//        val userData =
+//            db
+//                .collection("users")
+//                .document(userId)
+//                .get()
+//                .await()
         TODO()
     }
 
@@ -300,8 +308,27 @@ class Database private constructor() : DatabaseInterface {
         TODO("Not yet implemented")
     }
 
-    override fun addLottery(lottery: Lottery) {
-        TODO("Not yet implemented")
+    override suspend fun addLottery(lottery: Lottery) {
+        val lotteryData =
+            mapOf(
+                "id" to lottery.id.value.toString(),
+                "campsites" to lottery.campsites.map { it.value.toString() },
+                "maxBookableByASingleUser" to lottery.maxBookableByASingleUser,
+                "registrationStart" to lottery.registrationStart.toString(),
+                "registrationEnd" to lottery.registrationEnd.toString(),
+                "bookingStart" to lottery.bookingStart.toString(),
+                "bookingEnd" to lottery.bookingEnd.toString(),
+                "winnerCount" to lottery.winnerCount,
+                "winners" to lottery.winners.map { it.value.toString() },
+                "lotteryStart" to lottery.lotteryStart.toString(),
+                "lotteryEnd" to lottery.lotteryEnd.toString(),
+                "availableDates" to lottery.availableDates.map { it.toString() },
+            )
+        db
+            .collection("lotteries")
+            .document(lottery.id.value.toString())
+            .set(lotteryData)
+            .await()
     }
 
     override fun fetchLottery(id: Id): Lottery {
@@ -372,4 +399,31 @@ class Database private constructor() : DatabaseInterface {
     override fun fetchAllNotifications(): List<Notification> {
         TODO("Not yet implemented")
     }
+
+    suspend fun getImage(path: String): String =
+        try {
+            dbStorage.reference
+                .child(path)
+                .downloadUrl
+                .await()
+                .toString()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw Exception("Failed to load image $path", e)
+        }
+}
+
+object Database {
+    private lateinit var db: DatabaseInner
+
+    suspend fun init() {
+        db = DatabaseInner.create()
+    }
+
+    suspend fun addUser(user: User) {
+        db.addUser(user)
+    }
+
+    suspend fun getImage(path: String): String = db.getImage(path)
 }
