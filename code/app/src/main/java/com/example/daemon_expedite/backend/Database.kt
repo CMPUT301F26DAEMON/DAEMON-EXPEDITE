@@ -17,7 +17,7 @@ interface DatabaseInterface {
 
     suspend fun fetchUser(userId: String): Map<String, String>
 
-    fun fetchOwnUser(deviceId: String): User
+    suspend fun fetchOwnUser(deviceId: String): User
 
     fun updateUser(user: User)
 
@@ -90,10 +90,9 @@ interface DatabaseInterface {
  * */
 
 private class DatabaseInner private constructor() : DatabaseInterface {
-    private val chatListeners =
-        mutableMapOf<String, ListenerRegistration>()
     private val dbStorage = Firebase.storage
     private val db = Firebase.firestore
+    val auth = FirebaseAuth.getInstance()
 
     companion object {
         /**
@@ -121,6 +120,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     override suspend fun addUser(user: User) {
         val userdata =
             mapOf(
+                "authId" to auth.currentUser?.uid,
                 "id" to user.id.value.toString(),
                 "name" to user.name,
                 "email" to user.email,
@@ -169,11 +169,53 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             chats.add(Id(Uuid.parse(item as String)))
         }
 
-        return mapOf<String, String>("id" to idData)
+        return mapOf<String, String>(
+            "id" to idData,
+            "name" to name,
+            "email" to email,
+            "phoneNumber" to phoneNumber,
+            "profileImageData" to profileImageData,
+        )
     }
 
-    override fun fetchOwnUser(deviceId: String): User {
-        TODO("Not yet implemented")
+    override suspend fun fetchOwnUser(deviceId: String): User {
+        val userData =
+            db
+                .collection("users")
+                .whereEqualTo("authUid", auth.currentUser?.uid)
+                .limit(1)
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+                ?.reference
+                ?.get()
+                ?.await()
+                ?.data
+        if (userData == null) {
+            throw Exception("User data is null")
+        }
+        val idData = userData["id"] as String
+        val name = userData["name"] as String
+        val email = userData["email"] as String
+        val phoneNumber = userData["phoneNumber"] as String
+        val profileImageData = userData["profileImageData"] as String
+        val lotteriesData = userData["lotteries"] as List<*>
+        val reservationsData = userData["reservations"] as List<*>
+        val chatsData = userData["chats"] as List<*>
+        val lotteries = mutableListOf<Id>()
+        val reservations = mutableListOf<Id>()
+        val chats = mutableListOf<Id>()
+        for (item in lotteriesData) {
+            lotteries.add(Id(Uuid.parse(item as String)))
+        }
+        for (item in reservationsData) {
+            reservations.add(Id(Uuid.parse(item as String)))
+        }
+        for (item in chatsData) {
+            chats.add(Id(Uuid.parse(item as String)))
+        }
+        return User(Id(Uuid.parse(idData)), name, email, phoneNumber, Id(Uuid.parse(profileImageData)), lotteries, reservations, chats)
     }
 
     override fun updateUser(user: User) {
