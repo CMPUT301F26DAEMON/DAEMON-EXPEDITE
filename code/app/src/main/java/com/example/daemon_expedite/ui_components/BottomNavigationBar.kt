@@ -32,6 +32,7 @@ fun BottomNavBar(
     }
 
     Surface(
+        color = AppColors.Background,
         contentColor = AppColors.TextOnPrimary
     ) {
         Row(
