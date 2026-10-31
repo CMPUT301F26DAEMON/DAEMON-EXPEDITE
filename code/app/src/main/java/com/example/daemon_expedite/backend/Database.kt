@@ -9,6 +9,7 @@ import com.google.firebase.storage.storage
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Instant
 import kotlin.to
 import kotlin.uuid.Uuid
 
@@ -17,7 +18,7 @@ interface DatabaseInterface {
 
     suspend fun fetchUser(userId: String): Map<String, String>
 
-    suspend fun fetchOwnUser(deviceId: String): User
+    suspend fun fetchOwnUser(): User
 
     fun updateUser(user: User)
 
@@ -25,7 +26,9 @@ interface DatabaseInterface {
 
     fun fetchAllUsers(): List<User>
 
-    fun getOwner(deviceId: String): Owner
+    suspend fun addOwner(owner: Owner)
+
+    suspend fun getOwner(): Owner
 
     fun addCampsite(campsite: Campsite)
 
@@ -43,9 +46,9 @@ interface DatabaseInterface {
 
     suspend fun addLottery(lottery: Lottery)
 
-    fun fetchLottery(id: Id): Lottery
+    suspend fun fetchLottery(id: Id): Lottery
 
-    fun updateLottery(lottery: Lottery)
+    suspend fun updateLottery(lottery: Lottery)
 
     fun addReservation(reservation: Reservation)
 
@@ -109,9 +112,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
             return DatabaseInner()
         }
-    }
-
-    init {
     }
 
     /**
@@ -178,7 +178,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         )
     }
 
-    override suspend fun fetchOwnUser(deviceId: String): User {
+    override suspend fun fetchOwnUser(): User {
         val userData =
             db
                 .collection("users")
@@ -230,8 +230,109 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         TODO("Not yet implemented")
     }
 
-    override fun getOwner(deviceId: String): Owner {
-        TODO("Not yet implemented")
+    override suspend fun addOwner(owner: Owner) {
+        val userData =
+            mapOf(
+                "authId" to auth.currentUser?.uid,
+                "id" to owner.id.value.toString(),
+                "name" to owner.name,
+                "email" to owner.email,
+                "phoneNumber" to owner.phoneNumber,
+                "profileImage" to owner.profileImage.value.toString(),
+                "lotteries" to owner.lotteries.map { it.value.toString() },
+                "reservations" to owner.reservations.map { it.value.toString() },
+                "chats" to owner.chats.map { it.value.toString() },
+                "ownerCampsites" to owner.ownerCampsites.map { it.value.toString() },
+                "ownerNotification" to owner.ownerNotifications.map { it.value.toString() },
+                "ownerChats" to owner.ownerChats.map { it.value.toString() },
+                "ownerReservations" to owner.ownerReservations.map { it.value.toString() },
+                "ownerLotteries" to owner.ownerLotteries.map { it.value.toString() },
+            )
+        db
+            .collection("owners")
+            .document(owner.id.value.toString())
+            .set(userData)
+            .await()
+    }
+
+    override suspend fun getOwner(): Owner {
+        val userData =
+            db
+                .collection("users")
+                .whereEqualTo("authUid", auth.currentUser?.uid)
+                .limit(1)
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+                ?.reference
+                ?.get()
+                ?.await()
+                ?.data
+        if (userData == null) {
+            throw Exception("User data is null")
+        }
+        val idData = userData["id"] as String
+        val name = userData["name"] as String
+        val email = userData["email"] as String
+        val phoneNumber = userData["phoneNumber"] as String
+        val profileImageData = userData["profileImageData"] as String
+        val lotteriesData = userData["lotteries"] as List<*>
+        val reservationsData = userData["reservations"] as List<*>
+        val chatsData = userData["chats"] as List<*>
+        val ownerCampsitesData = userData["ownerCampsites"] as List<*>
+        val ownerNotificationsData = userData["ownerNotifications"] as List<*>
+        val ownerChatsData = userData["ownerChats"] as List<*>
+        val ownerReservationsData = userData["ownerReservations"] as List<*>
+        val ownerLotteriesData = userData["ownerLotteries"] as List<*>
+        val ownerCampsites = mutableListOf<Id>()
+        val ownerNotifications = mutableListOf<Id>()
+        val ownerChats = mutableListOf<Id>()
+        val ownerReservations = mutableListOf<Id>()
+        val ownerLotteries = mutableListOf<Id>()
+        val lotteries = mutableListOf<Id>()
+        val reservations = mutableListOf<Id>()
+        val chats = mutableListOf<Id>()
+        for (item in lotteriesData) {
+            lotteries.add(Id(Uuid.parse(item as String)))
+        }
+        for (item in reservationsData) {
+            reservations.add(Id(Uuid.parse(item as String)))
+        }
+        for (item in chatsData) {
+            chats.add(Id(Uuid.parse(item as String)))
+        }
+        for (item in ownerCampsitesData) {
+            ownerCampsites.add(Id(Uuid.parse(item.toString())))
+        }
+        for (item in ownerNotificationsData) {
+            ownerNotifications.add(Id(Uuid.parse(item.toString())))
+        }
+        for (item in ownerChatsData) {
+            ownerChats.add(Id(Uuid.parse(item.toString())))
+        }
+        for (item in ownerReservationsData) {
+            ownerReservations.add(Id(Uuid.parse(item.toString())))
+        }
+
+        for (item in ownerLotteriesData) {
+            ownerLotteries.add(Id(Uuid.parse(item.toString())))
+        }
+        return Owner(
+            Id(Uuid.parse(idData)),
+            name,
+            email,
+            phoneNumber,
+            Id(Uuid.parse(profileImageData)),
+            lotteries,
+            reservations,
+            chats,
+            ownerCampsites,
+            ownerNotifications,
+            ownerChats,
+            ownerReservations,
+            ownerLotteries,
+        )
     }
 
     override fun addCampsite(campsite: Campsite) {
@@ -281,12 +382,59 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .await()
     }
 
-    override fun fetchLottery(id: Id): Lottery {
-        TODO("Not yet implemented")
+    override suspend fun fetchLottery(id: Id): Lottery {
+        val lotteryData =
+            db
+                .collection("lotteries")
+                .document(id.value.toString())
+                .get()
+                .await()
+                .data
+        if (lotteryData == null) {
+            throw Exception("Lottery data is null")
+        }
+        val idData = lotteryData["id"] as String
+        val campsitesData = lotteryData["campsites"] as List<*>
+        val campsites = mutableListOf<Id>()
+        for (item in campsitesData) {
+            campsites.add(Id(Uuid.parse(item.toString())))
+        }
+        val maxBook = lotteryData["maxBookableByASingleUser"] as Int
+        val registrationStart = lotteryData["registrationStart"] as String
+        val registrationEnd = lotteryData["registrationEnd"] as String
+        val bookingStart = lotteryData["bookingStart"] as String
+        val bookingEnd = lotteryData["bookingEnd"] as String
+        val winnerCount = lotteryData["winnerCount"] as Int
+        val winnersData = lotteryData["winners"] as List<*>
+        val winners = mutableListOf<Id>()
+        for (item in winnersData) {
+            winners.add(Id(Uuid.parse(item.toString())))
+        }
+        val lotteryStart = lotteryData["lotteryStart"] as String
+        val lotteryEnd = lotteryData["lotteryEnd"] as String
+        val availableDatesData = lotteryData["availableDates"] as List<*>
+        val availableDates = mutableListOf<Instant>()
+        for (item in availableDatesData) {
+            availableDates.add(Instant.parse(item.toString()))
+        }
+        return Lottery(
+            Id(Uuid.parse(idData)),
+            campsites,
+            maxBook,
+            Instant.parse(registrationStart),
+            Instant.parse(registrationEnd),
+            Instant.parse(bookingStart),
+            Instant.parse(bookingEnd),
+            winnerCount,
+            winners,
+            Instant.parse(lotteryStart),
+            Instant.parse(lotteryEnd),
+            availableDates,
+        )
     }
 
-    override fun updateLottery(lottery: Lottery) {
-        TODO("Not yet implemented")
+    override suspend fun updateLottery(lottery: Lottery) {
+        addLottery(lottery)
     }
 
     override fun addReservation(reservation: Reservation) {
@@ -370,6 +518,22 @@ object Database {
     suspend fun init() {
         db = DatabaseInner.create()
     }
+
+    suspend fun fetchUser(userId: String): Map<String, String> = db.fetchUser(userId)
+
+    suspend fun fetchOwnUser(): User = db.fetchOwnUser()
+
+    suspend fun addOwner(owner: Owner) {
+        db.addOwner(owner)
+    }
+
+    suspend fun fetchLottery(id: Id): Lottery = db.fetchLottery(id)
+
+    suspend fun updateLottery(lottery: Lottery) {
+        db.updateLottery(lottery)
+    }
+
+    suspend fun getOwner(): Owner = db.getOwner()
 
     suspend fun addUser(user: User) {
         db.addUser(user)
