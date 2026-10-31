@@ -1,5 +1,6 @@
 package com.example.daemon_expedite.backend
 
+import android.location.Location
 import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -125,10 +126,11 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "name" to user.name,
                 "email" to user.email,
                 "phoneNumber" to user.phoneNumber,
-                "profileImage" to user.profileImage.value.toString(),
-                "lotteries" to user.lotteries.map { it.value.toString() },
-                "reservations" to user.reservations.map { it.value.toString() },
-                "chats" to user.chats.map { it.value.toString() },
+                "notificationsEnabled" to user.notificationsEnabled,
+                "profileImage" to user.profileImage?.id?.value?.toString(),
+                "lotteries" to user.lotteryIds.map { it.value.toString() },
+                "reservations" to user.reservationIds.map { it.value.toString() },
+                "chats" to user.chatIds.map { it.value.toString() },
             )
         db
             .collection("users")
@@ -199,7 +201,9 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val name = userData["name"] as String
         val email = userData["email"] as String
         val phoneNumber = userData["phoneNumber"] as String
-        val profileImageData = userData["profileImageData"] as String
+        val notificationsEnabled = userData["notificationsEnabled"] as Boolean
+        val profileImageData = userData["profileImageData"] as? String
+        val profileImage = profileImageData?.let { fetchImageRecord(Id(Uuid.parse(it))) }
         val lotteriesData = userData["lotteries"] as List<*>
         val reservationsData = userData["reservations"] as List<*>
         val chatsData = userData["chats"] as List<*>
@@ -215,7 +219,32 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         for (item in chatsData) {
             chats.add(Id(Uuid.parse(item as String)))
         }
-        return User(Id(Uuid.parse(idData)), name, email, phoneNumber, Id(Uuid.parse(profileImageData)), lotteries, reservations, chats)
+        return User(
+            id = Id(Uuid.parse(idData)),
+            name = name,
+            email = email,
+            phoneNumber = phoneNumber,
+            notificationsEnabled = notificationsEnabled,
+            profileImage = profileImage,
+            lotteries = lotteries,
+            reservations = reservations,
+            chats = chats,
+        )
+    }
+
+    private suspend fun fetchImageRecord(id: Id): Image {
+        val imageData =
+            db
+                .collection("images")
+                .document(id.value.toString())
+                .get()
+                .await()
+                .data ?: error("Image data is missing for ${id.value}")
+
+        val imageId = Id(Uuid.parse(imageData["id"] as? String ?: error("Image id is missing")))
+        val uploader = Id(Uuid.parse(imageData["uploader"] as? String ?: error("Image uploader is missing")))
+        val path = imageData["path"] as? String ?: error("Image path is missing")
+        return Image(imageId, uploader, path)
     }
 
     override fun updateUser(user: User) {
@@ -238,13 +267,13 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "name" to owner.name,
                 "email" to owner.email,
                 "phoneNumber" to owner.phoneNumber,
-                "profileImage" to owner.profileImage.value.toString(),
-                "lotteries" to owner.lotteries.map { it.value.toString() },
-                "reservations" to owner.reservations.map { it.value.toString() },
-                "chats" to owner.chats.map { it.value.toString() },
+                "notificationsEnabled" to owner.notificationsEnabled,
+                "profileImage" to owner.profileImage?.id?.value?.toString(),
+                "lotteries" to owner.lotteryIds.map { it.value.toString() },
+                "reservations" to owner.reservationIds.map { it.value.toString() },
+                "chats" to owner.chatIds.map { it.value.toString() },
                 "ownerCampsites" to owner.ownerCampsites.map { it.value.toString() },
-                "ownerNotification" to owner.ownerNotifications.map { it.value.toString() },
-                "ownerChats" to owner.ownerChats.map { it.value.toString() },
+                "ownerNotification" to owner.sentNotifications.map { it.value.toString() },
                 "ownerReservations" to owner.ownerReservations.map { it.value.toString() },
                 "ownerLotteries" to owner.ownerLotteries.map { it.value.toString() },
             )
@@ -276,7 +305,9 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val name = userData["name"] as String
         val email = userData["email"] as String
         val phoneNumber = userData["phoneNumber"] as String
-        val profileImageData = userData["profileImageData"] as String
+        val notificationsEnabled = userData["notificationsEnabled"] as Boolean
+        val profileImageData = userData["profileImageData"] as? String
+        val profileImage = profileImageData?.let { fetchImageRecord(Id(Uuid.parse(it))) }
         val lotteriesData = userData["lotteries"] as List<*>
         val reservationsData = userData["reservations"] as List<*>
         val chatsData = userData["chats"] as List<*>
@@ -319,19 +350,20 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             ownerLotteries.add(Id(Uuid.parse(item.toString())))
         }
         return Owner(
-            Id(Uuid.parse(idData)),
-            name,
-            email,
-            phoneNumber,
-            Id(Uuid.parse(profileImageData)),
-            lotteries,
-            reservations,
-            chats,
-            ownerCampsites,
-            ownerNotifications,
-            ownerChats,
-            ownerReservations,
-            ownerLotteries,
+            id = Id(Uuid.parse(idData)),
+            name = name,
+            email = email,
+            phoneNumber = phoneNumber,
+            notificationsEnabled = notificationsEnabled,
+            profileImage = profileImage,
+            lotteries = lotteries,
+            reservations = reservations,
+            chats = chats,
+            ownerCampsites = ownerCampsites,
+            ownerReservations = ownerReservations,
+            ownerLotteries = ownerLotteries,
+            sentNotifications = ownerNotifications,
+            ownerChats = ownerChats,
         )
     }
 
@@ -367,8 +399,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "maxBookableByASingleUser" to lottery.maxBookableByASingleUser,
                 "registrationStart" to lottery.registrationStart.toString(),
                 "registrationEnd" to lottery.registrationEnd.toString(),
-                "bookingStart" to lottery.bookingStart.toString(),
-                "bookingEnd" to lottery.bookingEnd.toString(),
+                "bookingStart" to lottery.bookingStartDate.toString(),
+                "bookingEnd" to lottery.bookingEndDate.toString(),
                 "winnerCount" to lottery.winnerCount,
                 "winners" to lottery.winners.map { it.value.toString() },
                 "lotteryStart" to lottery.lotteryStart.toString(),
