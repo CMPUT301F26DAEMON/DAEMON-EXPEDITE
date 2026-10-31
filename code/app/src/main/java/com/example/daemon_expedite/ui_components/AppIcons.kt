@@ -1,6 +1,7 @@
 package com.example.daemon_expedite.ui_components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
@@ -20,9 +21,11 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.filled.Tune
 
 object AppIcons {
     val Search = Icons.Default.Search
+    val Filter = Icons.Default.Tune
     val QRCode = Icons.Default.QrCodeScanner
     val Profile = Icons.Default.Person
     val Star = Icons.Default.Star
@@ -37,4 +40,6 @@ object AppIcons {
     val Reservation = Icons.Outlined.EventAvailable
     val LotteryTicket = Icons.Outlined.ConfirmationNumber
     val Chat = Icons.Outlined.ChatBubbleOutline
+
+    val BellIcon = Icons.Default.Notifications
 }
