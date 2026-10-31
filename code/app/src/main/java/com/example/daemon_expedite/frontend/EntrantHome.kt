@@ -23,6 +23,7 @@ import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppFonts
 import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.ProfileImage
 import com.example.daemon_expedite.ui_components.SearchBar
 
 /**
@@ -50,17 +51,15 @@ fun EntrantHomeScreen() {
                 .fillMaxWidth()
                 .padding(
                     start = 15.dp,
+                    end = 11.dp, // + the profile button's 4dp inner padding = 15dp, matching start
                     top =30.dp
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // Search BAr
+            // Search BAr (no fixed height, so the Row can centre it with the icons)
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(45.dp)
-
+                modifier = Modifier.weight(1f)
             ) {
                 SearchBar(
                     query = searchQuery,
@@ -70,18 +69,20 @@ fun EntrantHomeScreen() {
                     onQRCodeClicked = {}
                 )
             }
-            IconButton(onClick = {}) {
+            // Smaller buttons than the 48dp default to tighten the filter/profile gap
+            IconButton(onClick = {}, modifier = Modifier.size(40.dp)) {
                 Icon(  //Filter icon
                     imageVector = AppIcons.Filter,
                     contentDescription = "Filter",
                     tint = AppColors.TextOnPrimary
                 )
             }
-            IconButton(onClick = {}) {
-                Icon(  //Profile icon
-                    imageVector = AppIcons.Profile,
-                    contentDescription = "Profile",
-                    tint = AppColors.TextOnPrimary
+            IconButton(onClick = {}, modifier = Modifier.size(40.dp)) {
+                // Profile picture (no user data yet, so the fallback image is shown)
+                ProfileImage(
+                    imageUrl = null,
+                    size = 39.dp,
+                    contentDescription = "Profile"
                 )
             }
         }
