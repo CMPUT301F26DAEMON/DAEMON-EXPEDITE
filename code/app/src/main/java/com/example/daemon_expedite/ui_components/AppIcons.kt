@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -48,6 +50,8 @@ object AppIcons {
     val Chat = Icons.Outlined.ChatBubbleOutline
 
     val BellIcon = Icons.Default.Notifications
+    val Trophy = Icons.Default.EmojiEvents
+    val Waitlist = Icons.Default.FormatListNumbered
 
     /** Thin chevron from the Figma calendar (20x20, 1.8 stroke). Pointing left. */
     val ChevronLeft: ImageVector by lazy { chevron("ChevronLeft", 12.5f, 7.5f) }
