@@ -38,7 +38,7 @@ fun GreenButton(
     onClick: () -> Unit,
     icon: ImageVector? = null,
     buttonText: String,
-    customHeight: Int = 58,
+    customHeight: Int = 56,
     customWidth: Int = 356
 ) {
     Button(
