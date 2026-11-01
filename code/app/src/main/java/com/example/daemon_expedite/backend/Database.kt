@@ -602,6 +602,8 @@ object Database {
 
     suspend fun fetchUser(userId: Id): Map<String, String> = db.fetchUser(userId)
 
+    suspend fun updateUser(user: User) = db.updateUser(user)
+
     suspend fun deleteUser(user: User) = db.deleteUser(user)
 
     suspend fun fetchOwnUser(): User = db.fetchOwnUser()
