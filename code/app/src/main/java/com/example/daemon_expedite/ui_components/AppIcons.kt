@@ -1,6 +1,18 @@
 package com.example.daemon_expedite.ui_components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.Notes
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.Forest
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.MonetizationOn
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
@@ -52,6 +64,20 @@ object AppIcons {
     val BellIcon = Icons.Default.Notifications
     val Trophy = Icons.Default.EmojiEvents
     val Waitlist = Icons.Default.FormatListNumbered
+
+    // Register campsite and Select location (Material stand-ins for the Figma Lucide icons).
+    val Campsite = Icons.Outlined.Forest
+    val Description = Icons.AutoMirrored.Outlined.Notes
+    val MapPin = Icons.Outlined.Place
+    val Guests = Icons.Outlined.Groups
+    val Price = Icons.Outlined.MonetizationOn
+    val AddPhoto = Icons.Outlined.AddPhotoAlternate
+    val Rules = Icons.AutoMirrored.Outlined.MenuBook
+    val Shield = Icons.Outlined.VerifiedUser
+    val Plus = Icons.Default.Add
+    val Minus = Icons.Default.Remove
+    val MyLocation = Icons.Default.MyLocation
+    val Move = Icons.Default.OpenWith
 
     /** Thin chevron from the Figma calendar (20x20, 1.8 stroke). Pointing left. */
     val ChevronLeft: ImageVector by lazy { chevron("ChevronLeft", 12.5f, 7.5f) }

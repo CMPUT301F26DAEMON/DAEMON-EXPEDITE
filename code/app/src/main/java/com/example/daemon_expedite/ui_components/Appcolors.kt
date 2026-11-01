@@ -80,6 +80,12 @@ object AppColors {
     /** Form field fill (white at 9%). */
     val FillField = Color(0x17FFFFFF)
 
+    /** Border of the Register campsite form fields (white at 70%). */
+    val OutlineField = Color(0xB3FFFFFF)
+
+    /** Inside of the promo image drop area (Secondary at 8%). */
+    val SecondaryTint = Color(0x1490A99A)
+
     /** White at 80% opacity. */
     val SearchBarBackground = Color(0xCCFFFFFF)
 

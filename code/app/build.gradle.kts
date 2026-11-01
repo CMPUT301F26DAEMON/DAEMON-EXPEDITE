@@ -71,4 +71,6 @@ dependencies {
     // Coil 3 can't download images from URLs without a network module (it fails silently).
     // Needed for profile and campsite photos, which are loaded from Firebase Storage URLs.
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+    // OpenStreetMap map view, used with Esri satellite tiles on the Select location screen.
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
 }
