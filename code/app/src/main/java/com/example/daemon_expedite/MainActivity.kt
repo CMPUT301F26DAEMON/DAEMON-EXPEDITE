@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import com.example.daemon_expedite.backend.Database
-import com.example.daemon_expedite.frontend.InitLoadScreen
+import com.example.daemon_expedite.frontend.AppNavigation
 import com.example.daemon_expedite.ui.theme.DAEMONEXPEDITETheme
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             DAEMONEXPEDITETheme {
-                InitLoadScreen()
+                AppNavigation()
             }
         }
     }
