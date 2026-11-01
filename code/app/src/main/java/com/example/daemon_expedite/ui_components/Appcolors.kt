@@ -68,6 +68,9 @@ object AppColors {
     /** Borders on tags and buttons (white at 15%). */
     val OutlineStrong = Color(0x26FFFFFF)
 
+    /** Border around the availability calendar (white at 40%). */
+    val OutlineBright = Color(0x66FFFFFF)
+
     /** Selected card border (sage at 40%). */
     val OutlineAccent = Color(0x6690A99A)
 

@@ -22,6 +22,12 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.unit.dp
 
 object AppIcons {
     val Search = Icons.Default.Search
@@ -42,4 +48,28 @@ object AppIcons {
     val Chat = Icons.Outlined.ChatBubbleOutline
 
     val BellIcon = Icons.Default.Notifications
+
+    /** Thin chevron from the Figma calendar (20x20, 1.8 stroke). Pointing left. */
+    val ChevronLeft: ImageVector by lazy { chevron("ChevronLeft", 12.5f, 7.5f) }
+
+    /** Thin chevron from the Figma calendar (20x20, 1.8 stroke). Pointing right. */
+    val ChevronRight: ImageVector by lazy { chevron("ChevronRight", 7.5f, 12.5f) }
 }
+
+/** Builds the Figma chevron path M{outerX} 15 L{tipX} 10 L{outerX} 5. */
+private fun chevron(name: String, outerX: Float, tipX: Float): ImageVector =
+    ImageVector.Builder(
+        name = name,
+        defaultWidth = 20.dp,
+        defaultHeight = 20.dp,
+        viewportWidth = 20f,
+        viewportHeight = 20f,
+    ).path(
+        stroke = SolidColor(Color.Black), // Icon() replaces this with its tint.
+        strokeLineWidth = 1.8f,
+        strokeLineCap = StrokeCap.Round,
+    ) {
+        moveTo(outerX, 15f)
+        lineTo(tipX, 10f)
+        lineTo(outerX, 5f)
+    }.build()
