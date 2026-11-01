@@ -21,7 +21,7 @@ interface DatabaseInterface {
 
     suspend fun fetchOwnUser(): User
 
-    fun updateUser(user: User)
+    suspend fun updateUser(user: User)
 
     fun deleteUser(user: User)
 
@@ -30,6 +30,8 @@ interface DatabaseInterface {
     suspend fun addOwner(owner: Owner)
 
     suspend fun getOwner(): Owner
+
+    suspend fun updateOwner(owner: Owner)
 
     fun addCampsite(campsite: Campsite)
 
@@ -206,7 +208,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val email = userData["email"] as String
         val phoneNumber = userData["phoneNumber"] as String
         val notificationsEnabled = userData["notificationsEnabled"] as Boolean
-        val profileImageData = userData["profileImageData"] as? String
+        val profileImageData = userData["profileImage"] as? String
         val profileImage = profileImageData?.let { fetchImageRecord(Id(Uuid.parse(it))) }
         val lotteriesData = userData["lotteries"] as List<*>
         val reservationsData = userData["reservations"] as List<*>
@@ -236,7 +238,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         )
     }
 
-    private suspend fun fetchImageRecord(id: Id): Image {
+    suspend fun fetchImageRecord(id: Id): Image {
         val imageData =
             db
                 .collection("images")
@@ -251,8 +253,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return Image(imageId, uploader, path)
     }
 
-    override fun updateUser(user: User) {
-        TODO("Not yet implemented")
+    override suspend fun updateUser(user: User) {
+        addUser(user)
     }
 
     override fun deleteUser(user: User) {
@@ -284,6 +286,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "ownerNotification" to owner.sentNotifications.map { it.value.toString() },
                 "ownerReservations" to owner.ownerReservations.map { it.value.toString() },
                 "ownerLotteries" to owner.ownerLotteries.map { it.value.toString() },
+                "ownerChats" to owner.ownerChats.map { it.value.toString() },
             )
         db
             .collection("owners")
@@ -296,7 +299,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val userData =
             db
                 .collection("owners")
-                .whereEqualTo("authUid", auth.currentUser?.uid)
+                .whereEqualTo("authId", auth.currentUser?.uid)
                 .limit(1)
                 .get()
                 .await()
@@ -373,6 +376,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             sentNotifications = ownerNotifications,
             ownerChats = ownerChats,
         )
+    }
+
+    override suspend fun updateOwner(owner: Owner) {
+        addOwner(owner)
     }
 
     override fun addCampsite(campsite: Campsite) {
@@ -559,6 +566,10 @@ object Database {
         db = DatabaseInner.create()
     }
 
+    suspend fun addUser(user: User) {
+        db.addUser(user)
+    }
+
     suspend fun fetchUser(userId: String): Map<String, String> = db.fetchUser(userId)
 
     suspend fun fetchOwnUser(): User = db.fetchOwnUser()
@@ -567,21 +578,19 @@ object Database {
         db.addOwner(owner)
     }
 
+    suspend fun getOwner(): Owner = db.getOwner()
+
+    suspend fun updateOwner(owner: Owner) = db.updateOwner(owner)
+
+    suspend fun addLottery(lottery: Lottery) {
+        db.addLottery(lottery)
+    }
+
     suspend fun fetchLottery(id: Id): Lottery = db.fetchLottery(id)
 
     suspend fun updateLottery(lottery: Lottery) {
         db.updateLottery(lottery)
     }
 
-    suspend fun getOwner(): Owner = db.getOwner()
-
-    suspend fun addUser(user: User) {
-        db.addUser(user)
-    }
-
     suspend fun getImage(path: String): String = db.getImage(path)
-
-    suspend fun addLottery(lottery: Lottery) {
-        db.addLottery(lottery)
-    }
 }

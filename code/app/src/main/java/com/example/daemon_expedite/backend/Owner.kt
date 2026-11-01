@@ -43,16 +43,16 @@ open class Owner(
     sentNotifications: List<Id> = emptyList(),
     ownerChats: List<Id> = emptyList(),
 ) : User(
-    id,
-    name,
-    email,
-    phoneNumber,
-    notificationsEnabled,
-    profileImage,
-    lotteries,
-    reservations,
-    chats,
-) {
+        id,
+        name,
+        email,
+        phoneNumber,
+        notificationsEnabled,
+        profileImage,
+        lotteries,
+        reservations,
+        chats,
+    ) {
     private val _ownerCampsites: MutableList<Id> = ownerCampsites.toMutableList()
     private val _ownerReservations: MutableList<Id> = ownerReservations.toMutableList()
     private val _ownerLotteries: MutableList<Id> = ownerLotteries.toMutableList()
@@ -70,6 +70,7 @@ open class Owner(
 
     /** Ids of notifications the owner has sent (read-only view). */
     val sentNotifications: List<Id> get() = _sentNotifications
+    val ownerChats: List<Id> get() = _ownerChats
 
     /**
      * Registers a new campsite for this owner.
@@ -81,7 +82,7 @@ open class Owner(
      */
     suspend fun addCampsite(campsite: Campsite) {
         if (campsite.id in _ownerCampsites) return
-        //Database.addCampsite(campsite)
+        // Database.addCampsite(campsite)
         _ownerCampsites.add(campsite.id)
         Database.addOwner(this)
     }
@@ -125,13 +126,11 @@ open class Owner(
      * @param notification Notification. The notification that was sent.
      */
     /**
-    suspend fun addSentNotification(notification: Notification) {
-        if (notification.id in _sentNotifications) return
-        Database.addNotification(notification)
-        _sentNotifications.add(notification.id)
-        Database.addOwner(this)
-    }
-    */
-
-
+     suspend fun addSentNotification(notification: Notification) {
+     if (notification.id in _sentNotifications) return
+     Database.addNotification(notification)
+     _sentNotifications.add(notification.id)
+     Database.addOwner(this)
+     }
+     */
 }
