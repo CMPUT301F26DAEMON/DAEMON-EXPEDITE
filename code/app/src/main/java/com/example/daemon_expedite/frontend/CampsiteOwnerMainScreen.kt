@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -28,6 +29,8 @@ import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.GreenButton
+import com.example.daemon_expedite.ui_components.ProfileImage
+import androidx.compose.foundation.layout.size
 import com.example.daemon_expedite.ui_components.SearchBar
 
 /**
@@ -37,10 +40,25 @@ import com.example.daemon_expedite.ui_components.SearchBar
  * Provides a button for registering new campsites.
  * Includes a bottom navigation bar for accessing reservations, messages,
  * notifications, and lotteries.
+ *
+ * The screen only displays what it is given; [OwnerViewModel] loads the campsites.
+ * The search bar filters the already-loaded list, so it doesn't hit the database.
  */
 @Composable
-fun CampsiteOwnerMainPage() {
-    var searchQuery by remember { mutableStateOf("") }
+fun CampsiteOwnerMainPage(
+    profileImageUrl: String? = null,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    campsites: UiState<List<CampsiteSummary>> = UiState.Content(emptyList()),
+    onRetry: () -> Unit = {},
+    onCampsiteClick: (Id) -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    onRegisterCampsiteClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {},
+    onMessagesClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onLotteriesClick: () -> Unit = {},
+) {
 
     Column(
         modifier = Modifier
@@ -52,7 +70,11 @@ fun CampsiteOwnerMainPage() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 15.dp, top = 30.dp),
+                .padding(
+                    start = 15.dp,
+                    end = 11.dp, // + the profile button's inner padding = 15dp, matching start
+                    top = 30.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
@@ -63,18 +85,20 @@ fun CampsiteOwnerMainPage() {
             ) {
                 SearchBar(
                     query = searchQuery,
-                    onQueryChange = { searchQuery = it },
+                    onQueryChange = onSearchQueryChange,
                     placeholderText = "SEARCH YOUR CAMPSITES",
                     showQrIcon = false,
                     onQRCodeClicked = {}
                 )
             }
 
-            IconButton(onClick = {}) {
-                Icon(
-                    imageVector = AppIcons.Profile,
-                    contentDescription = "Profile",
-                    tint = AppColors.TextOnPrimary
+            // Same size as on the entrant home page so the two top bars match.
+            IconButton(onClick = onProfileClick, modifier = Modifier.size(40.dp)) {
+                // Profile picture (falls back to a default image when the user has none)
+                ProfileImage(
+                    imageUrl = profileImageUrl,
+                    size = 39.dp,
+                    contentDescription = "Profile"
                 )
             }
         }
@@ -91,14 +115,23 @@ fun CampsiteOwnerMainPage() {
             )
         )
 
-        // Scrollable list of the owner's registered campsites
-        LazyColumn(
+        // Scrollable list of the owner's registered campsites, filtered by the search text
+        val filtered = when (campsites) {
+            is UiState.Content -> UiState.Content(
+                campsites.data.filter { it.name.contains(searchQuery.trim(), ignoreCase = true) }
+            )
+            else -> campsites
+        }
+        CampsiteList(
+            state = filtered,
+            emptyText = if (searchQuery.isBlank()) "You haven't registered a campsite yet"
+                        else "No campsites match \"$searchQuery\"",
+            onRetry = onRetry,
+            onCampsiteClick = onCampsiteClick,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-        ) {
-            // Registered Campsites go here
-        }
+        )
         // Register campsite button
         Box(
             modifier = Modifier
@@ -107,7 +140,7 @@ fun CampsiteOwnerMainPage() {
             contentAlignment = Alignment.Center
         ) {
             GreenButton(
-                onClick = {},
+                onClick = onRegisterCampsiteClick,
                 buttonText = "Register a campsite"
             )
         }
@@ -126,10 +159,10 @@ fun CampsiteOwnerMainPage() {
                 AppIcons.LotteryTicket
             ),
             onClicks = listOf(
-                {}, //Reservations
-                {}, //Messages
-                {}, //Notifications
-                {}, //Lotteries
+                onReservationsClick,
+                onMessagesClick,
+                onNotificationsClick,
+                onLotteriesClick,
             )
 
 

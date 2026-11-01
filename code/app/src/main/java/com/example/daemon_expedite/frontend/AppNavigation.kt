@@ -1,6 +1,9 @@
 package com.example.daemon_expedite.frontend
 
-import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,88 +11,307 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.daemon_expedite.backend.Database
-import com.example.daemon_expedite.backend.User
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import kotlin.coroutines.cancellation.CancellationException
 
 /** Route names for every screen in the app. Add new screens here. */
 object Routes {
     const val SPLASH = "splash"
+
+    // Entrant
     const val HOME = "home"
+    const val ENTRANT_PROFILE = "entrant_profile"
+    const val EDIT_PROFILE = "edit_profile"
+    const val EDIT_PROFILE_PHOTO = "edit_profile_photo"
+
+    // Owner
+    const val OWNER_HOME = "owner_home"
+    const val OWNER_PROFILE = "owner_profile"
+    const val START_LOTTERY = "start_lottery"
+
+    // Not built yet. When a screen is added, give it a route here and replace the
+    // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
+    // const val CAMPSITE_DETAIL = "campsite/{campsiteId}"
+    // const val RESERVATIONS = "reservations"
+    // const val LOTTERIES = "lotteries"
+    // const val MESSAGES = "messages"
+    // const val NOTIFICATIONS = "notifications"
+    // const val REGISTER_CAMPSITE = "register_campsite"
+    // const val POLICIES = "policies"
 }
 
-private const val TAG = "AppNavigation"
-
 /**
- * Root of the app's navigation.
+ * Root of the app's navigation. Every screen is connected here.
  *
- * Starts on the splash screen, which signs in and loads (or creates) the user. Once that
- * finishes it moves to the home screen and removes the splash screen from the back stack,
- * so pressing back on home closes the app instead of going back to the splash screen.
+ * How data flows:
+ * - The signed-in user lives in [SessionViewModel], shared by every screen. Screens read the
+ *   user from it and change the user only through its functions, which also save to the database.
+ * - Screens with their own data get their own ViewModel ([HomeViewModel], [OwnerViewModel]).
+ * - Screen composables only draw what they are given and report taps through callbacks.
+ *   This file turns those callbacks into ViewModel calls or navigation.
+ *
+ * Flow:
+ * ```
+ * Splash ─► Home ─► Entrant profile ─┬─► Edit profile ─► Edit photo
+ *                                    ├─► Edit photo
+ *                                    └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
+ *                                                    └─► Start lottery (Lotteries tab)
+ * ```
+ * Both profile pages have the role toggle: Entrant / Owner, plus Admin for users found in the
+ * "admins" collection at start-up (see [SessionState.Ready.isAdmin]).
+ *
+ * @param session Created here by default; pass one in for tests.
  */
 @Composable
-fun AppNavigation() {
+fun AppNavigation(session: SessionViewModel = viewModel()) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val sessionState by session.state.collectAsState()
+    val ready = sessionState as? SessionState.Ready
+    // Null while loading. Screens show empty values until the user arrives.
+    val user = ready?.user
+    val photoUrl = ready?.profileImageUrl
+    val isAdmin = ready?.isAdmin ?: false
 
-    NavHost(navController = navController, startDestination = Routes.SPLASH) {
+    // Shared by the owner screens. Created here so all of them see the same owner.
+    val ownerViewModel: OwnerViewModel = viewModel()
+
+    fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    fun showComingSoon(screen: String) = toast("$screen isn't built yet")
+
+    /**
+     * Switches to [role]'s home screen from either profile page.
+     *
+     * Entrant home is always at the bottom of the back stack, so switching to it pops back
+     * there; switching to Owner replaces whatever is above Entrant home.
+     */
+    fun switchRole(role: ProfileRole) = when (role) {
+        ProfileRole.ENTRANT -> navController.popBackStack(Routes.HOME, inclusive = false)
+        ProfileRole.OWNER -> navController.navigate(Routes.OWNER_HOME) {
+            popUpTo(Routes.HOME) // keep Entrant home underneath, drop the profile pages
+        }
+        // TODO: navigate to the admin home once it exists (only offered when isAdmin is true).
+        ProfileRole.ADMIN -> showComingSoon("Admin view")
+    }
+
+    NavHost(
+        navController = navController,
+        startDestination = Routes.SPLASH,
+        // Slide for opening/going back, zoom for role switches, fade from splash (NavTransitions.kt).
+        enterTransition = enterTransition,
+        exitTransition = exitTransition,
+        popEnterTransition = popEnterTransition,
+        popExitTransition = popExitTransition,
+    ) {
+
         composable(Routes.SPLASH) {
             SplashRoute(
+                state = sessionState,
+                onRetry = session::retry,
                 onReady = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.SPLASH) { inclusive = true }
                     }
-                }
+                },
             )
         }
+
+        // region Entrant
+
         composable(Routes.HOME) {
-            EntrantHomeScreen()
+            val home: HomeViewModel = viewModel()
+            val query by home.query.collectAsState()
+            val campsites by home.campsites.collectAsState()
+            EntrantHomeScreen(
+                profileImageUrl = photoUrl,
+                searchQuery = query,
+                onSearchQueryChange = home::onQueryChange,
+                campsites = campsites,
+                onRetry = home::retry,
+                // TODO: navigate to Routes.CAMPSITE_DETAIL with the id once that screen exists.
+                onCampsiteClick = { showComingSoon("Campsite details") },
+                onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
+                onReservationsClick = { showComingSoon("Reservations") },
+                onLotteriesClick = { showComingSoon("Lotteries") },
+                onMessagesClick = { showComingSoon("Messages") },
+            )
         }
+
+        composable(Routes.ENTRANT_PROFILE) {
+            EntrantProfileDetailsScreen(
+                name = user?.name.orEmpty(),
+                email = user?.email.orEmpty(),
+                phone = user?.phoneNumber.orEmpty(),
+                photoUrl = photoUrl,
+                notificationsEnabled = user?.notificationsEnabled ?: true,
+                onBackClick = { navController.popBackStack() },
+                onEditPhotoClick = { navController.navigate(Routes.EDIT_PROFILE_PHOTO) },
+                onUpdateProfileClick = { navController.navigate(Routes.EDIT_PROFILE) },
+                isAdmin = isAdmin,
+                onRoleSelected = { switchRole(it) },
+                onPoliciesClick = { showComingSoon("Policies") },
+                onNotificationsChanged = { enabled ->
+                    session.setNotificationsEnabled(enabled) { ok ->
+                        if (!ok) toast("Couldn't save notification setting")
+                    }
+                },
+                onDeleteProfileClick = {
+                    // The screen already asked "are you sure?" before calling this.
+                    session.deleteProfile { ok ->
+                        if (ok) navController.restartAtSplash() else toast("Couldn't delete profile")
+                    }
+                },
+            )
+        }
+
+        composable(Routes.EDIT_PROFILE) {
+            var saving by remember { mutableStateOf(false) }
+            EditProfileScreen(
+                profileImageUrl = photoUrl,
+                name = user?.name.orEmpty(),
+                email = user?.email.orEmpty(),
+                phoneNumber = user?.phoneNumber.orEmpty(),
+                isSaving = saving,
+                onBackClick = { navController.popBackStack() },
+                onCancelClick = { navController.popBackStack() },
+                onProfilePhotoClick = { navController.navigate(Routes.EDIT_PROFILE_PHOTO) },
+                onSaveClick = { name, email, phone ->
+                    saving = true
+                    session.updateProfile(name, email, phone) { ok ->
+                        saving = false
+                        if (ok) navController.popBackStack() else toast("Couldn't save your profile")
+                    }
+                },
+            )
+        }
+
+        composable(Routes.EDIT_PROFILE_PHOTO) {
+            // Opens the system photo picker. No storage permission is needed for this.
+            val pickPhoto = rememberLauncherForActivityResult(
+                ActivityResultContracts.PickVisualMedia()
+            ) { uri ->
+                if (uri == null) return@rememberLauncherForActivityResult // user cancelled
+                session.uploadProfilePhoto(uri) { ok ->
+                    if (ok) navController.popBackStack() else toast("Couldn't upload photo")
+                }
+            }
+            EditProfilePhotoScreen(
+                profileImageUrl = photoUrl,
+                onBackClick = { navController.popBackStack() },
+                onChoosePhotoClick = {
+                    pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                // TODO: taking a photo needs the camera permission and a file to save into.
+                onTakePhotoClick = { showComingSoon("Taking a photo") },
+                onDeletePhotoClick = {
+                    session.removeProfilePhoto { ok ->
+                        if (ok) navController.popBackStack() else toast("Couldn't remove photo")
+                    }
+                },
+            )
+        }
+
+        // endregion
+
+        // region Owner
+
+        composable(Routes.OWNER_HOME) {
+            // Load (or create) the owner once the user is available.
+            LaunchedEffect(user) { user?.let(ownerViewModel::load) }
+            val query by ownerViewModel.query.collectAsState()
+            val campsites by ownerViewModel.campsites.collectAsState()
+            CampsiteOwnerMainPage(
+                profileImageUrl = photoUrl,
+                searchQuery = query,
+                onSearchQueryChange = ownerViewModel::onQueryChange,
+                campsites = campsites,
+                onRetry = { user?.let { ownerViewModel.load(it, force = true) } },
+                onCampsiteClick = { showComingSoon("Campsite details") },
+                onProfileClick = { navController.navigate(Routes.OWNER_PROFILE) },
+                onRegisterCampsiteClick = { showComingSoon("Register campsite") },
+                onReservationsClick = { showComingSoon("Reservations") },
+                onMessagesClick = { showComingSoon("Messages") },
+                onNotificationsClick = { showComingSoon("Notifications") },
+                // TEMPORARY: Start Lottery has no other entry point yet. In the Figma it is
+                // reached from a campsite's owner view; move it there when that screen exists.
+                onLotteriesClick = { navController.navigate(Routes.START_LOTTERY) },
+            )
+        }
+
+        composable(Routes.OWNER_PROFILE) {
+            ProfileDetailsScreen(
+                profileImageUrl = photoUrl,
+                name = user?.name.orEmpty(),
+                email = user?.email.orEmpty(),
+                phoneNumber = user?.phoneNumber.orEmpty(),
+                isAdmin = isAdmin,
+                // Read-only page: photo and details are changed from the entrant profile.
+                onBackClick = { navController.popBackStack() },
+                onRoleSelected = { switchRole(it) },
+                onDeleteProfile = {
+                    // Owner page: delete only the owner side, then go back to being an entrant.
+                    ownerViewModel.deleteOwnerProfile { ok ->
+                        if (ok) {
+                            toast("Owner profile deleted")
+                            switchRole(ProfileRole.ENTRANT)
+                        } else {
+                            toast("Couldn't delete owner profile")
+                        }
+                    }
+                },
+            )
+        }
+
+        composable(Routes.START_LOTTERY) {
+            // TODO: the form doesn't report its values yet. When it gets an onSubmit callback,
+            //  build a Lottery from them and save it with Database.addLottery (already exposed),
+            //  then add it to the owner with Owner.addOwnerLottery.
+            StartLotteryScreen(onBackClick = { navController.popBackStack() })
+        }
+
+        // endregion
     }
 }
 
 /**
- * Shows [InitLoadScreen] while the database starts up and the user is loaded.
+ * Goes back to the splash screen and clears everything behind it, so back can't return to
+ * screens for a profile that no longer exists. Used after deleting the profile.
+ */
+private fun NavHostController.restartAtSplash() {
+    navigate(Routes.SPLASH) {
+        popUpTo(graph.id) { inclusive = true }
+    }
+}
+
+/**
+ * Shows [InitLoadScreen] while the user loads, then calls [onReady].
  *
- * If something fails (for example there is no internet), a message is shown at the bottom of
- * the screen and tapping it tries again.
- *
- * @param onReady Called once the signed-in user is available.
+ * If loading fails (for example there is no internet), a message is shown at the bottom of
+ * the screen and tapping it calls [onRetry].
  */
 @Composable
-private fun SplashRoute(onReady: (User) -> Unit) {
-    var failed by remember { mutableStateOf(false) }
-    // Changing this restarts the LaunchedEffect below, which retries the start-up.
-    var attempt by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(attempt) {
-        failed = false
-        try {
-            Database.init()
-            onReady(loadOrCreateUser())
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.e(TAG, "Start-up failed", e)
-            failed = true
-        }
+private fun SplashRoute(state: SessionState, onRetry: () -> Unit, onReady: () -> Unit) {
+    LaunchedEffect(state is SessionState.Ready) {
+        if (state is SessionState.Ready) onReady()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         InitLoadScreen()
-        if (failed) {
+        if (state is SessionState.Failed) {
             Text(
                 text = "Couldn't connect. Tap to try again.",
                 style = AppTextStyles.BodyMedium,
@@ -97,25 +319,9 @@ private fun SplashRoute(onReady: (User) -> Unit) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 64.dp)
-                    .clickable { attempt++ }
+                    .clickable(onClick = onRetry)
                     .padding(12.dp),
             )
         }
     }
 }
-
-/**
- * Returns the user linked to this device's Firebase sign-in, creating one on first launch.
- *
- * [Database.fetchOwnUser] throws when no user exists yet, which is how a first launch is
- * detected.
- */
-private suspend fun loadOrCreateUser(): User =
-    try {
-        Database.fetchOwnUser()
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        Log.i(TAG, "No existing user found, creating a new one", e)
-        User(notificationsEnabled = true).also { Database.addUser(it) }
-    }

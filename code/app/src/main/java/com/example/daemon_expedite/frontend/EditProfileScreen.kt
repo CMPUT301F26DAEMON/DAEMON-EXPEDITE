@@ -27,7 +27,10 @@ fun EditProfileScreen(
     phoneNumber: String = "",
     onBackClick: () -> Unit = {},
     onProfilePhotoClick: () -> Unit = {},
-    onSaveClick: () -> Unit = {},
+    // Gets the edited name, email and phone number when "Save changes" is tapped.
+    onSaveClick: (name: String, email: String, phoneNumber: String) -> Unit = { _, _, _ -> },
+    // While true the save button is disabled, so a slow save can't be sent twice.
+    isSaving: Boolean = false,
     onCancelClick: () -> Unit = {}
 ) {
 
@@ -136,9 +139,11 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(250.dp))
             GreenButton(
-                onClick = onSaveClick,
+                onClick = {
+                    if (!isSaving) onSaveClick(editableName.trim(), editableEmail.trim(), editablePhone.trim())
+                },
                 icon = AppIcons.Tick,
-                buttonText = "Save changes",
+                buttonText = if (isSaving) "Saving…" else "Save changes",
                 customHeight =58,
                 customWidth = fieldWidth
             )
