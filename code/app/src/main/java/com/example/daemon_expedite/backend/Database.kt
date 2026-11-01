@@ -1,14 +1,15 @@
 package com.example.daemon_expedite.backend
 
 import android.location.Location
+import android.net.Uri
 import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.storage
 import kotlinx.coroutines.tasks.await
-import java.util.Date
+import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Instant
 import kotlin.to
@@ -33,20 +34,19 @@ interface DatabaseInterface {
 
     suspend fun updateOwner(owner: Owner)
 
-    fun addCampsite(campsite: Campsite)
+    suspend fun addCampsite(campsite: Campsite)
 
     suspend fun fetchCampsite(campsiteId: Id): Campsite
 
-    fun searchCampsites(
+    suspend fun searchCampsites(
         location: Location? = null,
         radius: Int? = null,
         maxOccupancy: Int? = null,
-        dates: List<Date>? = null,
         text: String? = null,
         limit: Int? = null,
     ): List<Campsite>
 
-    fun updateCampsite(campsite: Campsite)
+    suspend fun updateCampsite(campsite: Campsite)
 
     fun deleteCampsite(id: Id)
 
@@ -62,10 +62,10 @@ interface DatabaseInterface {
 
     fun updateReservation(reservation: Reservation)
 
-    fun uploadImage(
+    suspend fun uploadImage(
         path: String,
         uploaderId: Id,
-    ): Id
+    ): Image
 
     fun addImageToCampsite(
         campsiteId: Id,
@@ -281,21 +281,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val userData =
             mapOf(
                 "authId" to auth.currentUser?.uid,
-                "id" to owner.id.value.toString(),
-                "name" to owner.name,
-                "email" to owner.email,
-                "phoneNumber" to owner.phoneNumber,
-                "notificationsEnabled" to owner.notificationsEnabled,
-                "profileImage" to
-                    owner.profileImage
-                        ?.id
-                        ?.value
-                        ?.toString(),
-                "lotteries" to owner.lotteryIds.map { it.value.toString() },
-                "reservations" to owner.reservationIds.map { it.value.toString() },
-                "chats" to owner.chatIds.map { it.value.toString() },
                 "ownerCampsites" to owner.ownerCampsites.map { it.value.toString() },
-                "ownerNotification" to owner.sentNotifications.map { it.value.toString() },
+                "ownerNotifications" to owner.sentNotifications.map { it.value.toString() },
                 "ownerReservations" to owner.ownerReservations.map { it.value.toString() },
                 "ownerLotteries" to owner.ownerLotteries.map { it.value.toString() },
                 "ownerChats" to owner.ownerChats.map { it.value.toString() },
@@ -308,7 +295,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     override suspend fun getOwner(): Owner {
-        val userData =
+        val user = fetchOwnUser()
+        val ownerData =
             db
                 .collection("owners")
                 .whereEqualTo("authId", auth.currentUser?.uid)
@@ -321,67 +309,42 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 ?.get()
                 ?.await()
                 ?.data
-        if (userData == null) {
+        if (ownerData == null) {
             throw Exception("User data is null")
         }
-        val idData = userData["id"] as String
-        val name = userData["name"] as String
-        val email = userData["email"] as String
-        val phoneNumber = userData["phoneNumber"] as String
-        val notificationsEnabled = userData["notificationsEnabled"] as Boolean
-        val profileImageData = userData["profileImage"] as? String
-        val profileImage = profileImageData?.let { fetchImageRecord(Id(Uuid.parse(it))) }
-        val lotteriesData = userData["lotteries"] as List<*>
-        val reservationsData = userData["reservations"] as List<*>
-        val chatsData = userData["chats"] as List<*>
-        val ownerCampsitesData = userData["ownerCampsites"] as List<*>
-        val ownerNotificationsData = userData["ownerNotifications"] as List<*>
-        val ownerChatsData = userData["ownerChats"] as List<*>
-        val ownerReservationsData = userData["ownerReservations"] as List<*>
-        val ownerLotteriesData = userData["ownerLotteries"] as List<*>
-        val ownerCampsites = mutableListOf<Id>()
-        val ownerNotifications = mutableListOf<Id>()
-        val ownerChats = mutableListOf<Id>()
-        val ownerReservations = mutableListOf<Id>()
-        val ownerLotteries = mutableListOf<Id>()
-        val lotteries = mutableListOf<Id>()
-        val reservations = mutableListOf<Id>()
-        val chats = mutableListOf<Id>()
-        for (item in lotteriesData) {
-            lotteries.add(Id(Uuid.parse(item as String)))
-        }
-        for (item in reservationsData) {
-            reservations.add(Id(Uuid.parse(item as String)))
-        }
-        for (item in chatsData) {
-            chats.add(Id(Uuid.parse(item as String)))
-        }
-        for (item in ownerCampsitesData) {
-            ownerCampsites.add(Id(Uuid.parse(item.toString())))
-        }
-        for (item in ownerNotificationsData) {
-            ownerNotifications.add(Id(Uuid.parse(item.toString())))
-        }
-        for (item in ownerChatsData) {
-            ownerChats.add(Id(Uuid.parse(item.toString())))
-        }
-        for (item in ownerReservationsData) {
-            ownerReservations.add(Id(Uuid.parse(item.toString())))
-        }
 
-        for (item in ownerLotteriesData) {
-            ownerLotteries.add(Id(Uuid.parse(item.toString())))
-        }
+        fun parseIdList(
+            data: Map<String, Any?>,
+            key: String,
+        ): List<Id> =
+            (data[key] as? List<*>)
+                ?.mapNotNull { item ->
+                    item?.toString()?.let {
+                        try {
+                            Id(Uuid.parse(it))
+                        } catch (_: Exception) {
+                            Log.e("DatabaseInner", "Skipping malformed id '$it' in $key")
+                            null
+                        }
+                    }
+                }
+                ?: emptyList()
+
+        val ownerCampsites = parseIdList(ownerData, "ownerCampsites")
+        val ownerNotifications = parseIdList(ownerData, "ownerNotifications")
+        val ownerChats = parseIdList(ownerData, "ownerChats")
+        val ownerReservations = parseIdList(ownerData, "ownerReservations")
+        val ownerLotteries = parseIdList(ownerData, "ownerLotteries")
         return Owner(
-            id = Id(Uuid.parse(idData)),
-            name = name,
-            email = email,
-            phoneNumber = phoneNumber,
-            notificationsEnabled = notificationsEnabled,
-            profileImage = profileImage,
-            lotteries = lotteries,
-            reservations = reservations,
-            chats = chats,
+            id = user.id,
+            name = user.name,
+            email = user.email,
+            phoneNumber = user.phoneNumber,
+            notificationsEnabled = user.notificationsEnabled,
+            profileImage = user.profileImage,
+            lotteries = user.lotteryIds,
+            reservations = user.reservationIds,
+            chats = user.chatIds,
             ownerCampsites = ownerCampsites,
             ownerReservations = ownerReservations,
             ownerLotteries = ownerLotteries,
@@ -394,42 +357,185 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         addOwner(owner)
     }
 
-    override fun addCampsite(campsite: Campsite) {
-        TODO("Not yet implemented")
+    override suspend fun addCampsite(campsite: Campsite) {
+        val campsiteData =
+            mapOf(
+                "id" to campsite.id.value.toString(),
+                "name" to campsite.name,
+                "description" to campsite.description,
+                "tage" to campsite.tags,
+                "location" to arrayOf(campsite.location.latitude, campsite.location.longitude),
+                "maxOccupancy" to campsite.maxOccupancy,
+                "policies" to campsite.policies,
+                "pricePerNight" to campsite.pricePerNight,
+                "images" to campsite.images.map { it.id.value.toString() },
+                "owner" to campsite.ownerId.value.toString(),
+                "rating" to mapOf("totalScore" to campsite.rating.totalScore, "count" to campsite.rating.count),
+                "address" to campsite.address,
+            )
+        db
+            .collection("campsites")
+            .document(campsite.id.value.toString())
+            .set(campsiteData)
+            .await()
+    }
+
+    fun parseCampsite(
+        campsiteId: Id,
+        campsiteData: Map<String, Any?>,
+    ): Campsite {
+        val id =
+            (campsiteData["id"] as? String)?.let {
+                try {
+                    Id(Uuid.parse(it))
+                } catch (_: Exception) {
+                    null
+                }
+            } ?: campsiteId
+
+        val name =
+            campsiteData["name"] as? String
+                ?: throw Exception("${campsiteId.value}, missing name")
+        val description = campsiteData["description"] as? String ?: ""
+
+        val tagsData = (campsiteData["tags"] as? List<*>) ?: (campsiteData["tage"] as? List<*>)
+        val tags = tagsData?.mapNotNull { it?.toString() } ?: emptyList()
+
+        val locationData = campsiteData["location"] as? List<*>
+        val latitude = (locationData?.getOrNull(0) as? Number)?.toDouble() ?: 0.0
+        val longitude = (locationData?.getOrNull(1) as? Number)?.toDouble() ?: 0.0
+        val location =
+            Location("").apply {
+                this.latitude = latitude
+                this.longitude = longitude
+            }
+
+        val maxOccupancy = (campsiteData["maxOccupancy"] as? Number)?.toInt() ?: 0
+        val policies = campsiteData["policies"] as? String ?: ""
+        val pricePerNight = (campsiteData["pricePerNight"] as? Number)?.toInt() ?: 0
+
+        val images =
+            (campsiteData["images"] as? List<*>)?.mapNotNull { item ->
+                item?.toString()?.let { imageIdStr ->
+                    try {
+                        Image(id = Id(Uuid.parse(imageIdStr)), uploader = id, path = "")
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            } ?: emptyList()
+
+        val ownerStr =
+            campsiteData["owner"] as? String
+                ?: throw Exception("${campsiteId.value} missing owner")
+        val ownerId =
+            try {
+                Id(Uuid.parse(ownerStr))
+            } catch (e: Exception) {
+                throw Exception("${ campsiteId.value }, malformed owner id '$ownerStr'")
+            }
+
+        val ratingMap = campsiteData["rating"] as? Map<*, *>
+        val rating =
+            Rating(
+                totalScore = (ratingMap?.get("totalScore") as? Number)?.toInt() ?: 0,
+                count = (ratingMap?.get("count") as? Number)?.toInt() ?: 0,
+            )
+
+        val address = campsiteData["address"] as? String ?: ""
+
+        return Campsite(
+            id = id,
+            name = name,
+            description = description,
+            tags = tags,
+            location = location,
+            maxOccupancy = maxOccupancy,
+            policies = policies,
+            pricePerNight = pricePerNight,
+            images = images,
+            ownerId = ownerId,
+            rating = rating,
+            address = address,
+        )
     }
 
     override suspend fun fetchCampsite(campsiteId: Id): Campsite {
-//        val campsiteData =
-//            db
-//                .collection("campsites")
-//                .document(campsiteId.value.toString())
-//                .get()
-//                .await()
-//                .data
-//        if (campsiteData == null) {
-//            throw Exception("Campsite data is null")
-//        }
-//        val idData = campsiteData["id"] as String
-//        val name = campsiteData["name"] as String
-//        val description = campsiteData["description"] as String
-//        val location = campsiteData["location"] as String
-        TODO()
+        try {
+            val campsiteSnapshot =
+                db
+                    .collection("campsites")
+                    .document(campsiteId.value.toString())
+                    .get()
+                    .await()
+
+            val campsiteData =
+                campsiteSnapshot.data ?: throw Exception("${campsiteId.value}, campsite not found")
+            return parseCampsite(campsiteId, campsiteData)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("DatabaseInner", "Error fetching campsite $campsiteId", e)
+            throw e
+        }
     }
 
-    override fun searchCampsites(
+    fun withinRadius(
+        data: Map<String, Any?>,
+        radius: Int?,
+        location: Location?,
+    ): Boolean {
+        if (location == null || radius == null) return true
+        val locationData = data["location"] as? List<*>
+        val lat = (locationData?.getOrNull(0) as? Number)?.toDouble()
+        val lng = (locationData?.getOrNull(1) as? Number)?.toDouble()
+        if (lat == null || lng == null) return false
+        val point =
+            Location("").apply {
+                latitude = lat
+                longitude = lng
+            }
+        return location.distanceTo(point) <= radius
+    }
+
+    override suspend fun searchCampsites(
         location: Location?,
         radius: Int?,
         maxOccupancy: Int?,
-        dates: List<Date>?,
         text: String?,
         limit: Int?,
     ): List<Campsite> {
-//        db.collection("campsites")
-        TODO()
+        var query: Query = db.collection("campsites")
+
+        if (maxOccupancy != null) {
+            query = query.whereGreaterThanOrEqualTo("maxOccupancy", maxOccupancy)
+        }
+        if (!text.isNullOrEmpty()) {
+            query =
+                query
+                    .orderBy("address")
+                    .whereGreaterThanOrEqualTo("address", text)
+                    .whereLessThan("address", text + '\uf8ff')
+        }
+
+        val results = mutableListOf<Campsite>()
+        for (doc in query.get().await().documents) {
+            if (limit != null && results.size >= limit) break
+
+            val data = doc.data ?: continue
+            if (!withinRadius(data, radius, location)) continue
+
+            try {
+                results.add(parseCampsite(Id(Uuid.parse(doc.id)), data))
+            } catch (e: Exception) {
+                Log.e("DatabaseInner", "Skipping malformed campsite ${doc.id}", e)
+            }
+        }
+        return results
     }
 
-    override fun updateCampsite(campsite: Campsite) {
-        TODO("Not yet implemented")
+    override suspend fun updateCampsite(campsite: Campsite) {
+        addCampsite(campsite)
     }
 
     override fun deleteCampsite(id: Id) {
@@ -526,11 +632,16 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         TODO("Not yet implemented")
     }
 
-    override fun uploadImage(
+    override suspend fun uploadImage(
         path: String,
         uploaderId: Id,
-    ): Id {
-        TODO("Not yet implemented")
+    ): Image {
+        val imageId = Id()
+        val imagePath = "images/${imageId.value}"
+        val imageRef = dbStorage.reference.child(imagePath)
+        val fileObject = File(path)
+        imageRef.putFile(Uri.fromFile(fileObject)).await()
+        return Image(imageId, uploaderId, imagePath)
     }
 
     override fun addImageToCampsite(
@@ -616,6 +727,18 @@ object Database {
 
     suspend fun updateOwner(owner: Owner) = db.updateOwner(owner)
 
+    suspend fun addCampsite(campsite: Campsite) = db.addCampsite(campsite)
+
+    suspend fun fetchCampsite(campsiteId: Id): Campsite = db.fetchCampsite(campsiteId)
+
+    suspend fun searchCampsite(
+        location: Location?,
+        radiusInMeters: Int?,
+        maxOccupancy: Int?,
+        address: String?,
+        limit: Int?,
+    ): List<Campsite> = db.searchCampsites(location, radiusInMeters, maxOccupancy, address, limit)
+
     suspend fun addLottery(lottery: Lottery) {
         db.addLottery(lottery)
     }
@@ -625,6 +748,11 @@ object Database {
     suspend fun updateLottery(lottery: Lottery) {
         db.updateLottery(lottery)
     }
+
+    suspend fun uploadImage(
+        uploaderId: Id,
+        path: String,
+    ): Image = db.uploadImage(path, uploaderId)
 
     suspend fun getImage(path: String): String = db.getImage(path)
 }
