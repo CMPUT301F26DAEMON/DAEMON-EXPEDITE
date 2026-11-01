@@ -1,64 +1,46 @@
 package com.example.daemon_expedite.frontend
 
-import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.ui_components.*
 
-
-enum class ProfileRole(val title: String) {
-    ENTRANT("Entrant"),
-    OWNER("Owner"),
-    ADMIN("Admin")
-}
-
-
+/**
+ * Profile page for the owner view.
+ *
+ * Read-only: the photo, name, email and phone belong to the account (the entrant profile), so
+ * they are only shown here. Changing them is done from the entrant profile. This page only
+ * switches roles and deletes the owner side of the account.
+ *
+ * @param profileImageUrl URL of the user's profile photo, or null for the default image.
+ * @param isAdmin Adds the Admin option to the role toggle. Only true for users in "admins".
+ * @param onRoleSelected Called when another role is tapped (switches views straight away).
+ * @param onDeleteProfile Called after the user confirms deleting the owner profile.
+ */
 @Composable
 fun ProfileDetailsScreen(
     profileImageUrl: String? = null,
     name: String = "",
     email: String = "",
     phoneNumber: String = "",
-    initialRole: ProfileRole = ProfileRole.ENTRANT,
+    isAdmin: Boolean = false,
     onBackClick: () -> Unit = {},
-    onProfilePhotoClick: () -> Unit = {},
-    onPhotoSelected: (Uri) -> Unit = {},
-    onUpdateProfile: (String, String, String, ProfileRole) -> Unit =
-        { _, _, _, _ -> },
+    onRoleSelected: (ProfileRole) -> Unit = {},
     onDeleteProfile: () -> Unit = {}
 ) {
-    var editableName by rememberSaveable {
-        mutableStateOf(name)
-    }
-
-    var editableEmail by rememberSaveable {
-        mutableStateOf(email)
-    }
-
-    var editablePhone by rememberSaveable {
-        mutableStateOf(phoneNumber)
-    }
-
-    // Roles
-    var selectedRole by rememberSaveable {
-        mutableStateOf(initialRole)
+    var showDeleteDialog by rememberSaveable {
+        mutableStateOf(false)
     }
 
     BoxWithConstraints(
@@ -67,7 +49,6 @@ fun ProfileDetailsScreen(
             .background(AppColors.Background)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .imePadding()
             .padding(horizontal = 20.dp)
     ) {
 
@@ -111,11 +92,10 @@ fun ProfileDetailsScreen(
                 modifier = Modifier.height(24.dp)
             )
 
-            // Profile picture
+            // Profile picture (no edit button: photos are changed from the entrant profile)
             ProfileImage(
                 imageUrl = profileImageUrl,
                 size = 124.dp,
-                onEditClick = {},
                 showBorder = true
             )
 
@@ -124,68 +104,46 @@ fun ProfileDetailsScreen(
             )
 
             Text(
-                text = "Add a profile photo",
+                text = "To change your photo or details, switch to Entrant",
                 style = AppTextStyles.Caption,
                 color = AppColors.TextSecondary,
-                modifier = Modifier.clickable {
-                    // No action for now
-                }
+                textAlign = TextAlign.Center
             )
 
             Spacer(
                 modifier = Modifier.height(30.dp)
             )
 
+            // Read-only details, using the same cards as the entrant profile
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(15.dp)
             ) {
-
-                // Name
-                ProfileTextField(
+                InfoCard(
                     label = "Name",
-                    value = editableName,
-                    onValueChange = { editableName = it },
+                    value = name,
                     icon = AppIcons.Profile,
-                    placeholder = "Enter your name",
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
+                    showDelete = false,
+                    showEdit = false,
+                    customWidth = contentWidth.value.toInt()
                 )
-
-                // Email
-                ProfileTextField(
+                InfoCard(
                     label = "Email",
-                    value = editableEmail,
-                    onValueChange = { editableEmail = it },
+                    value = email,
                     icon = AppIcons.Email,
-                    placeholder = "Enter your email",
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next
+                    showDelete = false,
+                    showEdit = false,
+                    customWidth = contentWidth.value.toInt()
                 )
-                // Phone number
-                ProfileTextField(
-                    label = "Phone number",
-                    value = editablePhone,
-                    onValueChange = { editablePhone = it },
+                InfoCard(
+                    label = "Phone Number",
+                    value = phoneNumber,
                     icon = AppIcons.Phone,
-                    placeholder = "Enter your phone number",
-                    keyboardType = KeyboardType.Phone,
-                    imeAction = ImeAction.Done
+                    showDelete = false,
+                    showEdit = false,
+                    customWidth = contentWidth.value.toInt()
                 )
             }
-
-            Spacer(
-                modifier = Modifier.height(28.dp)
-            )
-
-            // Update Profile button
-            GreenButton(
-                onClick = {},
-                icon = Icons.Default.ArrowForward,
-                buttonText = "Update Profile",
-                customHeight = 58,
-                customWidth = contentWidth.value.toInt()
-            )
 
             Spacer(
                 modifier = Modifier.height(32.dp)
@@ -203,55 +161,13 @@ fun ProfileDetailsScreen(
                 modifier = Modifier.height(15.dp)
             )
 
-            // Role selector
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .background(
-                        AppColors.SurfaceDisabled,
-                        RoundedCornerShape(12.dp)
-                    )
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-
-                ProfileRole.entries.forEach { role ->
-
-                    val isSelected = selectedRole == role
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .background(
-                                color = if (isSelected) {
-                                    AppColors.Primary
-                                } else {
-                                    AppColors.SurfaceDisabled
-                                },
-                                shape = RoundedCornerShape(9.dp)
-                            )
-                            .clickable {
-                                selectedRole = role
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-
-                        Text(
-                            text = role.title,
-                            fontFamily = AppFonts.Inter,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) {
-                                FontWeight.SemiBold
-                            } else {
-                                FontWeight.Normal
-                            },
-                            color = AppColors.TextOnPrimary
-                        )
-                    }
-                }
-            }
+            // Role selector (Entrant / Owner, plus Admin for admins)
+            RoleSelector(
+                current = ProfileRole.OWNER,
+                isAdmin = isAdmin,
+                onRoleSelected = onRoleSelected,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(
                 modifier = Modifier.height(20.dp)
@@ -270,13 +186,41 @@ fun ProfileDetailsScreen(
 
             // Delete Profile button
             RedButton(
-                onClick = {},
+                onClick = { showDeleteDialog = true },
                 icon = AppIcons.Dustbin,
                 buttonText = "Delete Profile",
                 customHeight = 58,
                 customWidth = contentWidth.value.toInt()
             )
         }
+    }
+
+    // Asks before deleting. This only removes the owner side; the entrant profile is kept.
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete owner profile?") },
+            text = {
+                Text(
+                    "Your campsites and their lotteries and reservations will be deleted. " +
+                        "Your entrant profile stays, and you can become an owner again later."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onDeleteProfile()
+                }) {
+                    Text(text = "Delete", color = AppColors.Danger)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+            },
+            containerColor = AppColors.Surface,
+            titleContentColor = AppColors.TextPrimary,
+            textContentColor = AppColors.TextSecondary
+        )
     }
 }
 
@@ -288,5 +232,9 @@ fun ProfileDetailsScreen(
 )
 @Composable
 private fun ProfileDetailsScreenPreview() {
-    ProfileDetailsScreen()
+    ProfileDetailsScreen(
+        name = "Armaan",
+        email = "armaan@example.com",
+        phoneNumber = "780 555 0199"
+    )
 }
