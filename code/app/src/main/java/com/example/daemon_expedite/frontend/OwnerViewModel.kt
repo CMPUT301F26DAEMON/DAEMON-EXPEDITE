@@ -74,6 +74,11 @@ class OwnerViewModel : ViewModel() {
         }
     }
 
+    /** Reloads the campsite list, for example after a new campsite is registered. */
+    fun refreshCampsites() {
+        viewModelScope.launch { loadCampsites() }
+    }
+
     /** Filters the campsite list shown on the owner home page. */
     fun onQueryChange(text: String) {
         _query.value = text

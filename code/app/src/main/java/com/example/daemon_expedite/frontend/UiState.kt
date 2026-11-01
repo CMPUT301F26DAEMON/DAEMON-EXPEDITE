@@ -46,6 +46,8 @@ data class CampsiteSummary(
     val rating: Double?,
     val maxOccupancy: Int,
     val imageUrl: String?,
+    /** Who registered it. Used to hide your own campsites on entrant home. */
+    val ownerId: Id? = null,
 )
 
 /**
@@ -72,5 +74,6 @@ suspend fun Campsite.toSummary(): CampsiteSummary {
         rating = rating.takeIf { it.count > 0 }?.average(),
         maxOccupancy = maxOccupancy,
         imageUrl = imageUrl,
+        ownerId = ownerId,
     )
 }
