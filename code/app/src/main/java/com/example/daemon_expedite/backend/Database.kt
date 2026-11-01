@@ -127,7 +127,11 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "email" to user.email,
                 "phoneNumber" to user.phoneNumber,
                 "notificationsEnabled" to user.notificationsEnabled,
-                "profileImage" to user.profileImage?.id?.value?.toString(),
+                "profileImage" to
+                    user.profileImage
+                        ?.id
+                        ?.value
+                        ?.toString(),
                 "lotteries" to user.lotteryIds.map { it.value.toString() },
                 "reservations" to user.reservationIds.map { it.value.toString() },
                 "chats" to user.chatIds.map { it.value.toString() },
@@ -184,7 +188,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val userData =
             db
                 .collection("users")
-                .whereEqualTo("authUid", auth.currentUser?.uid)
+                .whereEqualTo("authId", auth.currentUser?.uid)
                 .limit(1)
                 .get()
                 .await()
@@ -268,7 +272,11 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "email" to owner.email,
                 "phoneNumber" to owner.phoneNumber,
                 "notificationsEnabled" to owner.notificationsEnabled,
-                "profileImage" to owner.profileImage?.id?.value?.toString(),
+                "profileImage" to
+                    owner.profileImage
+                        ?.id
+                        ?.value
+                        ?.toString(),
                 "lotteries" to owner.lotteryIds.map { it.value.toString() },
                 "reservations" to owner.reservationIds.map { it.value.toString() },
                 "chats" to owner.chatIds.map { it.value.toString() },
@@ -287,7 +295,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     override suspend fun getOwner(): Owner {
         val userData =
             db
-                .collection("users")
+                .collection("owners")
                 .whereEqualTo("authUid", auth.currentUser?.uid)
                 .limit(1)
                 .get()
@@ -306,7 +314,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val email = userData["email"] as String
         val phoneNumber = userData["phoneNumber"] as String
         val notificationsEnabled = userData["notificationsEnabled"] as Boolean
-        val profileImageData = userData["profileImageData"] as? String
+        val profileImageData = userData["profileImage"] as? String
         val profileImage = profileImageData?.let { fetchImageRecord(Id(Uuid.parse(it))) }
         val lotteriesData = userData["lotteries"] as List<*>
         val reservationsData = userData["reservations"] as List<*>
