@@ -17,13 +17,13 @@ import kotlin.uuid.Uuid
 interface DatabaseInterface {
     suspend fun addUser(user: User)
 
-    suspend fun fetchUser(userId: String): Map<String, String>
+    suspend fun fetchUser(userId: Id): Map<String, String>
 
     suspend fun fetchOwnUser(): User
 
     suspend fun updateUser(user: User)
 
-    fun deleteUser(user: User)
+    suspend fun deleteUser(user: User)
 
     fun fetchAllUsers(): List<User>
 
@@ -35,12 +35,15 @@ interface DatabaseInterface {
 
     fun addCampsite(campsite: Campsite)
 
-    fun fetchCampsite(campsiteId: String): Campsite
+    suspend fun fetchCampsite(campsiteId: Id): Campsite
 
     fun searchCampsites(
         location: Location? = null,
+        radius: Int? = null,
         maxOccupancy: Int? = null,
         dates: List<Date>? = null,
+        text: String? = null,
+        limit: Int? = null,
     ): List<Campsite>
 
     fun updateCampsite(campsite: Campsite)
@@ -145,11 +148,16 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .await()
     }
 
-    override suspend fun fetchUser(userId: String): Map<String, String> {
+    /**
+     * Returns selective fields from User object(id, name, email, phone number, profile image)
+     *
+     * @param userId: Id of the user.
+     * */
+    override suspend fun fetchUser(userId: Id): Map<String, String> {
         val userData =
             db
                 .collection("users")
-                .document(userId)
+                .document(userId.value.toString())
                 .get()
                 .await()
                 .data
@@ -238,6 +246,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         )
     }
 
+    override suspend fun deleteUser(user: User) {
+        db
+            .collection("users")
+            .document(user.id.value.toString())
+            .delete()
+            .await()
+    }
+
     suspend fun fetchImageRecord(id: Id): Image {
         val imageData =
             db
@@ -255,10 +271,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
     override suspend fun updateUser(user: User) {
         addUser(user)
-    }
-
-    override fun deleteUser(user: User) {
-        TODO("Not yet implemented")
     }
 
     override fun fetchAllUsers(): List<User> {
@@ -386,16 +398,34 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         TODO("Not yet implemented")
     }
 
-    override fun fetchCampsite(campsiteId: String): Campsite {
-        TODO("Not yet implemented")
+    override suspend fun fetchCampsite(campsiteId: Id): Campsite {
+//        val campsiteData =
+//            db
+//                .collection("campsites")
+//                .document(campsiteId.value.toString())
+//                .get()
+//                .await()
+//                .data
+//        if (campsiteData == null) {
+//            throw Exception("Campsite data is null")
+//        }
+//        val idData = campsiteData["id"] as String
+//        val name = campsiteData["name"] as String
+//        val description = campsiteData["description"] as String
+//        val location = campsiteData["location"] as String
+        TODO()
     }
 
     override fun searchCampsites(
         location: Location?,
+        radius: Int?,
         maxOccupancy: Int?,
         dates: List<Date>?,
+        text: String?,
+        limit: Int?,
     ): List<Campsite> {
-        TODO("Not yet implemented")
+//        db.collection("campsites")
+        TODO()
     }
 
     override fun updateCampsite(campsite: Campsite) {
@@ -570,7 +600,9 @@ object Database {
         db.addUser(user)
     }
 
-    suspend fun fetchUser(userId: String): Map<String, String> = db.fetchUser(userId)
+    suspend fun fetchUser(userId: Id): Map<String, String> = db.fetchUser(userId)
+
+    suspend fun deleteUser(user: User) = db.deleteUser(user)
 
     suspend fun fetchOwnUser(): User = db.fetchOwnUser()
 

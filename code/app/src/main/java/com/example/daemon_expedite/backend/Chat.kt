@@ -23,6 +23,8 @@ class Chat(
      * */
     fun getMessagesOwn(): List<Message> = messageOwn
 
+    fun addMessageOwn(message: Message) = messageOwn.add(message)
+
     /**
      * Returns the messages of the user who is the other user of the chat.
      *
