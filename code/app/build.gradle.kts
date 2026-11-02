@@ -67,10 +67,11 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.firebase.storage)
-    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+    implementation(libs.coil.compose)
     // Coil 3 can't download images from URLs without a network module (it fails silently).
     // Needed for profile and campsite photos, which are loaded from Firebase Storage URLs.
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+    implementation(libs.coil.network.okhttp)
     // OpenStreetMap map view, used with Esri satellite tiles on the Select location screen.
-    implementation("org.osmdroid:osmdroid-android:6.1.20")
+    implementation(libs.osmdroid.android)
+    implementation(libs.geofire.android.common)
 }
