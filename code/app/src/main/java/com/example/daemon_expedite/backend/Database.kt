@@ -6,10 +6,16 @@ import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.app
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.storage
 import com.google.firebase.storage.storageMetadata
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
@@ -24,7 +30,9 @@ import kotlin.uuid.Uuid
  * Callers use this to tell "first launch, nothing saved yet" apart from real errors. Treating
  * every error as "not found" would create a duplicate user or owner and overwrite the real one.
  */
-class NotFoundException(message: String) : Exception(message)
+class NotFoundException(
+    message: String,
+) : Exception(message)
 
 interface DatabaseInterface {
     suspend fun addUser(user: User)
@@ -89,12 +97,12 @@ interface DatabaseInterface {
 
     suspend fun deleteImage(id: Id)
 
-    fun uploadMessage(
+    suspend fun uploadMessage(
         message: Message,
         chatId: Id,
     )
 
-    fun fetchChat(id: Id): Chat
+    suspend fun fetchChat(id: Id): Chat
 
     fun fetchAllChats(): List<Chat>
 
@@ -320,7 +328,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     private suspend fun deleteStorageFiles(paths: List<String>) {
         for (path in paths.filter { it.isNotBlank() }) {
             try {
-                dbStorage.reference.child(path).delete().await()
+                dbStorage.reference
+                    .child(path)
+                    .delete()
+                    .await()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -450,8 +461,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val ownerDoc = ownerRef(ownerId).get().await()
         val ownerData = ownerDoc.data ?: return // nothing to delete
 
-        fun ids(key: String): List<String> =
-            (ownerData[key] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
+        fun ids(key: String): List<String> = (ownerData[key] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
 
         val campsiteIds = ids("ownerCampsites")
         val lotteryIds = ids("ownerLotteries")
@@ -460,7 +470,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val images = mutableListOf<Image>()
         for (campsiteId in campsiteIds) {
             val campsiteData =
-                db.collection("campsites").document(campsiteId).get().await().data ?: continue
+                db
+                    .collection("campsites")
+                    .document(campsiteId)
+                    .get()
+                    .await()
+                    .data ?: continue
             (campsiteData["images"] as? List<*>)
                 ?.mapNotNull { it?.toString()?.let { id -> fetchImageOrNull(id) } }
                 ?.let(images::addAll)
@@ -487,8 +502,20 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     suspend fun isAdmin(userId: Id): Boolean {
         val id = userId.value.toString()
         val admins = db.collection("admins")
-        if (admins.document(id).get().await().exists()) return true
-        return !admins.whereEqualTo("id", id).limit(1).get().await().isEmpty
+        if (admins
+                .document(id)
+                .get()
+                .await()
+                .exists()
+        ) {
+            return true
+        }
+        return !admins
+            .whereEqualTo("id", id)
+            .limit(1)
+            .get()
+            .await()
+            .isEmpty
     }
 
     override suspend fun addCampsite(campsite: Campsite) {
@@ -832,7 +859,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val resolver = Firebase.app.applicationContext.contentResolver
         val jpeg = ImageCompressor.compressToJpeg(resolver, uri, maxSidePx)
         val metadata = storageMetadata { contentType = "image/jpeg" }
-        dbStorage.reference.child(imagePath).putBytes(jpeg, metadata).await()
+        dbStorage.reference
+            .child(imagePath)
+            .putBytes(jpeg, metadata)
+            .await()
         imageRef(imageId)
             .set(
                 mapOf(
@@ -872,16 +902,124 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         if (image != null) deleteStorageFiles(listOf(image.path))
     }
 
-    override fun uploadMessage(
+    override suspend fun uploadMessage(
         message: Message,
         chatId: Id,
     ) {
-        TODO("Not yet implemented")
+        val chatRef = db.collection("chats").document(chatId.value.toString())
+        val messageRef = db.collection("messages").document(message.id.value.toString())
+
+        val messageData =
+            mapOf(
+                "id" to message.id.value.toString(),
+                "message" to message.message,
+            )
+
+        try {
+            db
+                .batch()
+                .apply {
+                    update(chatRef, "messageOwn", FieldValue.arrayUnion(message.id.value.toString()))
+                    set(messageRef, messageData)
+                }.commit()
+                .await()
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code == FirebaseFirestoreException.Code.NOT_FOUND) {
+                throw IllegalStateException("Chat $chatId not found", e)
+            }
+            throw e
+        }
     }
 
-    override fun fetchChat(id: Id): Chat {
-        TODO("Not yet implemented")
+    private fun parseIdList(
+        data: Map<String, Any?>,
+        key: String,
+    ): List<Id> {
+        val raw =
+            data[key] as? List<*>
+                ?: throw InvalidDataException("'$key' is missing or not a list")
+
+        return raw.mapIndexed { index, item ->
+            val idString =
+                item as? String
+                    ?: throw InvalidDataException("'$key'[$index] is not a string: $item")
+            try {
+                Id(Uuid.parse(idString))
+            } catch (e: IllegalArgumentException) {
+                throw InvalidDataException("'$key'[$index] is not a valid UUID: $idString", e)
+            }
+        }
     }
+
+    override suspend fun fetchChat(id: Id): Chat {
+        val data =
+            db
+                .collection("chats")
+                .document(id.value.toString())
+                .get()
+                .await()
+                .data ?: throw ChatNotFoundException(id)
+
+        // Validate everything cheap before doing any message reads
+        fun requireId(key: String): Id {
+            val raw =
+                data[key] as? String
+                    ?: throw InvalidChatDataException(id, "missing or invalid '$key'")
+            return try {
+                Id(Uuid.parse(raw))
+            } catch (_: IllegalArgumentException) {
+                throw InvalidChatDataException(id, "malformed '$key': $raw")
+            }
+        }
+
+        val ownUser = requireId("ownUser")
+        val otherUser = requireId("otherUser")
+
+        if (data["messageOwn"] !is List<*> || data["messageOther"] !is List<*>) {
+            throw InvalidChatDataException(id, "messageOwn/messageOther missing or invalid")
+        }
+
+        val (messageOwn, messageOther) =
+            coroutineScope {
+                val own = async { fetchMessages(parseIdList(data, "messageOwn")) }
+                val other = async { fetchMessages(parseIdList(data, "messageOther")) }
+                own.await() to other.await()
+            }
+
+        return Chat(id, ownUser, otherUser, messageOwn as MutableList, messageOther as MutableList)
+    }
+
+    /** Fetches messages in parallel batches of 30, returned in the same order as [ids]. */
+    private suspend fun fetchMessages(ids: List<Id>): List<Message> =
+        coroutineScope {
+            val found: Map<Id, Message> =
+                ids
+                    .distinct()
+                    .chunked(30) // Firestore `in` limit
+                    .map { chunk ->
+                        async {
+                            db
+                                .collection("messages")
+                                .whereIn(FieldPath.documentId(), chunk.map { it.value.toString() })
+                                .get()
+                                .await()
+                                .documents
+                        }
+                    }.awaitAll()
+                    .flatten()
+                    .mapNotNull { doc ->
+                        val text = doc.getString("message")
+                        val msgId = runCatching { Id(Uuid.parse(doc.id)) }.getOrNull()
+                        if (text == null || msgId == null) {
+                            Log.e("DatabaseInner", "Skipping malformed message ${doc.id}")
+                            null
+                        } else {
+                            msgId to Message(msgId, text)
+                        }
+                    }.toMap()
+
+            ids.mapNotNull { found[it] ?: null.also { _ -> Log.w("DatabaseInner", "Message $it not found") } }
+        }
 
     override fun fetchAllChats(): List<Chat> {
         TODO("Not yet implemented")
