@@ -43,7 +43,7 @@ interface DatabaseInterface {
 
     suspend fun updateUser(user: User)
 
-    suspend fun deleteUser(user: User)
+    suspend fun deleteUser(user: Id)
 
     fun fetchAllUsers(): List<User>
 
@@ -67,7 +67,7 @@ interface DatabaseInterface {
 
     suspend fun updateCampsite(campsite: Campsite)
 
-    fun deleteCampsite(id: Id)
+    suspend fun deleteCampsite(id: Id)
 
     suspend fun addLottery(lottery: Lottery)
 
@@ -75,20 +75,24 @@ interface DatabaseInterface {
 
     suspend fun updateLottery(lottery: Lottery)
 
-    fun addReservation(reservation: Reservation)
+    suspend fun addUserToLottery(lotteryId: Id, userId: Id)
 
-    fun fetchReservation(id: Id): Reservation
+    suspend fun removeUserFromLottery(lotteryId: Id, userId: Id)
 
-    fun updateReservation(reservation: Reservation)
+    suspend fun addReservation(reservation: Reservation)
+
+    suspend fun fetchReservation(id: Id): Reservation
+
+    suspend fun updateReservation(reservation: Reservation)
 
     suspend fun uploadImage(
         path: String,
         uploaderId: Id,
     ): Image
 
-    fun addImageToCampsite(
+    suspend fun addImage(
         campsiteId: Id,
-        path: String,
+        image: Image,
     )
 
     suspend fun fetchImage(id: Id): Image
@@ -278,12 +282,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * The owner side is deleted first: if that fails, the account is still there and the user
      * can try again, rather than ending up with an owner record that has no user.
      */
-    override suspend fun deleteUser(user: User) {
-        val userRef = db.collection("users").document(user.id.value.toString())
-        if (ownerRef(user.id).get().await().exists()) {
-            deleteOwnerData(user.id)
+    override suspend fun deleteUser(user: Id) {
+        val userRef = db.collection("users").document(user.value.toString())
+        val userData = userRef.get().await().data
+        if (ownerRef(user).get().await().exists()) {
+            deleteOwnerData(user)
         }
-        val photo = user.profileImage
+        val photoId = userData?.get("profileImage") as? String
+        val photo = photoId?.let { fetchImageOrNull(it) }
         val batch = db.batch()
         batch.delete(userRef)
         if (photo != null) batch.delete(imageRef(photo.id))
@@ -442,12 +448,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * images, documents and files) and the lotteries they created. The user account is kept, so
      * switching to the owner view later creates a fresh owner.
      *
-     * Entrants who joined those lotteries still have the ids in their own `lotteries` list. That
+     * Users who joined those lotteries still have the ids in their own `lotteries` list. That
      * is intentional for now (the app skips lotteries that no longer exist) because the database
      * doesn't record who joined a lottery, so they can't be found to clean up.
      */
-    suspend fun deleteOwner(owner: Owner) {
-        deleteOwnerData(owner.id)
+    suspend fun deleteOwner(owner: Id) {
+        deleteOwnerData(owner)
     }
 
     /**
@@ -455,7 +461,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * owner document (not from an in-memory [Owner], which could be out of date).
      *
      * All documents are deleted in one batched write, so either all of them go or none do.
-     * Storage files are deleted afterwards; if that part fails only unused files are left.
+     * Storage files are deleted afterward; if that part fails only unused files are left.
      */
     private suspend fun deleteOwnerData(ownerId: Id) {
         val ownerDoc = ownerRef(ownerId).get().await()
@@ -700,8 +706,40 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         addCampsite(campsite)
     }
 
-    override fun deleteCampsite(id: Id) {
-        TODO("Not yet implemented")
+    /**
+     * Deletes a campsite and its image records/files, and removes references to it from owners
+     * and lotteries. Lotteries are retained even if this was their only campsite, since users
+     * may already have joined them.
+     */
+    override suspend fun deleteCampsite(id: Id) {
+        val campsiteId = id.value.toString()
+        val campsiteRef = db.collection("campsites").document(campsiteId)
+        val campsiteData = campsiteRef.get().await().data
+        val imageIds = (campsiteData?.get("images") as? List<*>)
+            ?.mapNotNull { it as? String }
+            .orEmpty()
+        val images = imageIds.mapNotNull { fetchImageOrNull(it) }
+        val owners = db.collection("owners")
+            .whereArrayContains("ownerCampsites", campsiteId)
+            .get()
+            .await()
+        val lotteries = db.collection("lotteries")
+            .whereArrayContains("campsites", campsiteId)
+            .get()
+            .await()
+
+        val batch = db.batch()
+        batch.delete(campsiteRef)
+        imageIds.forEach { batch.delete(db.collection("images").document(it)) }
+        owners.documents.forEach {
+            batch.update(it.reference, "ownerCampsites", FieldValue.arrayRemove(campsiteId))
+        }
+        lotteries.documents.forEach {
+            batch.update(it.reference, "campsites", FieldValue.arrayRemove(campsiteId))
+        }
+        batch.commit().await()
+
+        deleteStorageFiles(images.map { it.path })
     }
 
     override suspend fun addLottery(lottery: Lottery) {
@@ -716,6 +754,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "bookingEnd" to lottery.bookingEndDate.toString(),
                 "winnerCount" to lottery.winnerCount,
                 "winners" to lottery.winners.map { it.value.toString() },
+                "users" to lottery.waitingList.users.map { it.value.toString() },
                 "lotteryStart" to lottery.lotteryStart.toString(),
                 "lotteryEnd" to lottery.lotteryEnd.toString(),
                 "availableDates" to lottery.availableDates.map { it.toString() },
@@ -763,19 +802,32 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         for (item in availableDatesData) {
             availableDates.add(Instant.parse(item.toString()))
         }
+        val users =
+            (lotteryData["users"] as? List<*>)
+                ?.mapNotNull { item ->
+                    item?.toString()?.let {
+                        try {
+                            Id(Uuid.parse(it))
+                        } catch (e: IllegalArgumentException) {
+                            Log.w("DatabaseInner", "Skipping malformed user id '$it' in lottery $id", e)
+                            null
+                        }
+                    }
+                } ?: emptyList()
         return Lottery(
-            Id(Uuid.parse(idData)),
-            campsites,
-            maxBook,
-            Instant.parse(registrationStart),
-            Instant.parse(registrationEnd),
-            Instant.parse(bookingStart),
-            Instant.parse(bookingEnd),
-            winnerCount,
-            winners,
-            Instant.parse(lotteryStart),
-            Instant.parse(lotteryEnd),
-            availableDates,
+            id = Id(Uuid.parse(idData)),
+            campsites = campsites,
+            maxBookableByASingleUser = maxBook,
+            registrationStart = Instant.parse(registrationStart),
+            registrationEnd = Instant.parse(registrationEnd),
+            bookingStartDate = Instant.parse(bookingStart),
+            bookingEndDate = Instant.parse(bookingEnd),
+            winnerCount = winnerCount,
+            winners = winners,
+            lotteryStart = Instant.parse(lotteryStart),
+            lotteryEnd = Instant.parse(lotteryEnd),
+            availableDates = availableDates,
+            waitingList = WaitingList(users = users),
         )
     }
 
@@ -783,16 +835,69 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         addLottery(lottery)
     }
 
-    override fun addReservation(reservation: Reservation) {
-        TODO("Not yet implemented")
+    override suspend fun addUserToLottery(lotteryId: Id, userId: Id) {
+        val lotteryRef = db.collection("lotteries").document(lotteryId.value.toString())
+        val userRef = db.collection("users").document(userId.value.toString())
+        db
+            .batch()
+            .apply {
+                update(lotteryRef, "users", FieldValue.arrayUnion(userId.value.toString()))
+                update(userRef, "lotteries", FieldValue.arrayUnion(lotteryId.value.toString()))
+            }.commit()
+            .await()
     }
 
-    override fun fetchReservation(id: Id): Reservation {
-        TODO("Not yet implemented")
+    override suspend fun removeUserFromLottery(lotteryId: Id, userId: Id) {
+        val lotteryRef = db.collection("lotteries").document(lotteryId.value.toString())
+        val userRef = db.collection("users").document(userId.value.toString())
+        db
+            .batch()
+            .apply {
+                update(lotteryRef, "users", FieldValue.arrayRemove(userId.value.toString()))
+                update(userRef, "lotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
+            }.commit()
+            .await()
     }
 
-    override fun updateReservation(reservation: Reservation) {
-        TODO("Not yet implemented")
+    override suspend fun addReservation(reservation: Reservation) {
+        val reservationData =
+            mapOf(
+                "id" to reservation.id.value.toString(),
+                "campsite" to reservation.campsite.value.toString(),
+                "reservationDates" to reservation.reservationDates.map { it.toString() },
+                "reservedBy" to reservation.reservedBy.value.toString(),
+                "isCancelled" to reservation.isCancelled,
+            )
+        db
+            .collection("reservations")
+            .document(reservation.id.value.toString())
+            .set(reservationData)
+            .await()
+    }
+
+    override suspend fun fetchReservation(id: Id): Reservation {
+        val data =
+            db
+                .collection("reservations")
+                .document(id.value.toString())
+                .get()
+                .await()
+                .data ?: throw NotFoundException("Reservation ${id.value} not found")
+        val dates =
+            (data["reservationDates"] as? List<*>)
+                ?.map { Instant.parse(it as? String ?: throw InvalidDataException("Malformed reservation date")) }
+                ?: throw InvalidDataException("Reservation ${id.value} has no reservation dates")
+        return Reservation(
+            id = Id(Uuid.parse(data["id"] as? String ?: throw InvalidDataException("Reservation id is missing"))),
+            campsite = Id(Uuid.parse(data["campsite"] as? String ?: throw InvalidDataException("Campsite id is missing"))),
+            reservationDates = dates.toTypedArray(),
+            reservedBy = Id(Uuid.parse(data["reservedBy"] as? String ?: throw InvalidDataException("User id is missing"))),
+            isCancelled = data["isCancelled"] as? Boolean ?: false,
+        )
+    }
+
+    override suspend fun updateReservation(reservation: Reservation) {
+        addReservation(reservation)
     }
 
     /**
@@ -874,11 +979,24 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return Image(imageId, uploaderId, imagePath)
     }
 
-    override fun addImageToCampsite(
+    override suspend fun addImage(
         campsiteId: Id,
-        path: String,
+        image: Image,
     ) {
-        TODO("Not yet implemented")
+        val campsiteRef = db.collection("campsites").document(campsiteId.value.toString())
+        val imageData =
+            mapOf(
+                "id" to image.id.value.toString(),
+                "uploader" to image.uploader.value.toString(),
+                "path" to image.path,
+            )
+        db
+            .batch()
+            .apply {
+                set(imageRef(image.id), imageData)
+                update(campsiteRef, "images", FieldValue.arrayUnion(image.id.value.toString()))
+            }.commit()
+            .await()
     }
 
     override suspend fun fetchImage(id: Id): Image = fetchImageRecord(id)
@@ -1062,7 +1180,9 @@ object Database {
 
     suspend fun updateUser(user: User) = db.updateUser(user)
 
-    suspend fun deleteUser(user: User) = db.deleteUser(user)
+    suspend fun deleteUser(user: User) = db.deleteUser(user.id)
+
+    suspend fun deleteUser(user: Id) = db.deleteUser(user)
 
     suspend fun fetchOwnUser(): User = db.fetchOwnUser()
 
@@ -1074,9 +1194,17 @@ object Database {
 
     suspend fun updateOwner(owner: Owner) = db.updateOwner(owner)
 
+    suspend fun deleteOwner(owner: Owner) = db.deleteOwner(owner.id)
+
+    suspend fun deleteOwner(owner: Id) = db.deleteOwner(owner)
+
     suspend fun addCampsite(campsite: Campsite) = db.addCampsite(campsite)
 
     suspend fun fetchCampsite(campsiteId: Id): Campsite = db.fetchCampsite(campsiteId)
+
+    suspend fun updateCampsite(campsite: Campsite) = db.updateCampsite(campsite)
+
+    suspend fun deleteCampsite(id: Id) = db.deleteCampsite(id)
 
     /**
      * Searches campsites. Every filter is optional; leave it null to skip it.
@@ -1100,6 +1228,16 @@ object Database {
         db.updateLottery(lottery)
     }
 
+    suspend fun addUserToLottery(lotteryId: Id, userId: Id) = db.addUserToLottery(lotteryId, userId)
+
+    suspend fun removeUserFromLottery(lotteryId: Id, userId: Id) = db.removeUserFromLottery(lotteryId, userId)
+
+    suspend fun addReservation(reservation: Reservation) = db.addReservation(reservation)
+
+    suspend fun fetchReservation(id: Id): Reservation = db.fetchReservation(id)
+
+    suspend fun updateReservation(reservation: Reservation) = db.updateReservation(reservation)
+
     suspend fun uploadImage(
         uploaderId: Id,
         path: String,
@@ -1120,13 +1258,12 @@ object Database {
 
     suspend fun fetchImage(id: Id): Image = db.fetchImage(id)
 
+    suspend fun addImage(campsiteId: Id, image: Image) = db.addImage(campsiteId, image)
+
     /** Deletes an image's record and its Storage file. Remove references to it first. */
     suspend fun deleteImage(id: Id) = db.deleteImage(id)
 
     suspend fun getImage(path: String): String = db.getImage(path)
-
-    /** Deletes only the owner profile (owner record, campsites, their images, lotteries). */
-    suspend fun deleteOwner(owner: Owner) = db.deleteOwner(owner)
 
     /** True if the user has an entry in the "admins" collection. */
     suspend fun isAdmin(userId: Id): Boolean = db.isAdmin(userId)

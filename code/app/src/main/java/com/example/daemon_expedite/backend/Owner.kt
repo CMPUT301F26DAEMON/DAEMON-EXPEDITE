@@ -25,7 +25,7 @@ package com.example.daemon_expedite.backend
  * @param ownerReservations List<Id>. The ids of reservations made at the owner's campsites.
  * @param ownerLotteries List<Id>. The ids of lotteries the owner has created.
  * @param sentNotifications List<Id>. The ids of the notifications the owner has sent.
- * @param ownerChats List<Id>. The ids of the chats the owner has with entrants.
+ * @param ownerChats List<Id>. The ids of the chats the owner has with users.
  */
 open class Owner(
     id: Id = Id(),
@@ -112,7 +112,7 @@ open class Owner(
      */
     suspend fun addOwnerReservation(reservation: Reservation) {
         if (reservation.id in _ownerReservations) return
-        // Database.addReservation(reservation)
+        Database.addReservation(reservation)
         _ownerReservations.add(reservation.id)
         Database.addOwner(this)
     }

@@ -36,14 +36,14 @@ class DatabaseTest {
             val randomId = "01a17b5a-7d88-75c9-98a0-831fa7ffc7ce"
             val user =
                 User(
-                    Id(Uuid.parse(randomId)),
-                    "test",
-                    "test",
-                    "test",
-                    Id(Uuid.parse(randomId)),
-                    List(1) { Id(Uuid.parse(randomId)) },
-                    List(1) { Id(Uuid.parse(randomId)) },
-                    List(1) { Id(Uuid.parse(randomId)) },
+                    id = Id(Uuid.parse(randomId)),
+                    name = "test",
+                    email = "test",
+                    phoneNumber = "test",
+                    notificationsEnabled = true,
+                    lotteries = List(1) { Id(Uuid.parse(randomId)) },
+                    reservations = List(1) { Id(Uuid.parse(randomId)) },
+                    chats = List(1) { Id(Uuid.parse(randomId)) },
                 )
             Database.addUser(user)
         }
