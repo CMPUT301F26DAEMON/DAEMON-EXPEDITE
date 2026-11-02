@@ -1130,4 +1130,11 @@ object Database {
 
     /** True if the user has an entry in the "admins" collection. */
     suspend fun isAdmin(userId: Id): Boolean = db.isAdmin(userId)
+
+    suspend fun fetchChat(chatId: Id): Chat = db.fetchChat(chatId)
+
+    suspend fun uploadMessage(
+        message: Message,
+        chatId: Id,
+    ) = db.uploadMessage(message, chatId)
 }
