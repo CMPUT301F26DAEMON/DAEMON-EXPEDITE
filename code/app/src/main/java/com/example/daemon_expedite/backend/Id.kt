@@ -33,4 +33,17 @@ class Id
          * */
         fun getTime(): Instant =
             Instant.ofEpochMilli((value.toString().substring(0..7) + value.toString().substring(9..12)).toLong(radix = 16))
+
+        /**
+         * Two ids are equal when their UUIDs are equal, even if they are different objects.
+         *
+         * Needed because ids read from the database are always new objects. Without this,
+         * `campsite.id in owner.ownerCampsites` and `list.remove(id)` compare object identity
+         * and never match an id that was loaded separately.
+         */
+        override fun equals(other: Any?): Boolean = other is Id && other.value == value
+
+        override fun hashCode(): Int = value.hashCode()
+
+        override fun toString(): String = value.toString()
     }

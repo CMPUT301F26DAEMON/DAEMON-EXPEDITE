@@ -1,7 +1,7 @@
 package com.example.daemon_expedite.backend
 
-import kotlin.time.Instant
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * A booking of a [Campsite] by a [User] for a set of dates.
@@ -19,19 +19,17 @@ import kotlin.time.Clock
  */
 class Reservation(
     val id: Id = Id(),
-    private val campsite: Id,
+    val campsite: Id,
     val reservationDates: Array<Instant>,
     val reservedBy: Id,
-    isCancelled: Boolean = false
+    isCancelled: Boolean = false,
 ) {
-
     var isCancelled: Boolean = isCancelled
         private set
 
-
     /**
      * Cancels this reservation, e.g. when the user cancels their booking.
-     * Has no effect if it is already cancelled.
+     * Has no effect if it is already canceled.
      */
     fun cancel() {
         if (!isCancelled) {
@@ -39,7 +37,6 @@ class Reservation(
             // Database.updateReservation(this)
         }
     }
-
 
     /**
      * Checks whether the last date in [reservationDates] is before [now].

@@ -34,4 +34,24 @@ class IdTest {
             assert(e.message == "Invalid UUID version: $id2")
         }
     }
+
+    @Test
+    fun testIdEqualityByValue() {
+        val uuid = "01a17b5a-7d88-75c9-98a0-831fa7ffc7ce"
+
+        // Two separate objects for the same UUID, like two ids read from the database.
+        val a = Id(Uuid.parse(uuid))
+        val b = Id(Uuid.parse(uuid))
+        val other = Id(Uuid.parse("01a17b5a-c3ce-7535-8cf5-6c84dfa82c06"))
+
+        assert(a == b)
+        assert(a.hashCode() == b.hashCode())
+        assert(a != other)
+
+        // List checks used by the models (e.g. "campsite.id in owner.ownerCampsites").
+        val list = mutableListOf(a)
+        assert(b in list)
+        assert(list.remove(b))
+        assert(list.isEmpty())
+    }
 }

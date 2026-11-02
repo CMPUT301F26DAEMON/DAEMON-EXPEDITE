@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppFonts
@@ -33,12 +34,32 @@ import com.example.daemon_expedite.ui_components.SearchBar
 * Includes a bottom navigation bar for accessing reservations, lotteries,
 * and messages.
 *
+* The screen only displays what it is given; [HomeViewModel] does the loading and searching.
+*
+* @param profileImageUrl URL of the signed-in user's profile picture, or null to show the fallback.
+* @param searchQuery Text currently in the search bar.
+* @param onSearchQueryChange Called as the user types in the search bar.
+* @param campsites The campsites to list, or a loading/error state.
+* @param onRetry Called when the user taps the error message to load again.
+* @param onCampsiteClick Called with the id of the tapped campsite.
+* @param onProfileClick Called when the profile picture in the top bar is tapped.
+* @param onReservationsClick Called when the Reservations tab is tapped.
+* @param onLotteriesClick Called when the Lotteries tab is tapped.
+* @param onMessagesClick Called when the Messages tab is tapped.
 */
-@Preview(showBackground = true)
 @Composable
-fun EntrantHomeScreen() {
-
-    var searchQuery by remember { mutableStateOf("") }
+fun EntrantHomeScreen(
+    profileImageUrl: String? = null,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    campsites: UiState<List<CampsiteSummary>> = UiState.Content(emptyList()),
+    onRetry: () -> Unit = {},
+    onCampsiteClick: (Id) -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {},
+    onLotteriesClick: () -> Unit = {},
+    onMessagesClick: () -> Unit = {},
+) {
 
     Column(
         modifier = Modifier
@@ -63,7 +84,7 @@ fun EntrantHomeScreen() {
             ) {
                 SearchBar(
                     query = searchQuery,
-                    onQueryChange = { searchQuery = it },
+                    onQueryChange = onSearchQueryChange,
                     placeholderText = "WHERE DO YOU WANT TO GO?",
                     showQrIcon = true,
                     onQRCodeClicked = {}
@@ -77,10 +98,10 @@ fun EntrantHomeScreen() {
                     tint = AppColors.TextOnPrimary
                 )
             }
-            IconButton(onClick = {}, modifier = Modifier.size(40.dp)) {
-                // Profile picture (no user data yet, so the fallback image is shown)
+            IconButton(onClick = onProfileClick, modifier = Modifier.size(40.dp)) {
+                // Profile picture (falls back to a default image when the user has none)
                 ProfileImage(
-                    imageUrl = null,
+                    imageUrl = profileImageUrl,
                     size = 39.dp,
                     contentDescription = "Profile"
                 )
@@ -113,14 +134,17 @@ fun EntrantHomeScreen() {
             )
         }
 
-        // Empty LazyColumn for later
-        LazyColumn(
+        // Campsite cards, or a spinner/error/empty message
+        CampsiteList(
+            state = campsites,
+            emptyText = if (searchQuery.isBlank()) "No campsites to show yet"
+                        else "No campsites match \"$searchQuery\"",
+            onRetry = onRetry,
+            onCampsiteClick = onCampsiteClick,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-        ) {
-            // Campsite cards go here later
-        }
+        )
         BottomNavBar(
             labels = listOf(
                 "Reservations",
@@ -133,10 +157,16 @@ fun EntrantHomeScreen() {
                 AppIcons.Chat
             ),
             onClicks = listOf(
-                {},
-                {},
-                {}
+                onReservationsClick,
+                onLotteriesClick,
+                onMessagesClick
             )
         )
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun EntrantHomeScreenPreview() {
+    EntrantHomeScreen()
 }

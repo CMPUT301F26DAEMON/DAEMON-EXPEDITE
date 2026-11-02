@@ -35,3 +35,4 @@ google-services.json
 .gitignore
 .DS_Store
 *.md
+/code/app/google-services.json

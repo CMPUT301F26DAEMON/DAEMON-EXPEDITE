@@ -68,6 +68,9 @@ object AppColors {
     /** Borders on tags and buttons (white at 15%). */
     val OutlineStrong = Color(0x26FFFFFF)
 
+    /** Border around the availability calendar (white at 40%). */
+    val OutlineBright = Color(0x66FFFFFF)
+
     /** Selected card border (sage at 40%). */
     val OutlineAccent = Color(0x6690A99A)
 
@@ -76,6 +79,12 @@ object AppColors {
 
     /** Form field fill (white at 9%). */
     val FillField = Color(0x17FFFFFF)
+
+    /** Border of the Register campsite form fields (white at 70%). */
+    val OutlineField = Color(0xB3FFFFFF)
+
+    /** Inside of the promo image drop area (Secondary at 8%). */
+    val SecondaryTint = Color(0x1490A99A)
 
     /** White at 80% opacity. */
     val SearchBarBackground = Color(0xCCFFFFFF)
