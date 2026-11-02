@@ -57,7 +57,7 @@ class Campsite(
         this.pricePerNight = newRate
         this.maxOccupancy = newMaxOccupancy
 
-        //Database.updateCampsite(this)
+        Database.updateCampsite(this)
     }
 
     suspend fun addLottery(lottery: Lottery) {
@@ -69,8 +69,8 @@ class Campsite(
 
     suspend fun addImage(image: Image) {
         if (image !in _images) {
+            Database.addImage(id, image)
             _images.add(image)
-            //Database.addImage(image)
         }
     }
 
@@ -80,6 +80,6 @@ class Campsite(
 
     suspend fun updateRating(rating: Int) {
         this.rating.addRating(rating)
-        //Database.updateCampsite(this)
+        Database.updateCampsite(this)
     }
 }
