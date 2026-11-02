@@ -1,9 +1,5 @@
 package com.example.daemon_expedite.backend
 
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-
 open class User(
     val id: Id = Id(),
     name: String = "",
