@@ -8,9 +8,9 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -27,7 +27,6 @@ import kotlinx.coroutines.launch
  */
 @OptIn(FlowPreview::class)
 class HomeViewModel : ViewModel() {
-
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
@@ -97,7 +96,9 @@ class HomeViewModel : ViewModel() {
     // Asks for extra results so hiding the user's own campsites still leaves a full list.
     private suspend fun fetch(text: String): List<CampsiteSummary> {
         val viewer = viewerId
-        return Database.searchCampsite(address = text.trim().ifBlank { null }, limit = RESULT_LIMIT + OWN_CAMPSITE_ALLOWANCE)
+        return Database
+            .searchCampsite(address = text.trim().ifBlank { null }, limit = RESULT_LIMIT + OWN_CAMPSITE_ALLOWANCE)
+            .campsites
             .filterNot { viewer != null && it.ownerId == viewer }
             .take(RESULT_LIMIT)
             .map { it.toSummary() }
