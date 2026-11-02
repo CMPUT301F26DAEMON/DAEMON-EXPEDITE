@@ -1,9 +1,5 @@
 package com.example.daemon_expedite.backend
 
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-
 open class User(
     val id: Id = Id(),
     name: String = "",
@@ -42,7 +38,7 @@ open class User(
         this.name = name
         this.email = email
         this.phoneNumber = phoneNumber
-        // Database.updateUser(this)
+        Database.updateUser(this)
     }
 
     suspend fun updateProfileImage(image: Image) {
@@ -52,33 +48,33 @@ open class User(
 
     suspend fun enableOrDisableNotifications(enabled: Boolean) {
         notificationsEnabled = enabled
-        // Database.updateUser(this)
+        Database.updateUser(this)
     }
 
     suspend fun addLottery(lottery: Lottery) {
         if (lottery.id !in _lotteries) {
             _lotteries.add(lottery.id)
-            // Database.updateUser(this)
+            Database.updateUser(this)
         }
     }
 
     suspend fun removeLottery(lottery: Lottery) {
         if (_lotteries.remove(lottery.id)) {
-            //   Database.updateUser(this)
+            Database.updateUser(this)
         }
     }
 
     suspend fun addReservation(reservation: Reservation) {
         if (reservation.id !in _reservations) {
             _reservations.add(reservation.id)
-            //  Database.updateUser(this)
+            Database.updateUser(this)
         }
     }
 
     suspend fun addChat(chat: Chat) {
         if (chat.id !in _chats) {
             _chats.add(chat.id)
-            // Database.updateUser(this)
+            Database.updateUser(this)
         }
     }
 
@@ -97,7 +93,7 @@ open class User(
      */
 
     suspend fun deleteProfile() {
-        // Database.deleteUser(id)
+        Database.deleteUser(id)
         _lotteries.clear()
         _reservations.clear()
         _chats.clear()
