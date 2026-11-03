@@ -35,6 +35,9 @@ object AppColors {
     /** Primary brand green. Selected tabs, primary buttons and toggle pill. */
     val Primary = Color(0xFF437657)
 
+    /** [Primary] at 45%, for date ranges already added in a multi-range calendar. */
+    val PrimaryMuted = Color(0x73437657)
+
     /** Sage green for secondary actions, icons and muted labels. */
     val Secondary = Color(0xFF90A99A)
 

@@ -77,6 +77,8 @@ import java.time.format.FormatStyle
  * @param initialMonth Month shown first. Defaults to the month of [startDate], or the current month.
  * @param minDate Days before this are greyed out and cannot be tapped. Null means no limit.
  * @param maxDate Days after this are greyed out and cannot be tapped. Null means no limit.
+ * @param addedRanges Ranges already chosen (for example by [DateRangesPicker]), drawn in a lighter
+ *   green behind the current selection. Each runs from its `start` to its `endInclusive` day.
  */
 @Composable
 fun DateRangeCalendar(
@@ -87,6 +89,7 @@ fun DateRangeCalendar(
     initialMonth: YearMonth = startDate?.let(YearMonth::from) ?: YearMonth.now(),
     minDate: LocalDate? = null,
     maxDate: LocalDate? = null,
+    addedRanges: List<ClosedRange<LocalDate>> = emptyList(),
 ) {
     var visibleMonth by rememberSaveable { mutableStateOf(initialMonth) }
 
@@ -117,6 +120,7 @@ fun DateRangeCalendar(
                                 startDate = startDate,
                                 endDate = endDate,
                                 enabled = enabled,
+                                addedRanges = addedRanges,
                                 onClick = onRangeChange?.let { change ->
                                     {
                                         val (s, e) = nextDateRange(startDate, endDate, date)
@@ -202,8 +206,9 @@ private fun WeekdayLabels() {
 }
 
 /**
- * One day in the grid. Days inside the range get a green band; the band is
- * rounded at the start and end of the range and where it wraps to a new week.
+ * One day in the grid. Days inside the selected range get a green band, and days inside one of
+ * [addedRanges] a lighter one. A band is rounded at the start and end of its range and where it
+ * wraps to a new week.
  */
 @Composable
 private fun DayCell(
@@ -212,16 +217,23 @@ private fun DayCell(
     startDate: LocalDate?,
     endDate: LocalDate?,
     enabled: Boolean,
+    addedRanges: List<ClosedRange<LocalDate>>,
     onClick: (() -> Unit)?,
 ) {
     val isStart = date == startDate
     val isEnd = date == endDate
     val inRange = startDate != null && endDate != null &&
         !date.isBefore(startDate) && !date.isAfter(endDate)
-    val highlighted = isStart || isEnd || inRange
+    val inSelection = isStart || isEnd || inRange
+    // The current selection is drawn over any added range it touches.
+    val added = if (inSelection) null else addedRanges.firstOrNull { date in it }
+    val highlighted = inSelection || added != null
 
-    val roundLeft = isStart || column == 0 || date.dayOfMonth == 1
-    val roundRight = isEnd || endDate == null || column == 6 ||
+    // Ends of whichever band this day belongs to.
+    val bandStart = if (added != null) added.start else startDate
+    val bandEnd = if (added != null) added.endInclusive else endDate
+    val roundLeft = date == bandStart || column == 0 || date.dayOfMonth == 1
+    val roundRight = date == bandEnd || bandEnd == null || column == 6 ||
         date.dayOfMonth == date.lengthOfMonth()
     val shape = RoundedCornerShape(
         topStart = if (roundLeft) 24.dp else 0.dp,
@@ -234,6 +246,7 @@ private fun DayCell(
         isStart && isEnd -> ", start and end date"
         isStart -> ", start date"
         isEnd -> ", end date"
+        added != null -> ", already added"
         else -> ""
     }
 
@@ -242,7 +255,13 @@ private fun DayCell(
             .fillMaxWidth()
             .height(48.dp)
             .clip(shape)
-            .then(if (highlighted) Modifier.background(AppColors.Primary) else Modifier)
+            .then(
+                when {
+                    inSelection -> Modifier.background(AppColors.Primary)
+                    added != null -> Modifier.background(AppColors.PrimaryMuted)
+                    else -> Modifier
+                }
+            )
             .then(
                 if (onClick != null) Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
                 else Modifier

@@ -1,364 +1,227 @@
 package com.example.daemon_expedite.frontend
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.daemon_expedite.backend.DatePeriod
+import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.LotteryProblems
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BackButton
-import com.example.daemon_expedite.ui_components.DateRangeCalendar
+import com.example.daemon_expedite.ui_components.DatePickerField
+import com.example.daemon_expedite.ui_components.DateRangesPicker
+import com.example.daemon_expedite.ui_components.FormSelectField
+import com.example.daemon_expedite.ui_components.FormTextField
+import com.example.daemon_expedite.ui_components.MultiSelectField
+import com.example.daemon_expedite.ui_components.ScreenHeader
 import com.example.daemon_expedite.ui_components.YellowButton
 import java.time.LocalDate
 
 /**
- * Displays the campsite owner's Start Lottery screen.
+ * The owner's Create lottery form, from the Figma frame "Start lottery · Empty".
  *
- * Allows an owner to configure lottery details, including campsite
- * selection, registration dates, booking dates, and draw settings.
+ * Changes from the frame, as agreed with the team: "Lottery Period" is when entrants can join,
+ * the single calendar became "Stay Periods" (several ranges of bookable nights), and the
+ * QR code button is left for later.
  *
- * @param onBackClick Callback invoked when the back button is pressed.
+ * Only draws [draft] and reports changes; [CreateLotteryViewModel] holds the values and saves.
+ *
+ * @param draft Current form values.
+ * @param campsiteOptions The owner's campsites that aren't in another lottery, or loading / error.
+ * @param problems Messages to show under the fields (only filled in after the first submit).
+ * @param isSaving True while saving: the create button says "Creating…" and ignores taps.
+ * @param today The owner's today; entries can't open before it.
  */
 @Composable
-fun StartLotteryScreen(
-    onBackClick: () -> Unit = {}
+fun CreateLotteryScreen(
+    draft: LotteryDraft,
+    campsiteOptions: UiState<List<CampsiteOption>>,
+    problems: LotteryProblems,
+    isSaving: Boolean,
+    today: LocalDate,
+    onBackClick: () -> Unit,
+    onRetryCampsites: () -> Unit,
+    onToggleCampsite: (Id) -> Unit,
+    onEntryFirstDayChange: (LocalDate) -> Unit,
+    onEntryLastDayChange: (LocalDate) -> Unit,
+    onAddStayPeriod: (firstNight: LocalDate, checkOut: LocalDate) -> Unit,
+    onRemoveStayPeriod: (index: Int) -> Unit,
+    onWinnerCountChange: (String) -> Unit,
+    onWaitlistCapacityChange: (String) -> Unit,
+    onCreateClick: () -> Unit,
 ) {
-    var bookingStartDate by remember {
-        mutableStateOf<LocalDate?>(null)
-    }
-
-    var bookingEndDate by remember {
-        mutableStateOf<LocalDate?>(null)
-    }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BackButton(onClick = onBackClick)
+        ScreenHeader(title = "Create Lottery", onBackClick = onBackClick)
 
-            Text(
-                text = "Add Lottery",
-                style = AppTextStyles.PageTitleLarge,
-                color = AppColors.TextPrimary
-            )
-        }
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Lottery Details",
-            style = AppTextStyles.PageTitle,
-            color = AppColors.TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Select Campsites",
-            style = AppTextStyles.HeadingMedium,
-            color = AppColors.TextPrimary
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp)
-                .background(
-                    color = AppColors.FillField,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .border(
-                    width = 1.dp,
-                    color = AppColors.OutlineStrong,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .clickable { }
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Icon(
-                imageVector = AppIcons.LotteryTicket, // Replace Later with CAMP icon
-                contentDescription = null,
-                tint = AppColors.TextSecondary,
-                modifier = Modifier.size(24.dp)
-            )
+            Text("Lottery Details", style = AppTextStyles.PageTitleMultiline, color = AppColors.TextPrimary)
 
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "SELECT CAMPSITES",
-                style = AppTextStyles.FieldContent,
-                color = AppColors.TextSecondary,
-                modifier = Modifier.weight(1f)
-            )
-
-            Icon(
-                imageVector = AppIcons.DropdownArrow,
-                contentDescription = "Select campsites",
-                tint = AppColors.TextSecondary
-            )
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Registration period",
-            style = AppTextStyles.HeadingMedium,
-            color = AppColors.TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp)
-                .background(
-                    color = AppColors.FillField,
-                    shape = RoundedCornerShape(16.dp)
+            // region Campsites
+            SectionHeading("Select Campsites")
+            when (campsiteOptions) {
+                UiState.Loading -> FormSelectField(
+                    label = "Loading your campsites…", value = null, onClick = {},
+                    icon = AppIcons.Campsite, enabled = false,
                 )
-                .border(
-                    width = 1.dp,
-                    color = AppColors.OutlineStrong,
-                    shape = RoundedCornerShape(16.dp)
+                is UiState.Error -> FormSelectField(
+                    label = "Select campsites", value = "${campsiteOptions.message}. Tap to try again.",
+                    onClick = onRetryCampsites, icon = AppIcons.Campsite,
                 )
-                .clickable { }
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = AppIcons.Calendar,
-                contentDescription = null,
-                tint = AppColors.TextPrimary,
-                modifier = Modifier.size(24.dp)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "OPEN DATE",
-                style = AppTextStyles.FieldContent,
-                color = AppColors.TextSecondary
-            )
-        }
-        Spacer(modifier = Modifier.height(15.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp)
-                .background(
-                    color = AppColors.FillField,
-                    shape = RoundedCornerShape(16.dp)
+                is UiState.Content -> MultiSelectField(
+                    label = "Select campsites",
+                    options = campsiteOptions.data,
+                    selected = campsiteOptions.data.filter { it.id in draft.campsites }.toSet(),
+                    optionLabel = { it.name },
+                    onToggle = { onToggleCampsite(it.id) },
+                    icon = AppIcons.Campsite,
+                    emptyText = "No free campsites. Each campsite can only be in one lottery at a time.",
+                    error = problems.campsites,
                 )
-                .border(
-                    width = 1.dp,
-                    color = AppColors.OutlineStrong,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .clickable { }
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = AppIcons.Calendar,
-                contentDescription = null,
-                tint = AppColors.TextPrimary,
-                modifier = Modifier.size(24.dp)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "CLOSE DATE",
-                style = AppTextStyles.FieldContent,
-                color = AppColors.TextSecondary
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Booking period",
-            style = AppTextStyles.HeadingMedium,
-            color = AppColors.TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        DateRangeCalendar(
-            startDate = bookingStartDate,
-            endDate = bookingEndDate,
-            onRangeChange = { start, end ->
-                bookingStartDate = start
-                bookingEndDate = end
             }
-        )
+            // endregion
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Draw settings",
-            style = AppTextStyles.HeadingMedium,
-            color = AppColors.TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp)
-                .background(
-                    color = AppColors.FillField,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .border(
-                    width = 1.dp,
-                    color = AppColors.OutlineStrong,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .clickable { }
-                .padding(start = 12.dp, end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = AppIcons.Trophy,
-                contentDescription = null,
-                tint = AppColors.TextSecondary,
-                modifier = Modifier.size(24.dp)
+            // region Lottery period
+            SectionHeading("Lottery Period")
+            Caption("When entrants can join the waiting list. Winners are drawn at the end of the close date.")
+            DatePickerField(
+                label = "Open date",
+                date = draft.entryFirstDay,
+                onDateSelected = onEntryFirstDayChange,
+                icon = AppIcons.Calendar,
+                minDate = today,
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "NUMBER OF WINNERS",
-                style = AppTextStyles.FieldContent,
-                color = AppColors.TextSecondary
+            DatePickerField(
+                label = "Close date",
+                date = draft.entryLastDay,
+                onDateSelected = onEntryLastDayChange,
+                icon = AppIcons.Clock,
+                minDate = draft.entryFirstDay ?: today,
+                error = problems.entryPeriod,
             )
-        }
-        Spacer(modifier = Modifier.height(15.dp))
+            // endregion
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp)
-                .background(
-                    color = AppColors.FillField,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .border(
-                    width = 1.dp,
-                    color = AppColors.OutlineStrong,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .clickable { }
-                .padding(start = 12.dp, end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = AppIcons.Waitlist,
-                contentDescription = null,
-                tint = AppColors.TextSecondary,
-                modifier = Modifier.size(24.dp)
+            // region Stay periods
+            SectionHeading("Stay Periods")
+            Caption(
+                "Nights winners can book, first come first served, until the first night. " +
+                    "Add as many ranges as you like: tap the first night, then the check-out day."
             )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "WAITLIST CAPACITY",
-                style = AppTextStyles.FieldContent,
-                color = AppColors.TextSecondary
+            DateRangesPicker(
+                ranges = draft.stayPeriods.map { it.start..it.end },
+                onAddRange = onAddStayPeriod,
+                onRemoveRange = onRemoveStayPeriod,
+                // Stays start after entries close, so winners have time to book.
+                minDate = (draft.entryLastDay ?: today).plusDays(1),
+                error = problems.stayPeriods,
             )
-        }
-        Spacer(modifier = Modifier.height(32.dp))
+            // endregion
 
-        Text(
-            text = "Share your campsite",
-            style = AppTextStyles.HeadingMedium,
-            color = AppColors.TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp)
-                .border(
-                    width = 1.dp,
-                    color = AppColors.Primary,
-                    shape = RoundedCornerShape(16.dp)
+            // region Draw settings
+            SectionHeading("Draw settings")
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FormTextField(
+                    label = "Number of winners",
+                    value = draft.winnerCount,
+                    onValueChange = onWinnerCountChange,
+                    icon = AppIcons.Trophy,
+                    error = problems.winnerCount,
+                    keyboardType = KeyboardType.NumberPassword,
                 )
-                .clickable {
-                    // TODO: Generate QR code
+                if (problems.winnerCount == null && draft.maxWinners > 0) {
+                    Caption("Up to ${draft.maxWinners}: ${draft.campsites.size} campsite(s) × ${draft.stayPeriods.sumOf { it.nights }} night(s).")
                 }
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = AppIcons.QRCode,
-                contentDescription = null,
-                tint = AppColors.Primary,
-                modifier = Modifier.size(24.dp)
-            )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FormTextField(
+                    label = "Waitlist capacity (optional)",
+                    value = draft.waitlistCapacity,
+                    onValueChange = onWaitlistCapacityChange,
+                    icon = AppIcons.Waitlist,
+                    error = problems.waitlistCapacity,
+                    keyboardType = KeyboardType.NumberPassword,
+                    imeAction = ImeAction.Done,
+                )
+                if (problems.waitlistCapacity == null) Caption("Leave empty for no limit.")
+            }
+            // endregion
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "Generate QR Code",
-                style = AppTextStyles.ButtonLabel,
-                color = AppColors.Primary
-            )
+            BoxWithConstraints {
+                YellowButton(
+                    onClick = { if (!isSaving) onCreateClick() },
+                    icon = AppIcons.Tick,
+                    buttonText = if (isSaving) "Creating…" else "Create Lottery",
+                    customHeight = 58,
+                    customWidth = maxWidth.value.toInt(),
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        YellowButton(
-            onClick = {
-                // TODO: Connect lottery creation logic
-            },
-            icon = AppIcons.Tick,
-            buttonText = "Create Lottery"
-        )
     }
 }
 
-/**
- * Preview of the Start Lottery screen.
- */
-@Preview(showBackground = true,
-    heightDp = 1500)
 @Composable
-private fun StartLotteryScreenPreview() {
-    StartLotteryScreen()
+private fun SectionHeading(text: String) {
+    Text(text, style = AppTextStyles.HeadingMedium, color = AppColors.TextPrimary)
+}
+
+@Composable
+private fun Caption(text: String) {
+    Text(text, style = AppTextStyles.CaptionMultiline, color = AppColors.TextSecondary)
+}
+
+@Preview(widthDp = 412, heightDp = 1900)
+@Composable
+private fun CreateLotteryScreenPreview() {
+    val pine = CampsiteOption(Id(), "Pine Creek Hideaway")
+    CreateLotteryScreen(
+        draft = LotteryDraft(
+            campsites = setOf(pine.id),
+            entryFirstDay = LocalDate.of(2026, 10, 1),
+            entryLastDay = LocalDate.of(2026, 10, 5),
+            stayPeriods = listOf(DatePeriod(LocalDate.of(2026, 10, 16), LocalDate.of(2026, 10, 18))),
+            winnerCount = "2",
+        ),
+        campsiteOptions = UiState.Content(listOf(pine, CampsiteOption(Id(), "Maple Campsite"))),
+        problems = LotteryProblems(),
+        isSaving = false,
+        today = LocalDate.of(2026, 9, 20),
+        onBackClick = {},
+        onRetryCampsites = {},
+        onToggleCampsite = {},
+        onEntryFirstDayChange = {},
+        onEntryLastDayChange = {},
+        onAddStayPeriod = { _, _ -> },
+        onRemoveStayPeriod = {},
+        onWinnerCountChange = {},
+        onWaitlistCapacityChange = {},
+        onCreateClick = {},
+    )
 }
