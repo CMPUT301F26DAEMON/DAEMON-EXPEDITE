@@ -61,6 +61,10 @@ object Routes {
     const val OWNER_HOME = "owner_home"
     const val OWNER_PROFILE = "owner_profile"
     const val OWNER_LOTTERIES = "owner_lotteries"
+    const val LOTTERY_ID_ARG = "lotteryId"
+    const val OWNER_LOTTERY_DETAIL = "owner_lottery/{$LOTTERY_ID_ARG}"
+
+    fun ownerLotteryDetail(id: Id) = "owner_lottery/${id.value}"
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
     const val SELECT_LOCATION = "select_location" // opened from Register / Edit campsite only
@@ -98,7 +102,8 @@ object Routes {
  *                                      └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
  *                                                      ├─► Owner campsite details ─┬─► Map view
  *                                                      │                           └─► Edit campsite ─► Select location
- *                                                      ├─► My lotteries ─► Create lottery
+ *                                                      ├─► My lotteries ─┬─► Lottery details ─► Owner campsite details
+ *                                                      │                 └─► Create lottery
  *                                                      └─► Register campsite ─► Select location (map)
  * ```
  * Both profile pages have the role toggle: Entrant / Owner, plus Admin for users found in the
@@ -361,9 +366,46 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 state = state,
                 onBackClick = { navController.popBackStack() },
                 onRetry = lotteries::retry,
-                // TODO: open the lottery details page once it exists.
-                onLotteryClick = { showComingSoon("Lottery details") },
+                onLotteryClick = { id -> navController.navigate(Routes.ownerLotteryDetail(id)) },
                 onCreateClick = { navController.navigate(Routes.CREATE_LOTTERY) },
+            )
+        }
+
+        composable(Routes.OWNER_LOTTERY_DETAIL) {
+            val detail: OwnerLotteryDetailViewModel = viewModel()
+            // Runs each time the page comes back, so edits show up.
+            LaunchedEffect(Unit) { detail.load() }
+            val state by detail.details.collectAsState()
+            val cancelling by detail.isCancelling.collectAsState()
+            OwnerLotteryDetailScreen(
+                state = state,
+                isCancelling = cancelling,
+                onBackClick = { navController.popBackStack() },
+                onRetry = detail::load,
+                onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
+                onViewWaitlistClick = { showComingSoon("Waitlist") },
+                // TODO: open the edit screen (next PR).
+                onEditClick = { showComingSoon("Editing lotteries") },
+                onCancelConfirmed = {
+                    detail.cancel { result ->
+                        when (result) {
+                            CancelResult.DELETED -> {
+                                toast("Lottery deleted")
+                                navController.popBackStack() // My Lotteries reloads when shown
+                            }
+                            CancelResult.CANCELLED -> {
+                                toast("Lottery cancelled")
+                                detail.load() // now shows as Cancelled
+                            }
+                            CancelResult.TOO_LATE -> {
+                                toast("Stays have started, so this lottery can't be cancelled any more.")
+                                detail.load()
+                            }
+                            CancelResult.FAILED ->
+                                toast("Couldn't cancel the lottery. Check your connection and try again.")
+                        }
+                    }
+                },
             )
         }
 
@@ -476,7 +518,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
         composable(Routes.EDIT_CAMPSITE) { entry ->
             val form: RegisterCampsiteViewModel = viewModel()
-            val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toCampsiteIdOrNull() }
+            val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toIdOrNull() }
             LaunchedEffect(campsiteId) { campsiteId?.let { form.startEditing(it) } }
             val load by form.editLoad.collectAsState()
             when {

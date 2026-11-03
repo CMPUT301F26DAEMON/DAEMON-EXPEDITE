@@ -4,9 +4,12 @@ import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.WaitingList
+import com.example.daemon_expedite.frontend.toLotteryDetails
 import com.example.daemon_expedite.frontend.toSummary
 import com.example.daemon_expedite.ui_components.PillVariant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
@@ -70,4 +73,41 @@ class LotterySummaryTest {
         val nextYearNow = midnight(LocalDate.of(2025, 12, 1))
         assertEquals("Entries open 1 Oct 2026", lottery().toSummary(names, nextYearNow, zone).entriesText)
     }
+
+    // region Details page
+
+    @Test
+    fun details_openLottery() {
+        val details = lottery().toLotteryDetails(names, midnight(day(10, 3)), zone)
+        assertEquals(listOf("Pine Creek", "Maple"), details.campsites.map { it.name })
+        assertEquals("Opens 1 Oct · Closes end of 5 Oct", details.entryText)
+        assertEquals("Entrants can join now. Winners are drawn at the end of 5 Oct.", details.phaseNote)
+        assertEquals(listOf("16 Oct → 18 Oct · 2 nights", "23 Oct → 25 Oct · 2 nights"), details.stayTexts)
+        assertEquals("3/10 joined · 2 winners to draw", details.drawText)
+        assertTrue(details.canEdit)
+        assertTrue(details.canCancel)
+        assertFalse(details.deletesOnCancel)
+    }
+
+    @Test
+    fun details_upcomingDeletesOnCancel() {
+        val details = lottery().toLotteryDetails(names, midnight(day(9, 20)), zone)
+        assertTrue(details.deletesOnCancel)
+        assertTrue(details.canEdit)
+    }
+
+    @Test
+    fun details_afterEntriesCloseCannotEdit() {
+        val details = lottery().toLotteryDetails(names, midnight(day(10, 7)), zone)
+        assertFalse(details.canEdit)
+        assertTrue(details.canCancel) // drawing: still before stays
+    }
+
+    @Test
+    fun details_deletedCampsiteIsNamed() {
+        val details = lottery(listOf(pine, Id())).toLotteryDetails(names, midnight(day(10, 3)), zone)
+        assertEquals(listOf("Pine Creek", "Deleted campsite"), details.campsites.map { it.name })
+    }
+
+    // endregion
 }

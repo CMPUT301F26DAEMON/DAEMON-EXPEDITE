@@ -23,6 +23,11 @@ class LotteryClosedException(
     val lotteryId: Id,
 ) : Exception("Lottery $lotteryId is not open for entries")
 
+/** Thrown when cancelling a lottery whose stays have started, or that is already over. */
+class LotteryNotCancellableException(
+    val lotteryId: Id,
+) : Exception("Lottery $lotteryId can no longer be cancelled")
+
 /** Thrown when joining a lottery whose waitlist limit has been reached. */
 class LotteryFullException(
     val lotteryId: Id,

@@ -67,7 +67,7 @@ fun CampsiteDetailScreen(
     onMessageOwnerClick: () -> Unit,
     onPoliciesClick: () -> Unit,
 ) {
-    CampsiteDetailScaffold(state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
+    DetailPageScaffold("Campsite Details", state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
         CampsiteOverview(
             name = details.name,
             imageUrls = details.imageUrls,
@@ -99,18 +99,20 @@ fun CampsiteDetailScreen(
     }
 }
 
-// region Shared with OwnerCampsiteDetailScreen
+// region Shared with the other details screens
 
 /**
- * The frame both campsite details screens share: header, then a spinner, an error with a
- * retry link, or [content] in a scrolling column with 24 dp between sections.
+ * The frame shared by the details pages (campsite, lottery): a header titled [title], then a
+ * spinner, an error with a retry link, or [content] in a scrolling column with 24 dp between
+ * sections.
  */
 @Composable
-internal fun CampsiteDetailScaffold(
-    state: UiState<CampsiteDetails>,
+internal fun <T> DetailPageScaffold(
+    title: String,
+    state: UiState<T>,
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
-    content: @Composable ColumnScope.(CampsiteDetails) -> Unit,
+    content: @Composable ColumnScope.(T) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -119,7 +121,7 @@ internal fun CampsiteDetailScaffold(
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
-        ScreenHeader(title = "Campsite Details", onBackClick = onBackClick)
+        ScreenHeader(title = title, onBackClick = onBackClick)
         when (state) {
             UiState.Loading -> Centered { CircularProgressIndicator(color = AppColors.Primary) }
 

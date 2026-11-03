@@ -109,11 +109,11 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
 internal const val CAMPSITE_NOT_FOUND = "Couldn't find this campsite"
 
 /** The campsite id from a route containing [Routes.CAMPSITE_ID_ARG], or null if it's missing or malformed. */
-internal fun SavedStateHandle.campsiteIdArg(): Id? = get<String>(Routes.CAMPSITE_ID_ARG).toCampsiteIdOrNull()
+internal fun SavedStateHandle.campsiteIdArg(): Id? = get<String>(Routes.CAMPSITE_ID_ARG).toIdOrNull()
 
-/** Parses a campsite id taken from a route, or returns null if it's missing or malformed. */
+/** Parses an id taken from a route, or returns null if it's missing or malformed. */
 @OptIn(ExperimentalUuidApi::class)
-internal fun String?.toCampsiteIdOrNull(): Id? = this?.let { runCatching { Id(Uuid.parse(it)) }.getOrNull() }
+internal fun String?.toIdOrNull(): Id? = this?.let { runCatching { Id(Uuid.parse(it)) }.getOrNull() }
 
 /**
  * Turns a [Campsite] into the [CampsiteDetails] the details screens draw. Photo URLs and the

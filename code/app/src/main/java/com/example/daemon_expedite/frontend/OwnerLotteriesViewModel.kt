@@ -95,7 +95,7 @@ internal fun Lottery.toSummary(
 ): LotterySummary {
     val phase = phase(now, zone)
     val thisYear = now.toJavaInstant().atZone(zone).year
-    fun LocalDate.short() = format(if (year == thisYear) DAY_MONTH else DAY_MONTH_YEAR)
+    fun LocalDate.short() = shortDate(thisYear)
 
     val names = campsites.mapNotNull { campsiteNames[it] }
     val title = when (names.size) {
@@ -104,10 +104,8 @@ internal fun Lottery.toSummary(
         else -> "${names.first()} + ${names.size - 1} more"
     }
 
-    val firstEntryDay = entryStart.toJavaInstant().atZone(zone).toLocalDate()
-    // entryEnd is midnight after the last entry day; a minute earlier is still that day,
-    // even across a daylight-saving change.
-    val lastEntryDay = (entryEnd - 1.minutes).toJavaInstant().atZone(zone).toLocalDate()
+    val firstEntryDay = firstEntryDay(zone)
+    val lastEntryDay = lastEntryDay(zone)
     val entriesText = when (phase) {
         LotteryPhase.UPCOMING -> "Entries open ${firstEntryDay.short()}"
         LotteryPhase.OPEN -> "Entries close ${lastEntryDay.short()}"
@@ -128,20 +126,32 @@ internal fun Lottery.toSummary(
         append(" · ").append(plural(winnerCount, "winner"))
     }
 
-    val (status, variant) = when (phase) {
-        LotteryPhase.UPCOMING -> "Upcoming" to PillVariant.Outlined
-        LotteryPhase.OPEN -> "Open" to PillVariant.Highlight
-        LotteryPhase.DRAWING -> "Drawing" to PillVariant.Highlight
-        LotteryPhase.BOOKING -> "Booking" to PillVariant.Highlight
-        LotteryPhase.STAYS -> "In progress" to PillVariant.Outlined
-        LotteryPhase.FINISHED -> "Finished" to PillVariant.Muted
-        LotteryPhase.CANCELLED -> "Cancelled" to PillVariant.Muted
-    }
-
+    val (status, variant) = phase.pill()
     return LotterySummary(id, title, status, variant, entriesText, staysText, countsText)
 }
 
-private fun plural(count: Int, word: String) = if (count == 1) "1 $word" else "$count ${word}s"
+/** Label and look of the status pill for a lottery in this phase. */
+internal fun LotteryPhase.pill(): Pair<String, PillVariant> = when (this) {
+    LotteryPhase.UPCOMING -> "Upcoming" to PillVariant.Outlined
+    LotteryPhase.OPEN -> "Open" to PillVariant.Highlight
+    LotteryPhase.DRAWING -> "Drawing" to PillVariant.Highlight
+    LotteryPhase.BOOKING -> "Booking" to PillVariant.Highlight
+    LotteryPhase.STAYS -> "In progress" to PillVariant.Outlined
+    LotteryPhase.FINISHED -> "Finished" to PillVariant.Muted
+    LotteryPhase.CANCELLED -> "Cancelled" to PillVariant.Muted
+}
+
+/** The last day entrants can join: [Lottery.entryEnd] is midnight after it. */
+internal fun Lottery.lastEntryDay(zone: ZoneId): LocalDate =
+    // A minute before midnight is still that day, even across a daylight-saving change.
+    (entryEnd - 1.minutes).toJavaInstant().atZone(zone).toLocalDate()
+
+internal fun Lottery.firstEntryDay(zone: ZoneId): LocalDate = entryStart.toJavaInstant().atZone(zone).toLocalDate()
+
+/** "16 Oct", or "16 Oct 2027" when not in [thisYear]. */
+internal fun LocalDate.shortDate(thisYear: Int): String = format(if (year == thisYear) DAY_MONTH else DAY_MONTH_YEAR)
+
+internal fun plural(count: Int, word: String) = if (count == 1) "1 $word" else "$count ${word}s"
 
 private val DAY_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 private val DAY_MONTH_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")

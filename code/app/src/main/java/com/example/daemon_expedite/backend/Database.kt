@@ -79,6 +79,8 @@ interface DatabaseInterface {
 
     suspend fun fetchLotteriesForCampsite(campsiteId: Id): List<Lottery>
 
+    suspend fun cancelLottery(lotteryId: Id): CancelOutcome
+
     suspend fun fetchLottery(id: Id): Lottery
 
     suspend fun updateLottery(lottery: Lottery)
@@ -861,6 +863,38 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         addLottery(lottery)
     }
 
+    /**
+     * Cancels a lottery, in a transaction that re-reads it so the phase check is up to date.
+     *
+     * - Not opened yet ([LotteryPhase.UPCOMING]): nobody can have joined, so it is deleted and
+     *   taken off the owner's `ownerLotteries`.
+     * - Open, drawing or booking: marked `cancelled` and kept, so entrants still see it under
+     *   their past lotteries. Its campsites are free for a new lottery straight away.
+     *
+     * @throws LotteryNotCancellableException once stays have started, or if it is already over.
+     */
+    override suspend fun cancelLottery(lotteryId: Id): CancelOutcome {
+        val ref = lotteryRef(lotteryId)
+        return db
+            .runTransaction { tx ->
+                val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
+                val lottery = parseLottery(lotteryId, data)
+                val phase = lottery.phase()
+                when {
+                    !phase.canCancel -> throw LotteryNotCancellableException(lotteryId)
+                    phase == LotteryPhase.UPCOMING -> {
+                        tx.delete(ref)
+                        tx.update(ownerRef(lottery.ownerId), "ownerLotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
+                        CancelOutcome.DELETED
+                    }
+                    else -> {
+                        tx.update(ref, "cancelled", true)
+                        CancelOutcome.CANCELLED
+                    }
+                }
+            }.await()
+    }
+
     private fun lotteryToMap(lottery: Lottery): Map<String, Any?> =
         mapOf(
             "id" to lottery.id.value.toString(),
@@ -1401,6 +1435,9 @@ object Database {
 
     /** Saves a new lottery and records it on its owner in one write. */
     suspend fun createLottery(lottery: Lottery) = db.createLottery(lottery)
+
+    /** Cancels (or, if it hasn't opened yet, deletes) a lottery. See [DatabaseInner.cancelLottery]. */
+    suspend fun cancelLottery(lotteryId: Id): CancelOutcome = db.cancelLottery(lotteryId)
 
     suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery> = db.fetchOwnerLotteries(ownerId)
 

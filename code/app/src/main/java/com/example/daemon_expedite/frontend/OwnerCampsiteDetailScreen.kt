@@ -47,7 +47,7 @@ fun OwnerCampsiteDetailScreen(
 ) {
     var askDelete by rememberSaveable { mutableStateOf(false) }
 
-    CampsiteDetailScaffold(state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
+    DetailPageScaffold("Campsite Details", state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
         CampsiteOverview(
             name = details.name,
             imageUrls = details.imageUrls,
