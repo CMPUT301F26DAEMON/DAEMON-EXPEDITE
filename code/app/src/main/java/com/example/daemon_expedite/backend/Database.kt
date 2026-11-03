@@ -850,8 +850,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         }
 
         if (startDate != null && endDate != null) {
-            require(!startDate.isAfter(endDate)) {
-                "Start date cannot be after end date"
+            require(startDate.isBefore(endDate)) {
+                "Checkout date must be after check-in date"
             }
         }
 
