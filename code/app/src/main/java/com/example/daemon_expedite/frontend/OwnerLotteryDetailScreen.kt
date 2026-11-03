@@ -94,6 +94,7 @@ fun OwnerLotteryDetailScreen(
                 onRangeChange = null, // read-only
                 initialMonth = details.stayPeriods.firstOrNull()?.start?.let(YearMonth::from) ?: YearMonth.now(),
                 addedRanges = details.stayPeriods.map { it.start..it.end },
+                addedRangesColor = AppColors.Primary,
             )
             details.stayTexts.forEach {
                 Text(it, style = AppTextStyles.BodySmall, color = AppColors.TextPrimary)

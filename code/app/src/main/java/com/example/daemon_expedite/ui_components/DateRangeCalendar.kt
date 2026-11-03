@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -79,6 +80,8 @@ import java.time.format.FormatStyle
  * @param maxDate Days after this are greyed out and cannot be tapped. Null means no limit.
  * @param addedRanges Ranges already chosen (for example by [DateRangesPicker]), drawn in a lighter
  *   green behind the current selection. Each runs from its `start` to its `endInclusive` day.
+ * @param addedRangesColor Fill for [addedRanges]. Pass [AppColors.Primary] on read-only calendars
+ *   where they are the only thing shown.
  */
 @Composable
 fun DateRangeCalendar(
@@ -90,6 +93,7 @@ fun DateRangeCalendar(
     minDate: LocalDate? = null,
     maxDate: LocalDate? = null,
     addedRanges: List<ClosedRange<LocalDate>> = emptyList(),
+    addedRangesColor: Color = AppColors.PrimaryMuted,
 ) {
     var visibleMonth by rememberSaveable { mutableStateOf(initialMonth) }
 
@@ -121,6 +125,7 @@ fun DateRangeCalendar(
                                 endDate = endDate,
                                 enabled = enabled,
                                 addedRanges = addedRanges,
+                                addedRangesColor = addedRangesColor,
                                 onClick = onRangeChange?.let { change ->
                                     {
                                         val (s, e) = nextDateRange(startDate, endDate, date)
@@ -218,6 +223,7 @@ private fun DayCell(
     endDate: LocalDate?,
     enabled: Boolean,
     addedRanges: List<ClosedRange<LocalDate>>,
+    addedRangesColor: Color,
     onClick: (() -> Unit)?,
 ) {
     val isStart = date == startDate
@@ -258,7 +264,7 @@ private fun DayCell(
             .then(
                 when {
                     inSelection -> Modifier.background(AppColors.Primary)
-                    added != null -> Modifier.background(AppColors.PrimaryMuted)
+                    added != null -> Modifier.background(addedRangesColor)
                     else -> Modifier
                 }
             )

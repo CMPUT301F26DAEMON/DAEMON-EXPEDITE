@@ -58,6 +58,30 @@ open class User(
         }
     }
 
+    /**
+     * Joins [lotteryId]'s waiting list. [Database.addUserToLottery] saves both sides (the lottery's
+     * list and this user's `lotteries`) in a transaction that checks the lottery is open and not
+     * full; then the lottery is remembered here too.
+     *
+     * @throws LotteryClosedException if entries aren't open.
+     * @throws LotteryFullException if the waiting list is full.
+     */
+    suspend fun joinLottery(lotteryId: Id) {
+        Database.addUserToLottery(lotteryId, id)
+        if (lotteryId !in _lotteries) _lotteries.add(lotteryId)
+    }
+
+    /**
+     * Leaves [lotteryId]'s waiting list. Saved by [Database.removeUserFromLottery], which only
+     * allows it while entries are open.
+     *
+     * @throws LotteryClosedException if entries aren't open.
+     */
+    suspend fun leaveLottery(lotteryId: Id) {
+        Database.removeUserFromLottery(lotteryId, id)
+        _lotteries.remove(lotteryId)
+    }
+
     suspend fun removeLottery(lottery: Lottery) {
         if (_lotteries.remove(lottery.id)) {
             Database.updateUser(this)
