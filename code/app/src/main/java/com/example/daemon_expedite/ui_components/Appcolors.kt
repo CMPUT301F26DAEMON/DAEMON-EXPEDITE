@@ -111,5 +111,8 @@ object AppColors {
     /** Selection radius and halo on the map (primary at 14% and 22%). */
     val MapSelectionRadius = Color(0x24437657)
     val MapSelectionHalo = Color(0x38437657)
+
+    /** Soft shadow under floating map controls (near-black green at 50%). */
+    val MapControlShadow = Color(0x80071008)
     // endregion
 }

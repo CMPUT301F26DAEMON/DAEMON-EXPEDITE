@@ -16,7 +16,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,7 +40,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,7 +54,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
@@ -64,7 +61,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -75,30 +71,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.GreenButton
+import com.example.daemon_expedite.ui_components.MapControls
+import com.example.daemon_expedite.ui_components.MapPinMarker
+import com.example.daemon_expedite.ui_components.SATELLITE_MAP_ATTRIBUTION
+import com.example.daemon_expedite.ui_components.ScreenHeader
+import com.example.daemon_expedite.ui_components.rememberSatelliteMapView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
-import org.osmdroid.tileprovider.MapTileProviderBasic
-import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.util.MapTileIndex
-import org.osmdroid.views.CustomZoomButtonsController
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.TilesOverlay
 import java.io.IOException
 import java.util.Locale
 import kotlin.coroutines.resume
@@ -314,6 +305,7 @@ fun SelectLocationScreen(
                 // Zoom around the pin's tip, so the chosen spot stays under it.
                 onZoomIn = { mapView.controller.zoomInFixing(mapView.width / 2, pinTipY) },
                 onZoomOut = { mapView.controller.zoomOutFixing(mapView.width / 2, pinTipY) },
+                locateDescription = "Use my location",
                 onLocate = {
                     val hasPermission = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                         .any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
@@ -328,14 +320,14 @@ fun SelectLocationScreen(
             )
 
             // Pin drawing is 92x106 with its tip 90dp down; line the tip up with pinTipY.
-            SelectedPin(
+            MapPinMarker(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .offset(y = with(density) { pinTipYState.toDp() } - 90.dp),
             )
 
             Text(
-                text = "Imagery © Esri, Maxar, Earthstar Geographics",
+                text = SATELLITE_MAP_ATTRIBUTION,
                 style = AppTextStyles.FieldLabel,
                 color = AppColors.TextOnPrimary.copy(alpha = 0.6f),
                 modifier = Modifier
@@ -380,82 +372,6 @@ fun SelectLocationScreen(
 private fun String.coordinateChars(): String =
     filter { it.isDigit() || it == '.' || it == '-' }.take(12)
 
-// region Map
-
-/**
- * Creates the osmdroid [MapView] once, showing satellite tiles with place names on top, and
- * pauses/resumes it with the screen so it stops downloading tiles in the background.
- */
-@Composable
-private fun rememberSatelliteMapView(center: GeoPoint, zoom: Double): MapView {
-    val context = LocalContext.current
-    val mapView = remember {
-        // osmdroid needs its settings loaded (tile cache location, user agent) before a map is made.
-        Configuration.getInstance().apply {
-            load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
-            userAgentValue = context.packageName
-        }
-        MapView(context).apply {
-            setTileSource(EsriWorldImagery)
-            setMultiTouchControls(true)
-            setTilesScaledToDpi(true)
-            zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER) // we draw our own
-            minZoomLevel = 3.0
-            maxZoomLevel = 19.0
-            isHorizontalMapRepetitionEnabled = false
-            isVerticalMapRepetitionEnabled = false
-            setScrollableAreaLimitLatitude(MapView.getTileSystem().maxLatitude, MapView.getTileSystem().minLatitude, 0)
-            overlays.add(
-                TilesOverlay(MapTileProviderBasic(context, EsriPlaceNames), context).apply {
-                    loadingBackgroundColor = android.graphics.Color.TRANSPARENT
-                    loadingLineColor = android.graphics.Color.TRANSPARENT
-                }
-            )
-            controller.setZoom(zoom)
-            controller.setCenter(center)
-        }
-    }
-
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle, mapView) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                else -> Unit
-            }
-        }
-        lifecycle.addObserver(observer)
-        onDispose {
-            lifecycle.removeObserver(observer)
-            mapView.onDetach() // also stops the place-name layer's tile downloads
-        }
-    }
-    return mapView
-}
-
-/** Esri World Imagery. Its URLs are `.../tile/{z}/{y}/{x}` (y before x, unlike OSM). */
-private object EsriWorldImagery : OnlineTileSourceBase(
-    "EsriWorldImagery", 0, 19, 256, ".jpg",
-    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"),
-    "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
-) {
-    override fun getTileURLString(index: Long): String = esriUrl(baseUrl, index)
-}
-
-/** Esri's transparent place-name and boundary layer, drawn over the satellite tiles. */
-private object EsriPlaceNames : OnlineTileSourceBase(
-    "EsriPlaceNames", 0, 19, 256, ".png",
-    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/"),
-    "Esri",
-) {
-    override fun getTileURLString(index: Long): String = esriUrl(baseUrl, index)
-}
-
-private fun esriUrl(base: String, index: Long) =
-    "$base${MapTileIndex.getZoom(index)}/${MapTileIndex.getY(index)}/${MapTileIndex.getX(index)}"
-
-// endregion
 
 // region Overlays
 
@@ -476,101 +392,6 @@ private fun MapGuidance(modifier: Modifier = Modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("Position your campsite", style = AppTextStyles.TitleSmall, color = AppColors.TextOnPrimary)
             Text("Move the map until the pin is exact", style = AppTextStyles.Caption.copy(fontSize = AppTextStyles.Overline.fontSize), color = AppColors.TextSecondary)
-        }
-    }
-}
-
-@Composable
-private fun MapControls(
-    locating: Boolean,
-    onZoomIn: () -> Unit,
-    onZoomOut: () -> Unit,
-    onLocate: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(14.dp)
-    val controlModifier = Modifier
-        .shadow(28.dp, shape, ambientColor = Color(0x80071008), spotColor = Color(0x80071008))
-        .background(AppColors.SurfaceMapControl, shape)
-        .border(1.dp, AppColors.OutlineStrong, shape)
-        .clip(shape)
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Column(modifier = controlModifier) {
-            MapControlButton(AppIcons.Plus, "Zoom in", onZoomIn, height = 42)
-            HorizontalDivider(modifier = Modifier.width(44.dp), thickness = 1.dp, color = AppColors.OutlineSubtle)
-            MapControlButton(AppIcons.Minus, "Zoom out", onZoomOut, height = 42)
-        }
-        Box(modifier = controlModifier) {
-            MapControlButton(
-                AppIcons.MyLocation,
-                "Use my location",
-                onLocate,
-                height = 44,
-                tint = if (locating) AppColors.Secondary else AppColors.TextOnPrimary,
-            )
-        }
-    }
-}
-
-@Composable
-private fun MapControlButton(
-    icon: ImageVector,
-    description: String,
-    onClick: () -> Unit,
-    height: Int,
-    tint: Color = AppColors.TextOnPrimary,
-) {
-    Box(
-        modifier = Modifier
-            .size(width = 44.dp, height = height.dp)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(18.dp))
-    }
-}
-
-/** The pin from the Figma "Pin anchor": radius and halo rings, the green pin, a stem, and a tip dot. */
-@Composable
-private fun SelectedPin(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.size(width = 92.dp, height = 106.dp)) {
-        Box(
-            Modifier
-                .offset(4.dp, 4.dp)
-                .size(84.dp)
-                .background(AppColors.MapSelectionRadius, CircleShape)
-                .border(1.dp, AppColors.OutlineAccent, CircleShape)
-        )
-        Box(
-            Modifier
-                .offset(17.dp, 17.dp)
-                .size(58.dp)
-                .background(AppColors.MapSelectionHalo, CircleShape)
-                .border(1.dp, AppColors.OutlineAccent, CircleShape)
-        )
-        Box(
-            Modifier
-                .offset(44.dp, 65.dp)
-                .size(width = 4.dp, height = 23.dp)
-                .background(Color.White, CircleShape)
-        )
-        Box(
-            Modifier
-                .offset(40.dp, 84.dp)
-                .size(12.dp)
-                .background(AppColors.Primary, CircleShape)
-                .border(2.dp, Color.White, CircleShape)
-        )
-        Box(
-            modifier = Modifier
-                .offset(26.dp, 26.dp)
-                .size(40.dp)
-                .shadow(14.dp, CircleShape)
-                .background(AppColors.Primary, CircleShape)
-                .border(2.dp, Color.White, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(AppIcons.MapPin, contentDescription = "Campsite pin", tint = Color.White, modifier = Modifier.size(20.dp))
         }
     }
 }
