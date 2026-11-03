@@ -61,20 +61,16 @@ class Lottery(
 
     suspend fun joinWaitingList(user: Id): Boolean {
         if (!isActive()) return false
-        if (waitingList.add(user)) {
-            //Database.addEntrant(id, user)
-            return true
-        }
-        return false
+        if (user in waitingList.users || waitingList.isFull()) return false
+        Database.addUserToLottery(id, user)
+        return waitingList.add(user)
     }
 
     suspend fun leaveWaitingList(user: Id): Boolean {
         if (!isActive()) return false
-        if (waitingList.remove(user)) {
-            //Database.removeEntrant(id, user)
-            return true
-        }
-        return false
+        if (user !in waitingList.users) return false
+        Database.removeUserFromLottery(id, user)
+        return waitingList.remove(user)
     }
 
 }
