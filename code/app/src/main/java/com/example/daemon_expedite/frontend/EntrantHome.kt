@@ -66,6 +66,10 @@ fun EntrantHomeScreen(
             .fillMaxSize()
             .background(AppColors.Background)
     ) {
+        // Keeps the top bar clear of the status bar and camera cutout on every device
+        Spacer(
+            Modifier.windowInsetsTopHeight(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+        )
 
         Row(
             modifier = Modifier
@@ -73,7 +77,7 @@ fun EntrantHomeScreen(
                 .padding(
                     start = 15.dp,
                     end = 11.dp, // + the profile button's 4dp inner padding = 15dp, matching start
-                    top =30.dp
+                    top = 12.dp
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -113,7 +117,7 @@ fun EntrantHomeScreen(
                 .padding(
                     start = 25.dp,
                     end = 25.dp,
-                    top = 65.dp
+                    top = 32.dp
                 )
         ) {
             // Heading

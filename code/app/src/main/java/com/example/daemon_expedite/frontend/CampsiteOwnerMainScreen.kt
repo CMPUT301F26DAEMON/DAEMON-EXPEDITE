@@ -31,6 +31,12 @@ import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.GreenButton
 import com.example.daemon_expedite.ui_components.ProfileImage
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import com.example.daemon_expedite.ui_components.SearchBar
 
 /**
@@ -65,6 +71,10 @@ fun CampsiteOwnerMainPage(
             .fillMaxSize()
             .background(AppColors.Background)
     ) {
+        // Keeps the top bar clear of the status bar and camera cutout on every device
+        Spacer(
+            Modifier.windowInsetsTopHeight(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+        )
 
         // Search bar and profile icon
         Row(
@@ -73,7 +83,7 @@ fun CampsiteOwnerMainPage(
                 .padding(
                     start = 15.dp,
                     end = 11.dp, // + the profile button's inner padding = 15dp, matching start
-                    top = 30.dp
+                    top = 12.dp
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -110,7 +120,7 @@ fun CampsiteOwnerMainPage(
             modifier = Modifier.padding(
                 start = 25.dp,
                 end = 25.dp,
-                top = 50.dp,
+                top = 32.dp,
                 bottom = 20.dp
             )
         )

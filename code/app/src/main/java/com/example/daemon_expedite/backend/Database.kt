@@ -3,13 +3,21 @@ package com.example.daemon_expedite.backend
 import android.location.Location
 import android.net.Uri
 import android.util.Log
+import com.firebase.geofire.GeoFireUtils
+import com.firebase.geofire.GeoLocation
 import com.google.firebase.Firebase
 import com.google.firebase.app
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.storage
 import com.google.firebase.storage.storageMetadata
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
@@ -24,7 +32,6 @@ import kotlin.uuid.Uuid
  * Callers use this to tell "first launch, nothing saved yet" apart from real errors. Treating
  * every error as "not found" would create a duplicate user or owner and overwrite the real one.
  */
-class NotFoundException(message: String) : Exception(message)
 
 interface DatabaseInterface {
     suspend fun addUser(user: User)
@@ -35,9 +42,9 @@ interface DatabaseInterface {
 
     suspend fun updateUser(user: User)
 
-    suspend fun deleteUser(user: User)
+    suspend fun deleteUser(user: Id)
 
-    fun fetchAllUsers(): List<User>
+    suspend fun fetchAllUsers(): List<Map<String, String>>
 
     suspend fun addOwner(owner: Owner)
 
@@ -54,12 +61,13 @@ interface DatabaseInterface {
         radius: Int? = null,
         maxOccupancy: Int? = null,
         text: String? = null,
-        limit: Int? = null,
-    ): List<Campsite>
+        limit: Int = 7,
+        cursor: SearchCursor? = null,
+    ): CampsitePage
 
     suspend fun updateCampsite(campsite: Campsite)
 
-    fun deleteCampsite(id: Id)
+    suspend fun deleteCampsite(campsite: Campsite)
 
     suspend fun addLottery(lottery: Lottery)
 
@@ -67,20 +75,24 @@ interface DatabaseInterface {
 
     suspend fun updateLottery(lottery: Lottery)
 
-    fun addReservation(reservation: Reservation)
+    suspend fun addReservation(reservation: Reservation)
 
-    fun fetchReservation(id: Id): Reservation
+    suspend fun fetchReservation(id: Id): Reservation?
 
-    fun updateReservation(reservation: Reservation)
+    suspend fun addUserToLottery(lotteryId: Id, userId: Id)
+
+    suspend fun removeUserFromLottery(lotteryId: Id, userId: Id)
+
+    suspend fun updateReservation(reservation: Reservation)
 
     suspend fun uploadImage(
         path: String,
         uploaderId: Id,
     ): Image
 
-    fun addImageToCampsite(
+    suspend fun addImage(
         campsiteId: Id,
-        path: String,
+        image: Image,
     )
 
     suspend fun fetchImage(id: Id): Image
@@ -89,12 +101,12 @@ interface DatabaseInterface {
 
     suspend fun deleteImage(id: Id)
 
-    fun uploadMessage(
+    suspend fun uploadMessage(
         message: Message,
         chatId: Id,
     )
 
-    fun fetchChat(id: Id): Chat
+    suspend fun fetchChat(id: Id): Chat
 
     fun fetchAllChats(): List<Chat>
 
@@ -144,10 +156,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "phoneNumber" to user.phoneNumber,
                 "notificationsEnabled" to user.notificationsEnabled,
                 "profileImage" to
-                    user.profileImage
-                        ?.id
-                        ?.value
-                        ?.toString(),
+                        user.profileImage
+                            ?.id
+                            ?.value
+                            ?.toString(),
                 "lotteries" to user.lotteryIds.map { it.value.toString() },
                 "reservations" to user.reservationIds.map { it.value.toString() },
                 "chats" to user.chatIds.map { it.value.toString() },
@@ -173,7 +185,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 .await()
                 .data
         if (userData == null) {
-            throw Exception("User data is null")
+            throw NotFoundException("User data is null")
         }
         val idData = userData["id"] as String
         val name = userData["name"] as String
@@ -202,7 +214,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             "name" to name,
             "email" to email,
             "phoneNumber" to phoneNumber,
-            "profileImageData" to profileImageData,
+            "profileImage" to profileImageData,
         )
     }
 
@@ -270,12 +282,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * The owner side is deleted first: if that fails, the account is still there and the user
      * can try again, rather than ending up with an owner record that has no user.
      */
-    override suspend fun deleteUser(user: User) {
-        val userRef = db.collection("users").document(user.id.value.toString())
-        if (ownerRef(user.id).get().await().exists()) {
-            deleteOwnerData(user.id)
+    override suspend fun deleteUser(user: Id) {
+        val userRef = db.collection("users").document(user.value.toString())
+        val userData = userRef.get().await().data
+        if (ownerRef(user).get().await().exists()) {
+            deleteOwnerData(user)
         }
-        val photo = user.profileImage
+        val photoId = userData?.get("profileImage") as? String
+        val photo = photoId?.let { fetchImageOrNull(it) }
         val batch = db.batch()
         batch.delete(userRef)
         if (photo != null) batch.delete(imageRef(photo.id))
@@ -320,7 +334,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     private suspend fun deleteStorageFiles(paths: List<String>) {
         for (path in paths.filter { it.isNotBlank() }) {
             try {
-                dbStorage.reference.child(path).delete().await()
+                dbStorage.reference
+                    .child(path)
+                    .delete()
+                    .await()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -333,8 +350,17 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         addUser(user)
     }
 
-    override fun fetchAllUsers(): List<User> {
-        TODO("Not yet implemented")
+    /**
+     * Returns all users in a map object with id, name, email, phoneNumber and profileImage
+     * */
+    override suspend fun fetchAllUsers(): List<Map<String, String>> {
+        val allUserData = db.collection("users").get().await()
+        val returnedUsers = mutableListOf<Map<String, String>>()
+        for (userData in allUserData.documents) {
+            val user = fetchUser(Id(Uuid.parse(userData["id"] as String)))
+            returnedUsers.add(user)
+        }
+        return returnedUsers
     }
 
     /**
@@ -431,12 +457,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * images, documents and files) and the lotteries they created. The user account is kept, so
      * switching to the owner view later creates a fresh owner.
      *
-     * Entrants who joined those lotteries still have the ids in their own `lotteries` list. That
+     * Users who joined those lotteries still have the ids in their own `lotteries` list. That
      * is intentional for now (the app skips lotteries that no longer exist) because the database
      * doesn't record who joined a lottery, so they can't be found to clean up.
      */
-    suspend fun deleteOwner(owner: Owner) {
-        deleteOwnerData(owner.id)
+    suspend fun deleteOwner(owner: Id) {
+        deleteOwnerData(owner)
     }
 
     /**
@@ -444,23 +470,28 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * owner document (not from an in-memory [Owner], which could be out of date).
      *
      * All documents are deleted in one batched write, so either all of them go or none do.
-     * Storage files are deleted afterwards; if that part fails only unused files are left.
+     * Storage files are deleted afterward; if that part fails only unused files are left.
      */
     private suspend fun deleteOwnerData(ownerId: Id) {
         val ownerDoc = ownerRef(ownerId).get().await()
         val ownerData = ownerDoc.data ?: return // nothing to delete
 
-        fun ids(key: String): List<String> =
-            (ownerData[key] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
+        fun ids(key: String): List<String> = (ownerData[key] as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
 
         val campsiteIds = ids("ownerCampsites")
         val lotteryIds = ids("ownerLotteries")
-
+        val reservationIds = ids("ownerReservations")
+        val reservationRef = db.collection("reservations")
         // Collect each campsite's image records first (ids for the batch, paths for Storage).
         val images = mutableListOf<Image>()
         for (campsiteId in campsiteIds) {
             val campsiteData =
-                db.collection("campsites").document(campsiteId).get().await().data ?: continue
+                db
+                    .collection("campsites")
+                    .document(campsiteId)
+                    .get()
+                    .await()
+                    .data ?: continue
             (campsiteData["images"] as? List<*>)
                 ?.mapNotNull { it?.toString()?.let { id -> fetchImageOrNull(id) } }
                 ?.let(images::addAll)
@@ -471,7 +502,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         campsiteIds.forEach { batch.delete(db.collection("campsites").document(it)) }
         lotteryIds.forEach { batch.delete(db.collection("lotteries").document(it)) }
         images.forEach { batch.delete(imageRef(it.id)) }
-        // TODO: also delete ownerReservations once reservations are stored in the database.
+        reservationIds.forEach { batch.delete(reservationRef.document(it)) }
         batch.commit().await()
 
         deleteStorageFiles(images.map { it.path })
@@ -487,8 +518,20 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     suspend fun isAdmin(userId: Id): Boolean {
         val id = userId.value.toString()
         val admins = db.collection("admins")
-        if (admins.document(id).get().await().exists()) return true
-        return !admins.whereEqualTo("id", id).limit(1).get().await().isEmpty
+        if (admins
+                .document(id)
+                .get()
+                .await()
+                .exists()
+        ) {
+            return true
+        }
+        return !admins
+            .whereEqualTo("id", id)
+            .limit(1)
+            .get()
+            .await()
+            .isEmpty
     }
 
     override suspend fun addCampsite(campsite: Campsite) {
@@ -500,6 +543,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "tags" to campsite.tags,
                 // Must be a List: Firestore throws on Kotlin/Java arrays ("use Lists instead").
                 "location" to listOf(campsite.location.latitude, campsite.location.longitude),
+                "geohash" to GeoFireUtils.getGeoHashForLocation(GeoLocation(campsite.location.latitude, campsite.location.longitude)),
                 "maxOccupancy" to campsite.maxOccupancy,
                 "policies" to campsite.policies,
                 "pricePerNight" to campsite.pricePerNight,
@@ -616,9 +660,9 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     fun withinRadius(
-        data: Map<String, Any?>,
-        radius: Int?,
         location: Location?,
+        radius: Int?,
+        data: Map<String, Any?>,
     ): Boolean {
         if (location == null || radius == null) return true
         val locationData = data["location"] as? List<*>
@@ -633,48 +677,121 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return location.distanceTo(point) <= radius
     }
 
+    /**
+     * Function to search for campsites
+     * @param location: Location? -> this is the location desired by the user
+     * @param radius: Int? -> this is the radius within which to search the campsites
+     * @param maxOccupancy: Int? -> this is the maximum occupancy allowed
+     * @param text: String? -> this is the text to search for in the address of the campsite
+     * @param limit: Int -> this is the number of campsites to return
+     * @param cursor: SearchCursor? -> this is an internal pagination cursor, basically pass this in the next search campsites function call, and it will start from the last returned campsite. pass null for new query
+     *
+     * @return CampsitePage -> object which holds campsites and SearchCursor for the next search query, cursor will be null if no more campsites are found
+     * */
     override suspend fun searchCampsites(
         location: Location?,
         radius: Int?,
         maxOccupancy: Int?,
         text: String?,
-        limit: Int?,
-    ): List<Campsite> {
-        var query: Query = db.collection("campsites")
+        limit: Int,
+        cursor: SearchCursor?,
+    ): CampsitePage {
+        val collection = db.collection("campsites")
 
-        if (maxOccupancy != null) {
-            query = query.whereGreaterThanOrEqualTo("maxOccupancy", maxOccupancy)
-        }
-        if (!text.isNullOrEmpty()) {
-            query =
-                query
-                    .orderBy("address")
-                    .whereGreaterThanOrEqualTo("address", text)
-                    .whereLessThan("address", text + '\uf8ff')
+        // One query per geohash bound, or a single plain query without a location
+        val queries: List<Query> =
+            if (location != null && radius != null) {
+                val center = GeoLocation(location.latitude, location.longitude)
+                GeoFireUtils.getGeoHashQueryBounds(center, radius.toDouble()).map { b ->
+                    collection.orderBy("geohash").startAt(b.startHash).endAt(b.endHash)
+                }
+            } else {
+                var q: Query = collection
+                if (maxOccupancy != null) {
+                    q = q.whereGreaterThanOrEqualTo("maxOccupancy", maxOccupancy)
+                }
+                q =
+                    if (!text.isNullOrEmpty()) {
+                        q
+                            .orderBy("address")
+                            .whereGreaterThanOrEqualTo("address", text)
+                            .whereLessThan("address", text + '\uf8ff')
+                    } else {
+                        q.orderBy(FieldPath.documentId())
+                    }
+                listOf(q)
+            }
+
+        // Runs on every candidate. Redundant with the server-side filters in the
+        // non-geo case, but harmless, and required in the geo case.
+        fun passesFilters(data: Map<String, Any?>): Boolean {
+            if (maxOccupancy != null) {
+                val max = (data["maxOccupancy"] as? Number)?.toInt() ?: 0
+                if (max < maxOccupancy) return false
+            }
+            if (!text.isNullOrEmpty()) {
+                val address = data["address"] as? String ?: return false
+                if (!address.startsWith(text)) return false
+            }
+            return withinRadius(location, radius, data) // exact check, bounds overshoot the circle
         }
 
+        val batchSize = (limit * 2).toLong().coerceAtLeast(20)
         val results = mutableListOf<Campsite>()
-        for (doc in query.get().await().documents) {
-            if (limit != null && results.size >= limit) break
+        var boundIndex = cursor?.boundIndex ?: 0
+        var lastDoc = cursor?.lastDoc
 
-            val data = doc.data ?: continue
-            if (!withinRadius(data, radius, location)) continue
+        while (boundIndex < queries.size) {
+            var query = queries[boundIndex].limit(batchSize)
+            if (lastDoc != null) query = query.startAfter(lastDoc)
 
-            try {
-                results.add(parseCampsite(Id(Uuid.parse(doc.id)), data))
-            } catch (e: Exception) {
-                Log.e("DatabaseInner", "Skipping malformed campsite ${doc.id}", e)
+            val docs = query.get().await().documents
+
+            for (doc in docs) {
+                val data = doc.data ?: continue
+                if (!passesFilters(data)) continue
+
+                try {
+                    results.add(parseCampsite(Id(Uuid.parse(doc.id)), data))
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Log.e("DatabaseInner", "Skipping malformed campsite ${doc.id}", e)
+                    continue
+                }
+
+                // Cursor is the last doc *returned*; anything examined after it
+                // gets re-examined next call, which costs a few reads but loses nothing
+                if (results.size >= limit) {
+                    return CampsitePage(results, SearchCursor(boundIndex, doc))
+                }
+            }
+
+            if (docs.size < batchSize) {
+                boundIndex++ // this bound is exhausted, move to the next
+                lastDoc = null
+            } else {
+                lastDoc = docs.last()
             }
         }
-        return results
+        return CampsitePage(results, null)
     }
 
     override suspend fun updateCampsite(campsite: Campsite) {
         addCampsite(campsite)
     }
 
-    override fun deleteCampsite(id: Id) {
-        TODO("Not yet implemented")
+    override suspend fun deleteCampsite(campsite: Campsite) {
+        db
+            .batch()
+            .apply {
+                delete(db.collection("campsites").document(campsite.id.value.toString()))
+                update(
+                    db.collection("owners").document(campsite.ownerId.value.toString()),
+                    "ownerCampsites",
+                    FieldValue.arrayRemove(campsite.id.value.toString()),
+                )
+            }.commit()
+            .await()
     }
 
     override suspend fun addLottery(lottery: Lottery) {
@@ -689,6 +806,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "bookingEnd" to lottery.bookingEndDate.toString(),
                 "winnerCount" to lottery.winnerCount,
                 "winners" to lottery.winners.map { it.value.toString() },
+                "users" to lottery.waitingList.entrants.map { it.value.toString() },
                 "lotteryStart" to lottery.lotteryStart.toString(),
                 "lotteryEnd" to lottery.lotteryEnd.toString(),
                 "availableDates" to lottery.availableDates.map { it.toString() },
@@ -736,19 +854,32 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         for (item in availableDatesData) {
             availableDates.add(Instant.parse(item.toString()))
         }
+        val users =
+            (lotteryData["users"] as? List<*>)
+                ?.mapNotNull { item ->
+                    item?.toString()?.let {
+                        try {
+                            Id(Uuid.parse(it))
+                        } catch (e: IllegalArgumentException) {
+                            Log.w("DatabaseInner", "Skipping malformed user id '$it' in lottery $id", e)
+                            null
+                        }
+                    }
+                } ?: emptyList()
         return Lottery(
-            Id(Uuid.parse(idData)),
-            campsites,
-            maxBook,
-            Instant.parse(registrationStart),
-            Instant.parse(registrationEnd),
-            Instant.parse(bookingStart),
-            Instant.parse(bookingEnd),
-            winnerCount,
-            winners,
-            Instant.parse(lotteryStart),
-            Instant.parse(lotteryEnd),
-            availableDates,
+            id = Id(Uuid.parse(idData)),
+            campsites = campsites,
+            maxBookableByASingleUser = maxBook,
+            registrationStart = Instant.parse(registrationStart),
+            registrationEnd = Instant.parse(registrationEnd),
+            bookingStartDate = Instant.parse(bookingStart),
+            bookingEndDate = Instant.parse(bookingEnd),
+            winnerCount = winnerCount,
+            winners = winners,
+            lotteryStart = Instant.parse(lotteryStart),
+            lotteryEnd = Instant.parse(lotteryEnd),
+            availableDates = availableDates,
+            waitingList = WaitingList(entrants = users),
         )
     }
 
@@ -756,16 +887,119 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         addLottery(lottery)
     }
 
-    override fun addReservation(reservation: Reservation) {
-        TODO("Not yet implemented")
+    override suspend fun addReservation(reservation: Reservation) {
+        val reservationData =
+            mapOf(
+                "id" to reservation.id.value.toString(),
+                "campsite" to reservation.campsite.value.toString(),
+                "reservationDates" to reservation.reservationDates.map { it.toString() },
+                "reservedBy" to reservation.reservedBy.value.toString(),
+                "isCancelled" to reservation.isCancelled,
+            )
+        db
+            .collection("reservations")
+            .document(reservation.id.value.toString())
+            .set(reservationData)
+            .await()
     }
 
-    override fun fetchReservation(id: Id): Reservation {
-        TODO("Not yet implemented")
+    override suspend fun fetchReservation(id: Id): Reservation? {
+        return try {
+            val reservationData =
+                db
+                    .collection("reservations")
+                    .document(id.value.toString())
+                    .get()
+                    .await() ?: throw NotFoundException("Document not found")
+            val id =
+                reservationData["id"] as? String
+                    ?: throw NotFoundException("Reservation Id not found")
+            val campsite =
+                reservationData["campsite"] as? String
+                    ?: throw NotFoundException("Campsite Id not found")
+            val reservationDatesData =
+                reservationData["reservationDates"] as? List<*>
+                    ?: throw NotFoundException("Reservation Dates not found")
+            val reservedBy =
+                reservationData["reservedBy"] as? String
+                    ?: throw NotFoundException("Reserved By not found")
+            val isCancelled =
+                reservationData["isCancelled"] as? Boolean ?: throw NotFoundException(
+                    "Reservation found but status not available",
+                )
+            val reservationDates = reservationDatesData.map { Instant.parse(it.toString()) }.toTypedArray()
+            return Reservation(Id(Uuid.parse(id)), Id(Uuid.parse(campsite)), reservationDates, Id(Uuid.parse(reservedBy)), isCancelled)
+        } catch (e: NotFoundException) {
+            Log.e("DatabaseInner", "Error fetching reservation ${e.message}")
+            null
+        } catch (e: Exception) {
+            throw e
+        }
     }
 
-    override fun updateReservation(reservation: Reservation) {
-        TODO("Not yet implemented")
+    override suspend fun addUserToLottery(lotteryId: Id, userId: Id) {
+        val lotteryRef = db.collection("lotteries").document(lotteryId.value.toString())
+        val userRef = db.collection("users").document(userId.value.toString())
+        db
+            .batch()
+            .apply {
+                update(lotteryRef, "users", FieldValue.arrayUnion(userId.value.toString()))
+                update(userRef, "lotteries", FieldValue.arrayUnion(lotteryId.value.toString()))
+            }.commit()
+            .await()
+    }
+
+    override suspend fun removeUserFromLottery(lotteryId: Id, userId: Id) {
+        val lotteryRef = db.collection("lotteries").document(lotteryId.value.toString())
+        val userRef = db.collection("users").document(userId.value.toString())
+        db
+            .batch()
+            .apply {
+                update(lotteryRef, "users", FieldValue.arrayRemove(userId.value.toString()))
+                update(userRef, "lotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
+            }.commit()
+            .await()
+    }
+
+//     override suspend fun addReservation(reservation: Reservation) {
+//         val reservationData =
+//             mapOf(
+//                 "id" to reservation.id.value.toString(),
+//                 "campsite" to reservation.campsite.value.toString(),
+//                 "reservationDates" to reservation.reservationDates.map { it.toString() },
+//                 "reservedBy" to reservation.reservedBy.value.toString(),
+//                 "isCancelled" to reservation.isCancelled,
+//             )
+//         db
+//             .collection("reservations")
+//             .document(reservation.id.value.toString())
+//             .set(reservationData)
+//             .await()
+//     }
+
+//     override suspend fun fetchReservation(id: Id): Reservation {
+//         val data =
+//             db
+//                 .collection("reservations")
+//                 .document(id.value.toString())
+//                 .get()
+//                 .await()
+//                 .data ?: throw NotFoundException("Reservation ${id.value} not found")
+//         val dates =
+//             (data["reservationDates"] as? List<*>)
+//                 ?.map { Instant.parse(it as? String ?: throw InvalidDataException("Malformed reservation date")) }
+//                 ?: throw InvalidDataException("Reservation ${id.value} has no reservation dates")
+//         return Reservation(
+//             id = Id(Uuid.parse(data["id"] as? String ?: throw InvalidDataException("Reservation id is missing"))),
+//             campsite = Id(Uuid.parse(data["campsite"] as? String ?: throw InvalidDataException("Campsite id is missing"))),
+//             reservationDates = dates.toTypedArray(),
+//             reservedBy = Id(Uuid.parse(data["reservedBy"] as? String ?: throw InvalidDataException("User id is missing"))),
+//             isCancelled = data["isCancelled"] as? Boolean ?: false,
+//         )
+//     }
+
+    override suspend fun updateReservation(reservation: Reservation) {
+        addReservation(reservation)
     }
 
     /**
@@ -832,7 +1066,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val resolver = Firebase.app.applicationContext.contentResolver
         val jpeg = ImageCompressor.compressToJpeg(resolver, uri, maxSidePx)
         val metadata = storageMetadata { contentType = "image/jpeg" }
-        dbStorage.reference.child(imagePath).putBytes(jpeg, metadata).await()
+        dbStorage.reference
+            .child(imagePath)
+            .putBytes(jpeg, metadata)
+            .await()
         imageRef(imageId)
             .set(
                 mapOf(
@@ -844,11 +1081,24 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return Image(imageId, uploaderId, imagePath)
     }
 
-    override fun addImageToCampsite(
+    override suspend fun addImage(
         campsiteId: Id,
-        path: String,
+        image: Image,
     ) {
-        TODO("Not yet implemented")
+        val campsiteRef = db.collection("campsites").document(campsiteId.value.toString())
+        val imageData =
+            mapOf(
+                "id" to image.id.value.toString(),
+                "uploader" to image.uploader.value.toString(),
+                "path" to image.path,
+            )
+        db
+            .batch()
+            .apply {
+                set(imageRef(image.id), imageData)
+                update(campsiteRef, "images", FieldValue.arrayUnion(image.id.value.toString()))
+            }.commit()
+            .await()
     }
 
     override suspend fun fetchImage(id: Id): Image = fetchImageRecord(id)
@@ -872,16 +1122,124 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         if (image != null) deleteStorageFiles(listOf(image.path))
     }
 
-    override fun uploadMessage(
+    override suspend fun uploadMessage(
         message: Message,
         chatId: Id,
     ) {
-        TODO("Not yet implemented")
+        val chatRef = db.collection("chats").document(chatId.value.toString())
+        val messageRef = db.collection("messages").document(message.id.value.toString())
+
+        val messageData =
+            mapOf(
+                "id" to message.id.value.toString(),
+                "message" to message.message,
+            )
+
+        try {
+            db
+                .batch()
+                .apply {
+                    update(chatRef, "messageOwn", FieldValue.arrayUnion(message.id.value.toString()))
+                    set(messageRef, messageData)
+                }.commit()
+                .await()
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code == FirebaseFirestoreException.Code.NOT_FOUND) {
+                throw IllegalStateException("Chat $chatId not found", e)
+            }
+            throw e
+        }
     }
 
-    override fun fetchChat(id: Id): Chat {
-        TODO("Not yet implemented")
+    private fun parseIdList(
+        data: Map<String, Any?>,
+        key: String,
+    ): List<Id> {
+        val raw =
+            data[key] as? List<*>
+                ?: throw InvalidDataException("'$key' is missing or not a list")
+
+        return raw.mapIndexed { index, item ->
+            val idString =
+                item as? String
+                    ?: throw InvalidDataException("'$key'[$index] is not a string: $item")
+            try {
+                Id(Uuid.parse(idString))
+            } catch (e: IllegalArgumentException) {
+                throw InvalidDataException("'$key'[$index] is not a valid UUID: $idString", e)
+            }
+        }
     }
+
+    override suspend fun fetchChat(id: Id): Chat {
+        val data =
+            db
+                .collection("chats")
+                .document(id.value.toString())
+                .get()
+                .await()
+                .data ?: throw ChatNotFoundException(id)
+
+        // Validate everything cheap before doing any message reads
+        fun requireId(key: String): Id {
+            val raw =
+                data[key] as? String
+                    ?: throw InvalidChatDataException(id, "missing or invalid '$key'")
+            return try {
+                Id(Uuid.parse(raw))
+            } catch (_: IllegalArgumentException) {
+                throw InvalidChatDataException(id, "malformed '$key': $raw")
+            }
+        }
+
+        val ownUser = requireId("ownUser")
+        val otherUser = requireId("otherUser")
+
+        if (data["messageOwn"] !is List<*> || data["messageOther"] !is List<*>) {
+            throw InvalidChatDataException(id, "messageOwn/messageOther missing or invalid")
+        }
+
+        val (messageOwn, messageOther) =
+            coroutineScope {
+                val own = async { fetchMessages(parseIdList(data, "messageOwn")) }
+                val other = async { fetchMessages(parseIdList(data, "messageOther")) }
+                own.await() to other.await()
+            }
+
+        return Chat(id, ownUser, otherUser, messageOwn as MutableList, messageOther as MutableList)
+    }
+
+    /** Fetches messages in parallel batches of 30, returned in the same order as [ids]. */
+    private suspend fun fetchMessages(ids: List<Id>): List<Message> =
+        coroutineScope {
+            val found: Map<Id, Message> =
+                ids
+                    .distinct()
+                    .chunked(30) // Firestore `in` limit
+                    .map { chunk ->
+                        async {
+                            db
+                                .collection("messages")
+                                .whereIn(FieldPath.documentId(), chunk.map { it.value.toString() })
+                                .get()
+                                .await()
+                                .documents
+                        }
+                    }.awaitAll()
+                    .flatten()
+                    .mapNotNull { doc ->
+                        val text = doc.getString("message")
+                        val msgId = runCatching { Id(Uuid.parse(doc.id)) }.getOrNull()
+                        if (text == null || msgId == null) {
+                            Log.e("DatabaseInner", "Skipping malformed message ${doc.id}")
+                            null
+                        } else {
+                            msgId to Message(msgId, text)
+                        }
+                    }.toMap()
+
+            ids.mapNotNull { found[it] ?: null.also { _ -> Log.w("DatabaseInner", "Message $it not found") } }
+        }
 
     override fun fetchAllChats(): List<Chat> {
         TODO("Not yet implemented")
@@ -924,7 +1282,9 @@ object Database {
 
     suspend fun updateUser(user: User) = db.updateUser(user)
 
-    suspend fun deleteUser(user: User) = db.deleteUser(user)
+    suspend fun deleteUser(user: User) = db.deleteUser(user.id)
+
+    suspend fun deleteUser(user: Id) = db.deleteUser(user)
 
     suspend fun fetchOwnUser(): User = db.fetchOwnUser()
 
@@ -936,9 +1296,15 @@ object Database {
 
     suspend fun updateOwner(owner: Owner) = db.updateOwner(owner)
 
+    suspend fun deleteOwner(owner: Owner) = db.deleteOwner(owner.id)
+
+    suspend fun deleteOwner(owner: Id) = db.deleteOwner(owner)
+
     suspend fun addCampsite(campsite: Campsite) = db.addCampsite(campsite)
 
     suspend fun fetchCampsite(campsiteId: Id): Campsite = db.fetchCampsite(campsiteId)
+
+    suspend fun updateCampsite(campsite: Campsite) = db.updateCampsite(campsite)
 
     /**
      * Searches campsites. Every filter is optional; leave it null to skip it.
@@ -949,8 +1315,8 @@ object Database {
         radiusInMeters: Int? = null,
         maxOccupancy: Int? = null,
         address: String? = null,
-        limit: Int? = null,
-    ): List<Campsite> = db.searchCampsites(location, radiusInMeters, maxOccupancy, address, limit)
+        limit: Int = 7,
+    ): CampsitePage = db.searchCampsites(location, radiusInMeters, maxOccupancy, address, limit)
 
     suspend fun addLottery(lottery: Lottery) {
         db.addLottery(lottery)
@@ -961,6 +1327,10 @@ object Database {
     suspend fun updateLottery(lottery: Lottery) {
         db.updateLottery(lottery)
     }
+
+    suspend fun addUserToLottery(lotteryId: Id, userId: Id) = db.addUserToLottery(lotteryId, userId)
+
+    suspend fun removeUserFromLottery(lotteryId: Id, userId: Id) = db.removeUserFromLottery(lotteryId, userId)
 
     suspend fun uploadImage(
         uploaderId: Id,
@@ -982,14 +1352,28 @@ object Database {
 
     suspend fun fetchImage(id: Id): Image = db.fetchImage(id)
 
+    suspend fun addImage(campsiteId: Id, image: Image) = db.addImage(campsiteId, image)
+
     /** Deletes an image's record and its Storage file. Remove references to it first. */
     suspend fun deleteImage(id: Id) = db.deleteImage(id)
 
     suspend fun getImage(path: String): String = db.getImage(path)
 
-    /** Deletes only the owner profile (owner record, campsites, their images, lotteries). */
-    suspend fun deleteOwner(owner: Owner) = db.deleteOwner(owner)
-
     /** True if the user has an entry in the "admins" collection. */
     suspend fun isAdmin(userId: Id): Boolean = db.isAdmin(userId)
+
+    suspend fun fetchChat(chatId: Id): Chat = db.fetchChat(chatId)
+
+    suspend fun uploadMessage(
+        message: Message,
+        chatId: Id,
+    ) = db.uploadMessage(message, chatId)
+
+    suspend fun addReservation(reservation: Reservation) = db.addReservation(reservation)
+
+    suspend fun fetchReservation(id: Id): Reservation? = db.fetchReservation(id)
+
+    suspend fun updateReservation(reservation: Reservation) = db.updateReservation(reservation)
+
+    suspend fun deleteCampsite(campsite: Campsite) = db.deleteCampsite(campsite)
 }
