@@ -200,8 +200,29 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             val detail: CampsiteDetailViewModel = viewModel()
             LaunchedEffect(user) { user?.let(detail::load) }
             val state by detail.details.collectAsState()
+            var lotteryBusy by remember { mutableStateOf(false) }
+
+            /** Joins or leaves, then reloads the page so the card shows the new state. */
+            fun lotteryAction(join: Boolean) {
+                val lotteryId = (state as? UiState.Content)?.data?.lotteryId ?: return
+                lotteryBusy = true
+                val action = if (join) session::joinLottery else session::leaveLottery
+                action(lotteryId) { result ->
+                    lotteryBusy = false
+                    when (result) {
+                        LotteryActionResult.DONE ->
+                            toast(if (join) "You're on the waiting list" else "You left the waiting list")
+                        LotteryActionResult.FULL -> toast("Sorry, the waiting list just filled up.")
+                        LotteryActionResult.CLOSED -> toast("Entries for this lottery are closed.")
+                        LotteryActionResult.FAILED -> toast("Something went wrong. Check your connection and try again.")
+                    }
+                    session.user?.let(detail::refresh)
+                }
+            }
+
             CampsiteDetailScreen(
                 state = state,
+                isLotteryBusy = lotteryBusy,
                 onBackClick = { navController.popBackStack() },
                 onRetry = detail::retry,
                 onViewMapClick = {
@@ -212,9 +233,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onPoliciesClick = {
                     (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
                 },
-                // TODO: replace these as the lottery actions and messages are built.
-                onJoinLotteryClick = { showComingSoon("Joining a lottery") },
-                onLeaveLotteryClick = { showComingSoon("Leaving a lottery") },
+                onJoinLotteryClick = { lotteryAction(join = true) },
+                onLeaveLotteryClick = { lotteryAction(join = false) },
+                // TODO: open messages once they're built.
                 onMessageOwnerClick = { showComingSoon("Messages") },
             )
         }

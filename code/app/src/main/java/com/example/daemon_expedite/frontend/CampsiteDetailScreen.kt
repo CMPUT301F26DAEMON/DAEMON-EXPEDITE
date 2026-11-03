@@ -20,6 +20,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -27,12 +31,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.CampsiteOverview
 import com.example.daemon_expedite.ui_components.CampsitePill
+import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.DateRangeCalendar
 import com.example.daemon_expedite.ui_components.LotteryStatus
 import com.example.daemon_expedite.ui_components.LotteryStatusCard
@@ -40,6 +46,7 @@ import com.example.daemon_expedite.ui_components.OwnerCard
 import com.example.daemon_expedite.ui_components.PillVariant
 import com.example.daemon_expedite.ui_components.ScreenHeader
 import java.time.LocalDate
+import java.time.YearMonth
 
 /**
  * Campsite details as seen by an entrant. Opened by tapping a campsite card on Entrant Home.
@@ -52,9 +59,10 @@ import java.time.LocalDate
  * @param onRetry Called when the error message is tapped.
  * @param onViewMapClick Called when "View on map" is tapped.
  * @param onJoinLotteryClick Called when "Join Lottery!" is tapped.
- * @param onLeaveLotteryClick Called when "Leave waiting list" is tapped.
+ * @param onLeaveLotteryClick Called after the entrant confirms leaving the waiting list.
  * @param onMessageOwnerClick Called when the message button on the owner card is tapped.
  * @param onPoliciesClick Called when "Campsite Policies" is tapped.
+ * @param isLotteryBusy True while joining or leaving; the lottery button ignores taps.
  */
 @Composable
 fun CampsiteDetailScreen(
@@ -66,7 +74,10 @@ fun CampsiteDetailScreen(
     onLeaveLotteryClick: () -> Unit,
     onMessageOwnerClick: () -> Unit,
     onPoliciesClick: () -> Unit,
+    isLotteryBusy: Boolean = false,
 ) {
+    var askLeave by rememberSaveable { mutableStateOf(false) }
+
     DetailPageScaffold("Campsite Details", state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
         CampsiteOverview(
             name = details.name,
@@ -84,11 +95,13 @@ fun CampsiteDetailScreen(
         LotteryStatusCard(
             status = details.lotteryStatus,
             endsText = details.lotteryEndsText,
+            opensText = details.lotteryOpensText,
+            busy = isLotteryBusy,
             onJoinClick = onJoinLotteryClick,
-            onLeaveClick = onLeaveLotteryClick,
+            onLeaveClick = { askLeave = true },
         )
 
-        CalendarSection(title = "Available Dates", start = details.bookingStart, end = details.bookingEnd)
+        CalendarSection(title = "Available Dates", ranges = details.stayPeriods.map { it.start..it.end })
 
         OwnerCard(
             name = details.ownerName ?: "Campsite owner",
@@ -96,6 +109,21 @@ fun CampsiteDetailScreen(
         )
 
         PoliciesLink(onPoliciesClick)
+
+        if (askLeave) {
+            ConfirmDialog(
+                title = "Leave the waiting list?",
+                message = "You won't be in the draw for ${details.name}. " +
+                    "You can join again while entries are open, if there's still room.",
+                confirmText = "Leave",
+                dismissText = "Stay in",
+                onConfirm = {
+                    askLeave = false
+                    onLeaveLotteryClick()
+                },
+                onDismiss = { askLeave = false },
+            )
+        }
     }
 }
 
@@ -151,22 +179,32 @@ internal fun <T> DetailPageScaffold(
     }
 }
 
-/** The pill on the photo: amber when a lottery is running, muted otherwise. */
+/** The pill on the photo: amber when a lottery is running, outlined when one is coming, muted otherwise. */
 @Composable
 internal fun LotteryPill(status: LotteryStatus) {
-    if (status == LotteryStatus.NONE) {
-        CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = AppIcons.Clock)
-    } else {
-        CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket)
+    when (status) {
+        LotteryStatus.NONE -> CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = AppIcons.Clock)
+        LotteryStatus.UPCOMING -> CampsitePill("Lottery · Soon", variant = PillVariant.Outlined, icon = AppIcons.Clock)
+        else -> CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket)
     }
 }
 
-/** A section heading over a read-only [DateRangeCalendar] showing [start] to [end]. */
+/**
+ * A section heading over a read-only [DateRangeCalendar] showing [ranges] in green. The calendar
+ * opens on the month of the first range.
+ */
 @Composable
-internal fun CalendarSection(title: String, start: LocalDate?, end: LocalDate?) {
+internal fun CalendarSection(title: String, ranges: List<ClosedRange<LocalDate>>) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(title, style = AppTextStyles.HeadingMedium, color = AppColors.TextPrimary)
-        DateRangeCalendar(startDate = start, endDate = end, onRangeChange = null)
+        DateRangeCalendar(
+            startDate = null,
+            endDate = null,
+            onRangeChange = null,
+            initialMonth = ranges.minOfOrNull { it.start }?.let(YearMonth::from) ?: YearMonth.now(),
+            addedRanges = ranges,
+            addedRangesColor = AppColors.Primary,
+        )
     }
 }
 
@@ -212,8 +250,7 @@ internal fun previewCampsiteDetails(status: LotteryStatus = LotteryStatus.JOINED
     longitude = 0.0,
     lotteryStatus = status,
     lotteryEndsText = "12 Oct 2026 · 6:00 PM PT",
-    bookingStart = LocalDate.of(2026, 10, 16),
-    bookingEnd = LocalDate.of(2026, 10, 18),
+    stayPeriods = listOf(DatePeriod(LocalDate.of(2026, 10, 16), LocalDate.of(2026, 10, 18))),
 )
 
 @Preview(widthDp = 412, heightDp = 1700)

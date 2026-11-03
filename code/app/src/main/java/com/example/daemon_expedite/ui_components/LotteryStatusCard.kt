@@ -32,6 +32,12 @@ enum class LotteryStatus {
     /** The viewer is on the waiting list. Shows "Leave waiting list". */
     JOINED,
 
+    /** A lottery is open but its waiting list is full. Shows a disabled button. */
+    FULL,
+
+    /** A lottery has been set up but entries haven't opened yet. Shows a disabled button. */
+    UPCOMING,
+
     /** No lottery is open for this campsite. Shows a disabled button. */
     NONE,
 }
@@ -39,12 +45,15 @@ enum class LotteryStatus {
 /**
  * Card on the campsite details page that shows the lottery state and the matching action.
  *
- * Built from the "Expedite/Card/Lottery" frames in the Figma file (join, joined and none).
+ * Built from the "Expedite/Card/Lottery" frames in the Figma file (join, joined and none),
+ * plus full and upcoming states in the same style as "none".
  *
- * @param status Which of the three states to show.
+ * @param status Which state to show.
  * @param modifier [Modifier] applied to the card.
- * @param endsText When the lottery closes, already formatted, for example
- *   "12 Oct 2026 · 6:00 PM PT". Ignored for [LotteryStatus.NONE].
+ * @param endsText When entries close, already formatted, for example "12 Oct 2026 · 11:59 PM MDT".
+ *   Used for [LotteryStatus.OPEN], [LotteryStatus.JOINED] and [LotteryStatus.FULL].
+ * @param opensText When entries open, for example "1 Oct". Used for [LotteryStatus.UPCOMING].
+ * @param busy True while joining or leaving: the button shows "…" and ignores taps.
  * @param onJoinClick Called when "Join Lottery!" is tapped ([LotteryStatus.OPEN]).
  * @param onLeaveClick Called when "Leave waiting list" is tapped ([LotteryStatus.JOINED]).
  */
@@ -53,6 +62,8 @@ fun LotteryStatusCard(
     status: LotteryStatus,
     modifier: Modifier = Modifier,
     endsText: String? = null,
+    opensText: String? = null,
+    busy: Boolean = false,
     onJoinClick: () -> Unit = {},
     onLeaveClick: () -> Unit = {},
 ) {
@@ -65,7 +76,12 @@ fun LotteryStatusCard(
             subtitle = ends,
             modifier = modifier,
         ) { width ->
-            YellowButton(onClick = onJoinClick, icon = AppIcons.LotteryTicket, buttonText = "Join Lottery!", customWidth = width)
+            YellowButton(
+                onClick = { if (!busy) onJoinClick() },
+                icon = AppIcons.LotteryTicket,
+                buttonText = if (busy) "Joining…" else "Join Lottery!",
+                customWidth = width,
+            )
         }
 
         LotteryStatus.JOINED -> CardFrame(
@@ -75,7 +91,32 @@ fun LotteryStatusCard(
             subtitle = ends,
             modifier = modifier,
         ) { width ->
-            RedButton(onClick = onLeaveClick, icon = AppIcons.LeaveList, buttonText = "Leave waiting list", customWidth = width)
+            RedButton(
+                onClick = { if (!busy) onLeaveClick() },
+                icon = AppIcons.LeaveList,
+                buttonText = if (busy) "Leaving…" else "Leave waiting list",
+                customWidth = width,
+            )
+        }
+
+        LotteryStatus.FULL -> CardFrame(
+            border = AppColors.OutlineStrong,
+            icon = AppIcons.LotteryTicket,
+            title = "The waiting list is full",
+            subtitle = ends,
+            modifier = modifier,
+        ) {
+            DisabledButton("Waiting List Full")
+        }
+
+        LotteryStatus.UPCOMING -> CardFrame(
+            border = AppColors.OutlineStrong,
+            icon = AppIcons.Clock,
+            title = "A lottery is coming",
+            subtitle = opensText?.let { "Entries open $it." },
+            modifier = modifier,
+        ) {
+            DisabledButton(opensText?.let { "Opens $it" } ?: "Opening Soon")
         }
 
         LotteryStatus.NONE -> CardFrame(
@@ -142,12 +183,14 @@ private fun DisabledButton(text: String) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380)
+@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380, heightDp = 1000)
 @Composable
 private fun LotteryStatusCardPreview() {
     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         LotteryStatusCard(LotteryStatus.OPEN, endsText = "12 Oct 2026 · 6:00 PM PT")
         LotteryStatusCard(LotteryStatus.JOINED, endsText = "12 Oct 2026 · 6:00 PM PT")
+        LotteryStatusCard(LotteryStatus.FULL, endsText = "12 Oct 2026 · 6:00 PM PT")
+        LotteryStatusCard(LotteryStatus.UPCOMING, opensText = "1 Oct")
         LotteryStatusCard(LotteryStatus.NONE)
     }
 }

@@ -5,7 +5,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
+import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Image
+import com.example.daemon_expedite.backend.LotteryClosedException
+import com.example.daemon_expedite.backend.LotteryFullException
 import com.example.daemon_expedite.backend.User
 import com.example.daemon_expedite.backend.NotFoundException
 import kotlinx.coroutines.Job
@@ -15,6 +18,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
+
+/** Outcome of [SessionViewModel.joinLottery] and [SessionViewModel.leaveLottery]. */
+enum class LotteryActionResult {
+    DONE,
+
+    /** The waiting list filled up before this entrant could join. */
+    FULL,
+
+    /** Entries closed (or haven't opened) since the page loaded. */
+    CLOSED,
+
+    /** Usually no connection. */
+    FAILED,
+}
 
 /** What the app currently knows about the signed-in user. */
 sealed interface SessionState {
@@ -166,6 +183,52 @@ class SessionViewModel : ViewModel() {
                 load()
             }
             onResult(ok)
+        }
+    }
+
+    // endregion
+
+    // region Lotteries
+
+    /** Joins [lotteryId]'s waiting list. See [User.joinLottery]. */
+    fun joinLottery(lotteryId: Id, onResult: (LotteryActionResult) -> Unit) =
+        lotteryAction("Joining lottery $lotteryId failed", onResult) { it.joinLottery(lotteryId) }
+
+    /** Leaves [lotteryId]'s waiting list. See [User.leaveLottery]. */
+    fun leaveLottery(lotteryId: Id, onResult: (LotteryActionResult) -> Unit) =
+        lotteryAction("Leaving lottery $lotteryId failed", onResult) { it.leaveLottery(lotteryId) }
+
+    /**
+     * Runs a join or leave and redraws. Unlike [saveUser] it doesn't save the whole user
+     * afterwards: the database call already updated both the lottery and the user in one
+     * transaction, and a full save could undo a change made from another device.
+     */
+    private fun lotteryAction(
+        logMessage: String,
+        onResult: (LotteryActionResult) -> Unit,
+        action: suspend (User) -> Unit,
+    ) {
+        val user = user ?: return onResult(LotteryActionResult.FAILED)
+        viewModelScope.launch {
+            val result = try {
+                action(user)
+                LotteryActionResult.DONE
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Firestore may wrap exceptions thrown inside a transaction.
+                val causes = generateSequence<Throwable>(e) { it.cause }.toList()
+                when {
+                    causes.any { it is LotteryFullException } -> LotteryActionResult.FULL
+                    causes.any { it is LotteryClosedException } -> LotteryActionResult.CLOSED
+                    else -> {
+                        Log.e(TAG, logMessage, e)
+                        LotteryActionResult.FAILED
+                    }
+                }
+            }
+            userChanged()
+            onResult(result)
         }
     }
 

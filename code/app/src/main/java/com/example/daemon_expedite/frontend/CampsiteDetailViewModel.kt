@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Campsite
+import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
@@ -18,11 +19,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -36,9 +37,10 @@ import kotlin.uuid.Uuid
  * @property imageUrls Download URLs for the campsite's photos (Storage paths can't be shown directly).
  * @property ownerName Null if the owner's profile couldn't be loaded.
  * @property lotteryStatus Where the viewer stands with this campsite's lottery.
+ * @property lotteryId The lottery the card is about, for Join / Leave. Null when there is none.
  * @property lotteryEndsText When entries close, for example "12 Oct 2026 · 11:59 PM MDT".
- * @property bookingStart First night of the lottery's first stay period, shown on the calendar.
- * @property bookingEnd Check-out day of that stay period.
+ * @property lotteryOpensText When entries open, for example "1 Oct".
+ * @property stayPeriods The lottery's bookable nights, shown on the calendar.
  */
 data class CampsiteDetails(
     val id: Id,
@@ -55,9 +57,10 @@ data class CampsiteDetails(
     val latitude: Double,
     val longitude: Double,
     val lotteryStatus: LotteryStatus,
+    val lotteryId: Id? = null,
     val lotteryEndsText: String? = null,
-    val bookingStart: LocalDate? = null,
-    val bookingEnd: LocalDate? = null,
+    val lotteryOpensText: String? = null,
+    val stayPeriods: List<DatePeriod> = emptyList(),
 )
 
 /**
@@ -88,11 +91,7 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
             _details.value = loadAsUiState("Couldn't load this campsite") {
                 val campsite = Database.fetchCampsite(id)
                 val lottery = campsite.currentLottery()
-                val status = when {
-                    lottery == null || lottery.phase() != LotteryPhase.OPEN -> LotteryStatus.NONE
-                    viewer.id in lottery.waitingList.users -> LotteryStatus.JOINED
-                    else -> LotteryStatus.OPEN
-                }
+                val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
                 campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status)
             }
         }
@@ -102,7 +101,40 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
     fun retry() {
         loadedFor?.let { load(it, force = true) }
     }
+
+    /**
+     * Reloads after joining or leaving, keeping the page on screen meanwhile so it doesn't
+     * flash a spinner. [viewer] is the signed-in user, already updated.
+     */
+    fun refresh(viewer: User) {
+        val id = campsiteId ?: return
+        loadedFor = viewer
+        viewModelScope.launch {
+            val fresh = loadAsUiState("Couldn't load this campsite") {
+                val campsite = Database.fetchCampsite(id)
+                val lottery = campsite.currentLottery()
+                val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
+                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status)
+            }
+            if (fresh is UiState.Content || _details.value !is UiState.Content) _details.value = fresh
+        }
+    }
 }
+
+/**
+ * What the lottery card shows to entrant [viewer] for this lottery. Entrants only act on a
+ * lottery while it is upcoming or open; later phases (results, booking) come with the draw.
+ */
+internal fun Lottery.entrantStatus(viewer: Id, now: Instant = Clock.System.now()): LotteryStatus =
+    when (phase(now)) {
+        LotteryPhase.UPCOMING -> LotteryStatus.UPCOMING
+        LotteryPhase.OPEN -> when {
+            viewer in waitingList.users -> LotteryStatus.JOINED
+            waitingList.isFull() -> LotteryStatus.FULL
+            else -> LotteryStatus.OPEN
+        }
+        else -> LotteryStatus.NONE
+    }
 
 // region Shared with OwnerCampsiteDetailViewModel
 
@@ -142,11 +174,11 @@ internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: Lotter
             latitude = location.latitude,
             longitude = location.longitude,
             lotteryStatus = lotteryStatus,
+            lotteryId = lottery?.id,
             // One minute before midnight reads as "end of that day".
             lotteryEndsText = lottery?.entryEnd?.minus(1.minutes)?.format(zone, END_FORMAT),
-            // TODO: show every stay period once the calendar can highlight several ranges.
-            bookingStart = lottery?.stayPeriods?.firstOrNull()?.start,
-            bookingEnd = lottery?.stayPeriods?.firstOrNull()?.end,
+            lotteryOpensText = lottery?.entryFirstDay(zone)?.format(OPENS_FORMAT),
+            stayPeriods = lottery?.stayPeriods.orEmpty(),
         )
     }
 
@@ -181,6 +213,7 @@ internal suspend fun <T> quietly(message: String, block: suspend () -> T): T? =
 
 private const val TAG = "CampsiteDetails"
 private val END_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy · h:mm a z")
+private val OPENS_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 
 private fun Instant.toZoned(zone: ZoneId) =
     java.time.Instant.ofEpochMilli(toEpochMilliseconds()).atZone(zone)
