@@ -66,9 +66,7 @@ data class CampsiteDetails(
  */
 class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
 
-    @OptIn(ExperimentalUuidApi::class)
-    private val campsiteId: Id? =
-        savedState.get<String>(Routes.CAMPSITE_ID_ARG)?.let { runCatching { Id(Uuid.parse(it)) }.getOrNull() }
+    private val campsiteId: Id? = savedState.campsiteIdArg()
 
     private val _details = MutableStateFlow<UiState<CampsiteDetails>>(UiState.Loading)
     val details: StateFlow<UiState<CampsiteDetails>> = _details.asStateFlow()
@@ -80,13 +78,21 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
         if (!force && loadedFor === viewer) return
         loadedFor = viewer
         val id = campsiteId ?: run {
-            _details.value = UiState.Error("Couldn't find this campsite")
+            _details.value = UiState.Error(CAMPSITE_NOT_FOUND)
             return
         }
         viewModelScope.launch {
             _details.value = UiState.Loading
             _details.value = loadAsUiState("Couldn't load this campsite") {
-                Database.fetchCampsite(id).toDetails(viewer)
+                val campsite = Database.fetchCampsite(id)
+                // TODO: there is no way yet to find an open lottery the viewer hasn't joined
+                //  (campsites don't store their lottery ids). Once Database can look up a campsite's
+                //  lotteries, return LotteryStatus.OPEN for an active one the viewer isn't in.
+                val joined = campsite.activeLotteryAmong(viewer.lotteryIds)
+                campsite.toDetails(
+                    lottery = joined,
+                    lotteryStatus = if (joined != null) LotteryStatus.JOINED else LotteryStatus.NONE,
+                )
             }
         }
     }
@@ -95,13 +101,30 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
     fun retry() {
         loadedFor?.let { load(it, force = true) }
     }
+}
 
-    private suspend fun Campsite.toDetails(viewer: User): CampsiteDetails = coroutineScope {
+// region Shared with OwnerCampsiteDetailViewModel
+
+internal const val CAMPSITE_NOT_FOUND = "Couldn't find this campsite"
+
+/** The campsite id from a route containing [Routes.CAMPSITE_ID_ARG], or null if it's missing or malformed. */
+internal fun SavedStateHandle.campsiteIdArg(): Id? = get<String>(Routes.CAMPSITE_ID_ARG).toCampsiteIdOrNull()
+
+/** Parses a campsite id taken from a route, or returns null if it's missing or malformed. */
+@OptIn(ExperimentalUuidApi::class)
+internal fun String?.toCampsiteIdOrNull(): Id? = this?.let { runCatching { Id(Uuid.parse(it)) }.getOrNull() }
+
+/**
+ * Turns a [Campsite] into the [CampsiteDetails] the details screens draw. Photo URLs and the
+ * owner's name are looked up at the same time.
+ *
+ * @param lottery The lottery to show the end time and booking period of, if any.
+ * @param lotteryStatus What the lottery card and photo badge should show.
+ */
+internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: LotteryStatus): CampsiteDetails =
+    coroutineScope {
         val urls = async { imageUrls() }
         val owner = async { ownerName() }
-        val lottery = async { joinedLottery(viewer) }
-
-        val joined = lottery.await()
         val zone = ZoneId.systemDefault()
         CampsiteDetails(
             id = id,
@@ -117,53 +140,47 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
             ownerName = owner.await(),
             latitude = location.latitude,
             longitude = location.longitude,
-            // TODO: there is no way yet to find an open lottery the viewer hasn't joined
-            //  (campsites don't store their lottery ids). Once Database can look up a campsite's
-            //  lotteries, return LotteryStatus.OPEN for an active one the viewer isn't in.
-            lotteryStatus = if (joined != null) LotteryStatus.JOINED else LotteryStatus.NONE,
-            lotteryEndsText = joined?.lotteryEnd?.format(zone, END_FORMAT),
-            bookingStart = joined?.bookingStartDate?.toLocalDate(zone),
-            bookingEnd = joined?.bookingEndDate?.toLocalDate(zone),
+            lotteryStatus = lotteryStatus,
+            lotteryEndsText = lottery?.lotteryEnd?.format(zone, END_FORMAT),
+            bookingStart = lottery?.bookingStartDate?.toLocalDate(zone),
+            bookingEnd = lottery?.bookingEndDate?.toLocalDate(zone),
         )
     }
 
-    /** Download URLs for the photos. Photos whose URL can't be found are skipped. */
-    private suspend fun Campsite.imageUrls(): List<String> = coroutineScope {
-        images.map { image ->
-            async { quietly("Couldn't get URL for image ${image.id}") { Database.getImage(image.path) } }
-        }.awaitAll().filterNotNull()
-    }
-
-    private suspend fun Campsite.ownerName(): String? =
-        quietly("Couldn't load owner $ownerId") { Database.fetchUser(ownerId)["name"] }
-            ?.takeIf { it.isNotBlank() }
-
-    /**
-     * The active lottery for this campsite that [viewer] is on the waiting list of, if any.
-     * Found by checking the lotteries saved on the user.
-     */
-    private suspend fun Campsite.joinedLottery(viewer: User): Lottery? = coroutineScope {
-        viewer.lotteryIds.map { lotteryId ->
-            async { quietly("Couldn't load lottery $lotteryId") { Database.fetchLottery(lotteryId) } }
-        }.awaitAll().firstOrNull { it != null && id in it.campsites && it.isActive() }
-    }
-
-    /** Runs [block], logging and returning null if it fails, so one missing piece doesn't fail the page. */
-    private suspend fun <T> quietly(message: String, block: suspend () -> T): T? =
-        try {
-            block()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, message, e)
-            null
-        }
-
-    private companion object {
-        const val TAG = "CampsiteDetailViewModel"
-        val END_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy · h:mm a z")
-    }
+/** Download URLs for the photos, in order. Photos whose URL can't be found are skipped. */
+internal suspend fun Campsite.imageUrls(): List<String> = coroutineScope {
+    images.map { image ->
+        async { quietly("Couldn't get URL for image ${image.id}") { Database.getImage(image.path) } }
+    }.awaitAll().filterNotNull()
 }
+
+private suspend fun Campsite.ownerName(): String? =
+    quietly("Couldn't load owner $ownerId") { Database.fetchUser(ownerId)["name"] }
+        ?.takeIf { it.isNotBlank() }
+
+/**
+ * The first lottery in [lotteryIds] that includes this campsite and is still running, or null.
+ * Lotteries that can't be loaded are skipped.
+ */
+internal suspend fun Campsite.activeLotteryAmong(lotteryIds: List<Id>): Lottery? = coroutineScope {
+    lotteryIds.map { lotteryId ->
+        async { quietly("Couldn't load lottery $lotteryId") { Database.fetchLottery(lotteryId) } }
+    }.awaitAll().firstOrNull { it != null && id in it.campsites && it.isActive() }
+}
+
+/** Runs [block], logging and returning null if it fails, so one missing piece doesn't fail the page. */
+internal suspend fun <T> quietly(message: String, block: suspend () -> T): T? =
+    try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, message, e)
+        null
+    }
+
+private const val TAG = "CampsiteDetails"
+private val END_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy · h:mm a z")
 
 private fun Instant.toZoned(zone: ZoneId) =
     java.time.Instant.ofEpochMilli(toEpochMilliseconds()).atZone(zone)
@@ -171,3 +188,5 @@ private fun Instant.toZoned(zone: ZoneId) =
 private fun Instant.toLocalDate(zone: ZoneId): LocalDate = toZoned(zone).toLocalDate()
 
 private fun Instant.format(zone: ZoneId, formatter: DateTimeFormatter): String = toZoned(zone).format(formatter)
+
+// endregion

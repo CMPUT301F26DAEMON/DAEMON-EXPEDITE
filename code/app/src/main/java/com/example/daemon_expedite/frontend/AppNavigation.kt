@@ -4,10 +4,12 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,21 +44,30 @@ object Routes {
     const val CAMPSITE_ID_ARG = "campsiteId"
     const val CAMPSITE_DETAIL = "campsite/{$CAMPSITE_ID_ARG}"
 
-    // Opened from Campsite details only; they read the campsite it already loaded.
-    const val CAMPSITE_MAP = "campsite/{$CAMPSITE_ID_ARG}/map"
+    // Opened from Campsite details only; it reads the campsite that screen already loaded.
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
+
+    // Map view takes the coordinates in the route, so both details screens can open it.
+    const val LATITUDE_ARG = "latitude"
+    const val LONGITUDE_ARG = "longitude"
+    const val CAMPSITE_MAP = "campsite_map/{$LATITUDE_ARG}/{$LONGITUDE_ARG}"
 
     /** The [CAMPSITE_DETAIL] route for one campsite. */
     fun campsiteDetail(id: Id) = "campsite/${id.value}"
-    fun campsiteMap(id: Id) = "campsite/${id.value}/map"
     fun campsitePolicies(id: Id) = "campsite/${id.value}/policies"
+    fun campsiteMap(latitude: Double, longitude: Double) = "campsite_map/$latitude/$longitude"
 
     // Owner
     const val OWNER_HOME = "owner_home"
     const val OWNER_PROFILE = "owner_profile"
     const val START_LOTTERY = "start_lottery"
     const val REGISTER_CAMPSITE = "register_campsite"
-    const val SELECT_LOCATION = "select_location" // opened from Register campsite only
+    const val SELECT_LOCATION = "select_location" // opened from Register / Edit campsite only
+    const val OWNER_CAMPSITE_DETAIL = "owner_campsite/{$CAMPSITE_ID_ARG}"
+    const val EDIT_CAMPSITE = "owner_campsite/{$CAMPSITE_ID_ARG}/edit"
+
+    fun ownerCampsiteDetail(id: Id) = "owner_campsite/${id.value}"
+    fun editCampsite(id: Id) = "owner_campsite/${id.value}/edit"
 
     // Not built yet. When a screen is added, give it a route here and replace the
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
@@ -84,6 +95,8 @@ object Routes {
  *                 └─► Entrant profile ─┬─► Edit profile ─► Edit photo
  *                                      ├─► Edit photo
  *                                      └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
+ *                                                      ├─► Owner campsite details ─┬─► Map view
+ *                                                      │                           └─► Edit campsite ─► Select location
  *                                                      ├─► Start lottery (Lotteries tab)
  *                                                      └─► Register campsite ─► Select location (map)
  * ```
@@ -182,7 +195,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onBackClick = { navController.popBackStack() },
                 onRetry = detail::retry,
                 onViewMapClick = {
-                    (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteMap(it.data.id)) }
+                    (state as? UiState.Content)?.let {
+                        navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
+                    }
                 },
                 onPoliciesClick = {
                     (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
@@ -195,11 +210,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         }
 
         composable(Routes.CAMPSITE_MAP) { entry ->
-            // Same campsite as the details screen underneath, so nothing is loaded again.
-            val details = rememberCampsiteDetails(navController, entry)
+            val args = entry.arguments
             CampsiteMapScreen(
-                latitude = details?.latitude ?: 0.0,
-                longitude = details?.longitude ?: 0.0,
+                latitude = args?.getString(Routes.LATITUDE_ARG)?.toDoubleOrNull() ?: 0.0,
+                longitude = args?.getString(Routes.LONGITUDE_ARG)?.toDoubleOrNull() ?: 0.0,
                 onBackClick = { navController.popBackStack() },
             )
         }
@@ -301,7 +315,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onSearchQueryChange = ownerViewModel::onQueryChange,
                 campsites = campsites,
                 onRetry = { user?.let { ownerViewModel.load(it, force = true) } },
-                onCampsiteClick = { showComingSoon("Campsite details") },
+                onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
                 onProfileClick = { navController.navigate(Routes.OWNER_PROFILE) },
                 onRegisterCampsiteClick = { navController.navigate(Routes.REGISTER_CAMPSITE) },
                 onReservationsClick = { showComingSoon("Reservations") },
@@ -344,69 +358,87 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             StartLotteryScreen(onBackClick = { navController.popBackStack() })
         }
 
-        composable(Routes.REGISTER_CAMPSITE) {
-            // Scoped to this screen, so leaving it (save, cancel or back) throws the form away.
-            // The map screen below borrows the same instance to fill in the location.
-            val form: RegisterCampsiteViewModel = viewModel()
-            val draft by form.draft.collectAsState()
-            val errors by form.errors.collectAsState()
-            val saving by form.isSaving.collectAsState()
+        composable(Routes.OWNER_CAMPSITE_DETAIL) {
+            val detail: OwnerCampsiteDetailViewModel = viewModel()
             val owner by ownerViewModel.owner.collectAsState()
-
-            // System photo picker, no storage permission needed. Asks for no more than the
-            // photos still allowed (the multi-picker needs a limit of at least 2).
-            val remaining = RegisterCampsiteViewModel.MAX_PHOTOS - draft.photos.size
-            val pickPhotos = rememberLauncherForActivityResult(
-                ActivityResultContracts.PickMultipleVisualMedia(maxOf(remaining, 2))
-            ) { uris -> form.addPhotos(uris) }
-            val pickPhoto = rememberLauncherForActivityResult(
-                ActivityResultContracts.PickVisualMedia()
-            ) { uri -> uri?.let { form.addPhotos(listOf(it)) } }
-
-            RegisterCampsiteScreen(
-                draft = draft,
-                errors = errors,
-                isSaving = saving,
-                onDraftChange = form::update,
-                onAddressChange = form::onAddressChange,
-                onOccupancyChange = form::changeOccupancy,
-                onPriceChange = form::onPriceChange,
-                onAddAmenity = form::addAmenity,
-                onRemoveAmenity = form::removeAmenity,
-                onChooseOnMapClick = { navController.navigate(Routes.SELECT_LOCATION) },
-                onAddPhotosClick = {
-                    val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    if (remaining > 1) pickPhotos.launch(request) else if (remaining == 1) pickPhoto.launch(request)
+            val loadedOwner = (owner as? UiState.Content)?.data
+            // Runs each time this screen comes back (for example after Edit campsite), so saved
+            // changes show up. The old details stay on screen while it reloads.
+            LaunchedEffect(loadedOwner) { loadedOwner?.let(detail::load) }
+            val state by detail.details.collectAsState()
+            val deleting by detail.isDeleting.collectAsState()
+            OwnerCampsiteDetailScreen(
+                state = state,
+                isDeleting = deleting,
+                onBackClick = { navController.popBackStack() },
+                onRetry = detail::retry,
+                onViewMapClick = {
+                    (state as? UiState.Content)?.let {
+                        navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
+                    }
                 },
-                onRemovePhoto = form::removePhoto,
-                onRegisterClick = {
-                    val loadedOwner = (owner as? UiState.Content)?.data
-                    if (loadedOwner == null) {
-                        toast("Your owner profile is still loading. Try again in a moment.")
-                    } else {
-                        form.submit(loadedOwner) { result ->
-                            when (result) {
-                                SubmitResult.SAVED -> {
-                                    toast("Campsite registered")
-                                    ownerViewModel.refreshCampsites()
-                                    navController.popBackStack()
-                                }
-                                SubmitResult.INVALID -> toast("Some details are missing. Check the form.")
-                                SubmitResult.FAILED ->
-                                    toast("Couldn't register campsite. Check your connection and try again.")
+                onViewWaitlistClick = { showComingSoon("Waitlist") },
+                onEditClick = {
+                    (state as? UiState.Content)?.let { navController.navigate(Routes.editCampsite(it.data.id)) }
+                },
+                onDeleteConfirmed = {
+                    detail.delete { result ->
+                        when (result) {
+                            DeleteResult.DELETED -> {
+                                toast("Campsite deleted")
+                                // Reload the owner so their campsite list no longer has it.
+                                user?.let { ownerViewModel.load(it, force = true) }
+                                navController.popBackStack()
                             }
+                            DeleteResult.LOTTERY_RUNNING ->
+                                toast("This campsite has a lottery running. Delete it after the lottery ends.")
+                            DeleteResult.FAILED ->
+                                toast("Couldn't delete campsite. Check your connection and try again.")
                         }
                     }
                 },
-                onCancelClick = { navController.popBackStack() },
-                onBackClick = { navController.popBackStack() },
             )
         }
 
+        composable(Routes.REGISTER_CAMPSITE) {
+            // Scoped to this screen, so leaving it (save, cancel or back) throws the form away.
+            // The map screen borrows the same instance to fill in the location.
+            val form: RegisterCampsiteViewModel = viewModel()
+            CampsiteFormRoute(
+                navController = navController,
+                form = form,
+                ownerViewModel = ownerViewModel,
+                isEditing = false,
+                toast = ::toast,
+            )
+        }
+
+        composable(Routes.EDIT_CAMPSITE) { entry ->
+            val form: RegisterCampsiteViewModel = viewModel()
+            val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toCampsiteIdOrNull() }
+            LaunchedEffect(campsiteId) { campsiteId?.let { form.startEditing(it) } }
+            val load by form.editLoad.collectAsState()
+            when {
+                campsiteId == null -> CenteredMessage(CAMPSITE_NOT_FOUND)
+                load is UiState.Loading -> CenteredSpinner()
+                load is UiState.Error -> CenteredMessage(
+                    "${(load as UiState.Error).message}. Tap to try again.",
+                    onClick = { form.startEditing(campsiteId, force = true) },
+                )
+                else -> CampsiteFormRoute(
+                    navController = navController,
+                    form = form,
+                    ownerViewModel = ownerViewModel,
+                    isEditing = true,
+                    toast = ::toast,
+                )
+            }
+        }
+
         composable(Routes.SELECT_LOCATION) { entry ->
-            // Same form as the Register campsite screen underneath.
-            val registerEntry = remember(entry) { navController.getBackStackEntry(Routes.REGISTER_CAMPSITE) }
-            val form: RegisterCampsiteViewModel = viewModel(registerEntry)
+            // Same form as the Register or Edit campsite screen underneath.
+            val formEntry = remember(entry) { navController.previousBackStackEntry ?: entry }
+            val form: RegisterCampsiteViewModel = viewModel(formEntry)
             val draft by form.draft.collectAsState()
             SelectLocationScreen(
                 campsiteName = draft.name,
@@ -421,6 +453,97 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         }
 
         // endregion
+    }
+}
+
+/**
+ * The Register / Edit campsite form with its photo pickers and save handling. [form] decides
+ * whether it registers a new campsite or updates one (see [RegisterCampsiteViewModel.startEditing]).
+ */
+@Composable
+private fun CampsiteFormRoute(
+    navController: NavHostController,
+    form: RegisterCampsiteViewModel,
+    ownerViewModel: OwnerViewModel,
+    isEditing: Boolean,
+    toast: (String) -> Unit,
+) {
+    val draft by form.draft.collectAsState()
+    val errors by form.errors.collectAsState()
+    val saving by form.isSaving.collectAsState()
+    val owner by ownerViewModel.owner.collectAsState()
+
+    // System photo picker, no storage permission needed. Asks for no more than the
+    // photos still allowed (the multi-picker needs a limit of at least 2).
+    val remaining = RegisterCampsiteViewModel.MAX_PHOTOS - draft.photos.size
+    val pickPhotos = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxOf(remaining, 2))
+    ) { uris -> form.addPhotos(uris) }
+    val pickPhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { form.addPhotos(listOf(it)) } }
+
+    RegisterCampsiteScreen(
+        draft = draft,
+        errors = errors,
+        isSaving = saving,
+        isEditing = isEditing,
+        onDraftChange = form::update,
+        onAddressChange = form::onAddressChange,
+        onOccupancyChange = form::changeOccupancy,
+        onPriceChange = form::onPriceChange,
+        onAddAmenity = form::addAmenity,
+        onRemoveAmenity = form::removeAmenity,
+        onChooseOnMapClick = { navController.navigate(Routes.SELECT_LOCATION) },
+        onAddPhotosClick = {
+            val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            if (remaining > 1) pickPhotos.launch(request) else if (remaining == 1) pickPhoto.launch(request)
+        },
+        onRemovePhoto = form::removePhoto,
+        onRegisterClick = {
+            val loadedOwner = (owner as? UiState.Content)?.data
+            if (loadedOwner == null) {
+                toast("Your owner profile is still loading. Try again in a moment.")
+            } else {
+                form.submit(loadedOwner) { result ->
+                    when (result) {
+                        SubmitResult.SAVED -> {
+                            toast(if (isEditing) "Changes saved" else "Campsite registered")
+                            ownerViewModel.refreshCampsites()
+                            navController.popBackStack()
+                        }
+                        SubmitResult.INVALID -> toast("Some details are missing. Check the form.")
+                        SubmitResult.FAILED -> toast(
+                            if (isEditing) "Couldn't save changes. Check your connection and try again."
+                            else "Couldn't register campsite. Check your connection and try again."
+                        )
+                    }
+                }
+            }
+        },
+        onCancelClick = { navController.popBackStack() },
+        onBackClick = { navController.popBackStack() },
+    )
+}
+
+@Composable
+private fun CenteredSpinner() {
+    Box(Modifier.fillMaxSize().background(AppColors.Background), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = AppColors.Primary)
+    }
+}
+
+@Composable
+private fun CenteredMessage(text: String, onClick: (() -> Unit)? = null) {
+    Box(Modifier.fillMaxSize().background(AppColors.Background), contentAlignment = Alignment.Center) {
+        Text(
+            text = text,
+            style = AppTextStyles.BodyMedium,
+            color = AppColors.TextSecondary,
+            modifier = Modifier
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(24.dp),
+        )
     }
 }
 

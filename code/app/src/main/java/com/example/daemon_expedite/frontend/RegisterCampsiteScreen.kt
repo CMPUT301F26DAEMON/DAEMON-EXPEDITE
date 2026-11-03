@@ -69,7 +69,8 @@ import com.example.daemon_expedite.ui_components.RedButton
 import java.util.Locale
 
 /**
- * "Add campsite" form, from the Figma frame "Register campsite · Empty".
+ * "Add campsite" form, from the Figma frame "Register campsite · Empty". Also used as the
+ * "Edit campsite" form when [isEditing] is true.
  *
  * Only draws [draft] and reports changes; [RegisterCampsiteViewModel] holds the values and
  * saves them. The location row opens the Select location map.
@@ -77,6 +78,7 @@ import java.util.Locale
  * @param draft Current form values.
  * @param errors Problems to show under the fields (only filled in after the first submit).
  * @param isSaving True while saving: the register button is disabled and says "Registering…".
+ * @param isEditing True when editing a saved campsite: the title and save button change.
  * @param onDraftChange Called with a change to apply to the draft, for example `{ it.copy(name = text) }`.
  * @param onAddressChange Called when the owner types in the address field.
  * @param onOccupancyChange Called with +1 or −1 from the occupancy buttons.
@@ -91,6 +93,7 @@ fun RegisterCampsiteScreen(
     draft: CampsiteDraft,
     errors: CampsiteDraftErrors = CampsiteDraftErrors(),
     isSaving: Boolean = false,
+    isEditing: Boolean = false,
     onDraftChange: ((CampsiteDraft) -> CampsiteDraft) -> Unit = {},
     onAddressChange: (String) -> Unit = {},
     onOccupancyChange: (Int) -> Unit = {},
@@ -116,7 +119,7 @@ fun RegisterCampsiteScreen(
         val buttonWidth = (maxWidth - 56.dp).value.toInt()
 
         Column(modifier = Modifier.fillMaxSize()) {
-            ScreenHeader(title = "Add campsite", onBackClick = onBackClick)
+            ScreenHeader(title = if (isEditing) "Edit campsite" else "Add campsite", onBackClick = onBackClick)
 
             Column(
                 modifier = Modifier
@@ -205,7 +208,12 @@ fun RegisterCampsiteScreen(
                 GreenButton(
                     onClick = { if (!isSaving) onRegisterClick() },
                     icon = AppIcons.Tick,
-                    buttonText = if (isSaving) "Registering…" else "Register campsite",
+                    buttonText = when {
+                        isEditing && isSaving -> "Saving…"
+                        isEditing -> "Save changes"
+                        isSaving -> "Registering…"
+                        else -> "Register campsite"
+                    },
                     customHeight = 58,
                     customWidth = buttonWidth,
                 )

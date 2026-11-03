@@ -2,6 +2,7 @@ package com.example.daemon_expedite.frontend_tests
 
 import com.example.daemon_expedite.frontend.RegisterCampsiteViewModel
 import com.example.daemon_expedite.frontend.combinePolicies
+import com.example.daemon_expedite.frontend.splitPolicies
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -70,5 +71,20 @@ class RegisterCampsiteViewModelTest {
         )
         assertEquals("Cancellation policy:\nFull refund", combinePolicies("", "Full refund"))
         assertEquals("", combinePolicies(" ", ""))
+    }
+
+    @Test
+    fun splitPolicies_reversesCombinePolicies() {
+        val rules = "No pets.\nQuiet after 10 PM."
+        val cancellation = "Full refund up to 48 hours before."
+        assertEquals(rules to cancellation, splitPolicies(combinePolicies(rules, cancellation)))
+        assertEquals(rules to "", splitPolicies(combinePolicies(rules, "")))
+        assertEquals("" to cancellation, splitPolicies(combinePolicies("", cancellation)))
+        assertEquals("" to "", splitPolicies(combinePolicies("", "")))
+    }
+
+    @Test
+    fun splitPolicies_treatsTextWithoutHeadingsAsRules() {
+        assertEquals("Leave no trace." to "", splitPolicies("  Leave no trace. "))
     }
 }

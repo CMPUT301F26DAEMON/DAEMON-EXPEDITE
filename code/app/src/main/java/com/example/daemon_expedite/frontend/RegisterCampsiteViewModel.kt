@@ -61,7 +61,7 @@ data class CampsiteDraftErrors(
 
 /** Outcome of [RegisterCampsiteViewModel.submit]. */
 enum class SubmitResult {
-    /** Campsite saved and added to the owner. */
+    /** Campsite saved (and, for a new campsite, added to the owner). */
     SAVED,
 
     /** Form incomplete. Nothing was sent; the problems are now in [RegisterCampsiteViewModel.errors]. */
@@ -74,9 +74,11 @@ enum class SubmitResult {
 /**
  * Holds the Register campsite form and saves it.
  *
- * Shared by the Register campsite screen and the Select location map (the map route gets it
- * from the register route's back stack entry), so the map can write the picked spot straight
- * into the form.
+ * Also used to edit an existing campsite: call [startEditing] and the form is filled in from the
+ * saved campsite, and [submit] updates it instead of creating a new one.
+ *
+ * Shared by the form screen and the Select location map (the map route gets it from the form
+ * route's back stack entry), so the map can write the picked spot straight into the form.
  */
 class RegisterCampsiteViewModel : ViewModel() {
 
@@ -91,6 +93,60 @@ class RegisterCampsiteViewModel : ViewModel() {
 
     /** Errors are only shown after the first submit, then kept up to date as the owner fixes them. */
     private var showErrors = false
+
+    // region Editing
+
+    /** Content once the campsite to edit has been loaded into the form. Only used when editing. */
+    private val _editLoad = MutableStateFlow<UiState<Unit>>(UiState.Loading)
+    val editLoad: StateFlow<UiState<Unit>> = _editLoad.asStateFlow()
+
+    /** The saved campsite being edited, or null when registering a new one. */
+    private var editing: Campsite? = null
+    private var editingId: Id? = null
+
+    /**
+     * Photos the campsite already had, keyed by the download URL shown in the form. Lets
+     * [submit] tell kept photos (no upload needed) from newly picked ones.
+     */
+    private var existingPhotos: Map<Uri, Image> = emptyMap()
+
+    /**
+     * Loads campsite [id] and fills the form with it. Only loads once per id unless [force].
+     *
+     * Fails (see [editLoad]) if any photo's URL can't be found: otherwise that photo would be
+     * missing from the form and saving would delete it.
+     */
+    fun startEditing(id: Id, force: Boolean = false) {
+        if (!force && editingId == id) return
+        editingId = id
+        viewModelScope.launch {
+            _editLoad.value = UiState.Loading
+            _editLoad.value = loadAsUiState("Couldn't load this campsite") {
+                val campsite = Database.fetchCampsite(id)
+                val photos = campsite.images.associateBy { Uri.parse(Database.getImage(it.path)) }
+                val (rules, cancellation) = splitPolicies(campsite.policies)
+                editing = campsite
+                existingPhotos = photos
+                showErrors = false
+                _errors.value = CampsiteDraftErrors()
+                _draft.value = CampsiteDraft(
+                    name = campsite.name,
+                    description = campsite.description,
+                    address = campsite.address,
+                    latitude = campsite.location.latitude,
+                    longitude = campsite.location.longitude,
+                    amenities = campsite.tags,
+                    maxOccupancy = campsite.maxOccupancy.coerceIn(MIN_OCCUPANCY, MAX_OCCUPANCY),
+                    pricePerNight = campsite.pricePerNight.toString().take(MAX_PRICE_DIGITS),
+                    photos = photos.keys.toList(),
+                    rules = rules,
+                    cancellationPolicy = cancellation,
+                )
+            }
+        }
+    }
+
+    // endregion
 
     /** Applies a change from the form, for example `update { it.copy(name = text) }`. */
     fun update(change: (CampsiteDraft) -> CampsiteDraft) {
@@ -147,7 +203,8 @@ class RegisterCampsiteViewModel : ViewModel() {
     fun removePhoto(uri: Uri) = update { it.copy(photos = it.photos - uri) }
 
     /**
-     * Checks the form and, if it is complete, saves the campsite for [owner].
+     * Checks the form and, if it is complete, saves the campsite for [owner]. When editing
+     * (see [startEditing]) the existing campsite is updated instead; see [saveChanges].
      *
      * Order matters:
      * 1. Photos are uploaded first, under a new campsite id, because the campsite document
@@ -169,6 +226,7 @@ class RegisterCampsiteViewModel : ViewModel() {
         if (!errors.isEmpty) return onResult(SubmitResult.INVALID)
 
         _isSaving.value = true
+        editing?.let { return saveChanges(it, draft, onResult) }
         viewModelScope.launch {
             val campsiteId = Id()
             val uploaded = mutableListOf<Image>()
@@ -191,6 +249,44 @@ class RegisterCampsiteViewModel : ViewModel() {
             }
             _isSaving.value = false
             if (ok) reset()
+            onResult(if (ok) SubmitResult.SAVED else SubmitResult.FAILED)
+        }
+    }
+
+    /**
+     * Updates [original] with the form.
+     *
+     * 1. Newly picked photos are uploaded; photos it already had are kept as they are.
+     * 2. The campsite is saved with [Database.updateCampsite], keeping its id, owner and rating.
+     * 3. Photos the owner removed are deleted. A failure here only leaves unused files behind,
+     *    so it doesn't fail the save.
+     *
+     * If anything fails before the campsite is saved, the new uploads are deleted again.
+     */
+    private fun saveChanges(original: Campsite, draft: CampsiteDraft, onResult: (SubmitResult) -> Unit) {
+        viewModelScope.launch {
+            val uploaded = mutableMapOf<Uri, Image>()
+            var saved = false
+            val ok = runCatchingAll("Saving campsite ${original.id} failed") {
+                for (uri in draft.photos) {
+                    if (uri !in existingPhotos) {
+                        uploaded[uri] = Database.uploadCampsiteImage(original.id, original.ownerId, uri)
+                    }
+                }
+                val images = draft.photos.map { existingPhotos[it] ?: uploaded.getValue(it) }
+                Database.updateCampsite(draft.toCampsite(original.id, original.ownerId, images, original.rating))
+                saved = true
+                val keptIds = images.map { it.id }.toSet()
+                original.images.filter { it.id !in keptIds }.forEach { removed ->
+                    runCatchingAll("Couldn't delete removed image ${removed.id}") { Database.deleteImage(removed.id) }
+                }
+            }
+            if (!ok && !saved) {
+                uploaded.values.forEach { image ->
+                    runCatchingAll("Couldn't delete unused image ${image.id}") { Database.deleteImage(image.id) }
+                }
+            }
+            _isSaving.value = false
             onResult(if (ok) SubmitResult.SAVED else SubmitResult.FAILED)
         }
     }
@@ -225,8 +321,11 @@ class RegisterCampsiteViewModel : ViewModel() {
     }
 }
 
-/** Builds the [Campsite] to save. Only call once the draft has passed validation. */
-private fun CampsiteDraft.toCampsite(id: Id, ownerId: Id, images: List<Image>) = Campsite(
+/**
+ * Builds the [Campsite] to save. Only call once the draft has passed validation.
+ * [rating] is kept from the saved campsite when editing.
+ */
+private fun CampsiteDraft.toCampsite(id: Id, ownerId: Id, images: List<Image>, rating: Rating = Rating()) = Campsite(
     id = id,
     name = name.trim(),
     description = description.trim(),
@@ -240,7 +339,7 @@ private fun CampsiteDraft.toCampsite(id: Id, ownerId: Id, images: List<Image>) =
     pricePerNight = pricePerNight.toInt(),
     images = images,
     ownerId = ownerId,
-    rating = Rating(),
+    rating = rating,
     address = address.trim(),
 )
 
@@ -261,6 +360,26 @@ internal fun combinePolicies(rules: String, cancellationPolicy: String): String 
         if (rules.isNotBlank()) add("$RULES_HEADING\n${rules.trim()}")
         if (cancellationPolicy.isNotBlank()) add("$CANCELLATION_HEADING\n${cancellationPolicy.trim()}")
     }.joinToString("\n\n")
+
+/**
+ * Splits text saved by [combinePolicies] back into (rules, cancellation policy), to fill the
+ * form when editing. Text without either heading (written some other way) is all treated as rules.
+ */
+internal fun splitPolicies(policies: String): Pair<String, String> {
+    val text = policies.trim()
+    val rulesAt = text.indexOf(RULES_HEADING)
+    val cancellationAt = text.indexOf(CANCELLATION_HEADING)
+    if (rulesAt == -1 && cancellationAt == -1) return text to ""
+
+    /** The text after [heading] at [at], up to the other heading if that comes later. */
+    fun section(heading: String, at: Int, otherAt: Int): String {
+        if (at == -1) return ""
+        val end = if (otherAt > at) otherAt else text.length
+        return text.substring(at + heading.length, end).trim()
+    }
+    return section(RULES_HEADING, rulesAt, cancellationAt) to
+        section(CANCELLATION_HEADING, cancellationAt, rulesAt)
+}
 
 internal const val RULES_HEADING = "Campsite rules:"
 internal const val CANCELLATION_HEADING = "Cancellation policy:"
