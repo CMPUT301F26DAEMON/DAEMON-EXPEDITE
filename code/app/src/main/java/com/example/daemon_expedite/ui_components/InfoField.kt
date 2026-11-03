@@ -4,10 +4,6 @@ import android.R.attr.fontWeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -121,8 +117,8 @@ private fun InfoCardPreview() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             InfoCard("Name", "Maya Bennett", showDelete = false, showEdit = false)
-            InfoCard("Name", "Maya Bennett", Icons.Default.Person, showDelete = false, showEdit = true)
-            InfoCard("Name", "Maya Bennett", Icons.Default.Person, showDelete = true, showEdit = false)
+            InfoCard("Name", "Maya Bennett", AppIcons.Profile, showDelete = false, showEdit = true)
+            InfoCard("Name", "Maya Bennett", AppIcons.Profile, showDelete = true, showEdit = false)
         }
     }
 }

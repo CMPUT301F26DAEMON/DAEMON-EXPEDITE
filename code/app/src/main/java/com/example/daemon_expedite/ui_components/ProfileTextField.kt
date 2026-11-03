@@ -14,11 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -51,10 +46,10 @@ private val FieldBackground = Color(0x12FFFFFF)
  *
  * ```
  * var name by remember { mutableStateOf(user.name) }
- * ProfileTextField(label = "Name", value = name, onValueChange = { name = it }, icon = Icons.Outlined.Person)
+ * ProfileTextField(label = "Name", value = name, onValueChange = { name = it }, icon = AppIcons.Profile)
  *
  * ProfileTextField(
- *     label = "Email", value = email, onValueChange = { email = it }, icon = Icons.Outlined.Email,
+ *     label = "Email", value = email, onValueChange = { email = it }, icon = AppIcons.Email,
  *     keyboardType = KeyboardType.Email,
  * )
  * ```
@@ -145,7 +140,7 @@ fun ProfileTextField(
             // 40dp touch target; with the Row's 4dp end padding the 17dp pencil lands where the design has it.
             IconButton(onClick = { focusRequester.requestFocus() }, modifier = Modifier.size(40.dp)) {
                 Icon(
-                    imageVector = Icons.Outlined.Edit,
+                    imageVector = AppIcons.EditPencilOutlined,
                     contentDescription = "Edit ${label.lowercase()}",
                     tint = AppColors.TextSecondary,
                     modifier = Modifier.size(17.dp),
@@ -168,10 +163,10 @@ private fun ProfileTextFieldPreview() {
         modifier = Modifier.padding(28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        ProfileTextField("Name", name, { name = it }, icon = Icons.Outlined.Person)
-        ProfileTextField("Email", email, { email = it }, icon = Icons.Outlined.Email, keyboardType = KeyboardType.Email)
+        ProfileTextField("Name", name, { name = it }, icon = AppIcons.Profile)
+        ProfileTextField("Email", email, { email = it }, icon = AppIcons.Email, keyboardType = KeyboardType.Email)
         ProfileTextField(
-            "Phone number", phone, { phone = it }, icon = Icons.Outlined.Phone,
+            "Phone number", phone, { phone = it }, icon = AppIcons.Phone,
             keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done,
         )
     }

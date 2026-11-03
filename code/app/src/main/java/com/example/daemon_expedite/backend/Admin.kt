@@ -70,7 +70,8 @@ class Admin(
      * @param campsiteId Id. The id of the campsite to remove.
      */
     suspend fun removeCampsite(campsiteId: Id) {
-        Database.deleteCampsite(campsiteId)
+        // deleteCampsite needs the full campsite to also unlink it from its owner.
+        Database.deleteCampsite(Database.fetchCampsite(campsiteId))
     }
 
     /**

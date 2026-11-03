@@ -18,11 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ConfirmationNumber // needs material-icons-extended
-import androidx.compose.material.icons.filled.Schedule // needs material-icons-extended
-import androidx.compose.material.icons.filled.StarOutline // needs material-icons-extended
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,8 +54,8 @@ enum class PillVariant {
  * `pill` slot or anywhere else. Create one per state of your campsite:
  *
  * ```
- * CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = Icons.Default.ConfirmationNumber)
- * CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = Icons.Default.Schedule)
+ * CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket)
+ * CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = AppIcons.Clock)
  * CampsitePill("Confirmed")
  * ```
  *
@@ -133,7 +128,7 @@ fun CampsitePill(
  * CampsiteCard(
  *     name = "Pine Creek Hideaway", location = "Big Sur, California",
  *     pricePerNight = "$45", rating = 4.9, imageUrl = url, maxOccupancy = 5,
- *     pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = Icons.Default.ConfirmationNumber) },
+ *     pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket) },
  *     onClick = { openCampsite(id) },
  * )
  *
@@ -235,7 +230,7 @@ fun CampsiteCard(
                 )
                 if (rating != null) {
                     Icon(
-                        Icons.Default.StarOutline,
+                        AppIcons.StarOutline,
                         contentDescription = "Rating",
                         tint = AppColors.Accent,
                         modifier = Modifier.size(16.dp),
@@ -274,7 +269,7 @@ fun CampsiteCard(
                 )
                 if (onClick != null) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
+                        AppIcons.ArrowForward,
                         contentDescription = "Open campsite",
                         tint = AppColors.TextPrimary,
                         modifier = Modifier.size(20.dp),
@@ -319,14 +314,14 @@ private fun CampsiteCardPreview() {
         CampsiteCard(
             name = "Pine Creek Hideaway", location = "Big Sur, California",
             pricePerNight = "$45", rating = 4.9, maxOccupancy = 5, imageUrl = PREVIEW_IMAGE_URL,
-            pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = Icons.Default.ConfirmationNumber) },
+            pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket) },
             onClick = {},
             containerColor = AppColors.SurfaceDeep,
         )
         CampsiteCard(
             name = "Redwood Meadow", location = "Felton, California",
             pricePerNight = "$38", rating = 4.8, maxOccupancy = 6, imageUrl = null,
-            pill = { CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = Icons.Default.Schedule) },
+            pill = { CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = AppIcons.Clock) },
             onClick = {},
             containerColor = AppColors.SurfaceDeep,
         )

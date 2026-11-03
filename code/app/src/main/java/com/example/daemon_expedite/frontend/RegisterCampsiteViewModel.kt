@@ -110,7 +110,7 @@ class RegisterCampsiteViewModel : ViewModel() {
         it.copy(
             latitude = latitude,
             longitude = longitude,
-            address = if (replaceAddress) address!! else it.address,
+            address = if (replaceAddress) address else it.address,
             addressFromMap = if (replaceAddress) true else it.addressFromMap,
         )
     }
