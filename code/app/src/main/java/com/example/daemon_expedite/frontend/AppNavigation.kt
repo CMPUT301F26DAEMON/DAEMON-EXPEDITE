@@ -64,7 +64,10 @@ object Routes {
     const val LOTTERY_ID_ARG = "lotteryId"
     const val OWNER_LOTTERY_DETAIL = "owner_lottery/{$LOTTERY_ID_ARG}"
 
+    const val EDIT_LOTTERY = "owner_lottery/{$LOTTERY_ID_ARG}/edit"
+
     fun ownerLotteryDetail(id: Id) = "owner_lottery/${id.value}"
+    fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
     const val SELECT_LOCATION = "select_location" // opened from Register / Edit campsite only
@@ -102,7 +105,8 @@ object Routes {
  *                                      └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
  *                                                      ├─► Owner campsite details ─┬─► Map view
  *                                                      │                           └─► Edit campsite ─► Select location
- *                                                      ├─► My lotteries ─┬─► Lottery details ─► Owner campsite details
+ *                                                      ├─► My lotteries ─┬─► Lottery details ─┬─► Owner campsite details
+ *                                                      │                 │                   └─► Edit lottery
  *                                                      │                 └─► Create lottery
  *                                                      └─► Register campsite ─► Select location (map)
  * ```
@@ -384,8 +388,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onRetry = detail::load,
                 onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
                 onViewWaitlistClick = { showComingSoon("Waitlist") },
-                // TODO: open the edit screen (next PR).
-                onEditClick = { showComingSoon("Editing lotteries") },
+                onEditClick = {
+                    (state as? UiState.Content)?.let { navController.navigate(Routes.editLottery(it.data.id)) }
+                },
                 onCancelConfirmed = {
                     detail.cancel { result ->
                         when (result) {
@@ -412,53 +417,19 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         composable(Routes.CREATE_LOTTERY) {
             // Scoped to this screen, so leaving it throws the form away.
             val form: CreateLotteryViewModel = viewModel()
-            val owner by ownerViewModel.owner.collectAsState()
-            val loadedOwner = (owner as? UiState.Content)?.data
-            // The owner's campsites, as already loaded for Owner Home.
-            val ownedCampsites by ownerViewModel.campsites.collectAsState()
-            LaunchedEffect(loadedOwner, ownedCampsites) {
-                val list = (ownedCampsites as? UiState.Content)?.data
-                if (loadedOwner != null && list != null) form.load(loadedOwner, list)
+            LotteryFormRoute(navController, form, ownerViewModel, toast = ::toast)
+        }
+
+        composable(Routes.EDIT_LOTTERY) {
+            // Reads the lottery id from the route, so it knows which lottery to edit.
+            val form: CreateLotteryViewModel = viewModel()
+            LaunchedEffect(Unit) { form.startEditing() }
+            val load by form.editLoad.collectAsState()
+            when (val loaded = load) {
+                UiState.Loading -> CenteredSpinner()
+                is UiState.Error -> CenteredMessage("${loaded.message}. Tap to try again.", onClick = form::startEditing)
+                is UiState.Content -> LotteryFormRoute(navController, form, ownerViewModel, toast = ::toast)
             }
-            val options by form.options.collectAsState()
-            val draft by form.draft.collectAsState()
-            val problems by form.problems.collectAsState()
-            val saving by form.isSaving.collectAsState()
-            val ownedError = ownedCampsites as? UiState.Error
-            CreateLotteryScreen(
-                draft = draft,
-                // If the owner's campsites failed to load, show that instead of loading forever.
-                campsiteOptions = ownedError ?: options,
-                problems = problems,
-                isSaving = saving,
-                today = form.today,
-                onBackClick = { navController.popBackStack() },
-                onRetryCampsites = { if (ownedError != null) ownerViewModel.refreshCampsites() else form.retry() },
-                onToggleCampsite = form::toggleCampsite,
-                onEntryFirstDayChange = form::setEntryFirstDay,
-                onEntryLastDayChange = form::setEntryLastDay,
-                onAddStayPeriod = form::addStayPeriod,
-                onRemoveStayPeriod = form::removeStayPeriod,
-                onWinnerCountChange = form::onWinnerCountChange,
-                onWaitlistCapacityChange = form::onWaitlistCapacityChange,
-                onCreateClick = {
-                    if (loadedOwner == null) {
-                        toast("Your owner profile is still loading. Try again in a moment.")
-                    } else {
-                        form.submit(loadedOwner) { result ->
-                            when (result) {
-                                SubmitResult.SAVED -> {
-                                    toast("Lottery created")
-                                    navController.popBackStack() // My Lotteries reloads when shown
-                                }
-                                SubmitResult.INVALID -> toast("Some details need fixing. Check the form.")
-                                SubmitResult.FAILED ->
-                                    toast("Couldn't create the lottery. Check your connection and try again.")
-                            }
-                        }
-                    }
-                },
-            )
         }
 
         composable(Routes.OWNER_CAMPSITE_DETAIL) {
@@ -626,6 +597,73 @@ private fun CampsiteFormRoute(
         },
         onCancelClick = { navController.popBackStack() },
         onBackClick = { navController.popBackStack() },
+    )
+}
+
+/**
+ * The Create / Edit lottery form with its save handling. [form] decides whether it creates a
+ * new lottery or edits one (see [CreateLotteryViewModel.isEditing]).
+ */
+@Composable
+private fun LotteryFormRoute(
+    navController: NavHostController,
+    form: CreateLotteryViewModel,
+    ownerViewModel: OwnerViewModel,
+    toast: (String) -> Unit,
+) {
+    val owner by ownerViewModel.owner.collectAsState()
+    val loadedOwner = (owner as? UiState.Content)?.data
+    // The owner's campsites, as already loaded for Owner Home.
+    val ownedCampsites by ownerViewModel.campsites.collectAsState()
+    LaunchedEffect(loadedOwner, ownedCampsites) {
+        val list = (ownedCampsites as? UiState.Content)?.data
+        if (loadedOwner != null && list != null) form.load(loadedOwner, list)
+    }
+    val options by form.options.collectAsState()
+    val draft by form.draft.collectAsState()
+    val problems by form.problems.collectAsState()
+    val saving by form.isSaving.collectAsState()
+    val locks by form.locks.collectAsState()
+    val ownedError = ownedCampsites as? UiState.Error
+    val editing = form.isEditing
+
+    CreateLotteryScreen(
+        draft = draft,
+        // If the owner's campsites failed to load, show that instead of loading forever.
+        campsiteOptions = ownedError ?: options,
+        problems = problems,
+        isSaving = saving,
+        today = form.today,
+        isEditing = editing,
+        locks = locks,
+        onBackClick = { navController.popBackStack() },
+        onRetryCampsites = { if (ownedError != null) ownerViewModel.refreshCampsites() else form.retry() },
+        onToggleCampsite = form::toggleCampsite,
+        onEntryFirstDayChange = form::setEntryFirstDay,
+        onEntryLastDayChange = form::setEntryLastDay,
+        onAddStayPeriod = form::addStayPeriod,
+        onRemoveStayPeriod = form::removeStayPeriod,
+        onWinnerCountChange = form::onWinnerCountChange,
+        onWaitlistCapacityChange = form::onWaitlistCapacityChange,
+        onCreateClick = {
+            if (loadedOwner == null) {
+                toast("Your owner profile is still loading. Try again in a moment.")
+            } else {
+                form.submit(loadedOwner) { result ->
+                    when (result) {
+                        SubmitResult.SAVED -> {
+                            toast(if (editing) "Changes saved" else "Lottery created")
+                            navController.popBackStack() // the page underneath reloads when shown
+                        }
+                        SubmitResult.INVALID -> toast("Some details need fixing. Check the form.")
+                        SubmitResult.FAILED -> toast(
+                            if (editing) "Couldn't save changes. Check your connection and try again."
+                            else "Couldn't create the lottery. Check your connection and try again."
+                        )
+                    }
+                }
+            }
+        },
     )
 }
 

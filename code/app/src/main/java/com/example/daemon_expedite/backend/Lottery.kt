@@ -3,7 +3,9 @@ package com.example.daemon_expedite.backend
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
 /**
@@ -116,6 +118,15 @@ class Lottery(
 
     /** Check-out day of the last stay. The lottery is finished once this day starts. */
     val lastCheckOut: LocalDate get() = stayPeriods.maxOf { it.end }
+
+    /** First day entrants can join, in [zone]. */
+    fun entryFirstDay(zone: ZoneId): LocalDate = entryStart.toJavaInstant().atZone(zone).toLocalDate()
+
+    /**
+     * Last day entrants can join, in [zone]. [entryEnd] is midnight after it; a minute earlier
+     * is still that day, even across a daylight-saving change.
+     */
+    fun entryLastDay(zone: ZoneId): LocalDate = (entryEnd - 1.minutes).toJavaInstant().atZone(zone).toLocalDate()
 
     /**
      * Where the lottery is at [now]. Stay dates are turned into moments using [zone], the

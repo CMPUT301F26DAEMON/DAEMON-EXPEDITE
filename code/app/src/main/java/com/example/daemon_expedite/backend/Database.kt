@@ -22,6 +22,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Instant
 import kotlin.to
@@ -80,6 +81,8 @@ interface DatabaseInterface {
     suspend fun fetchLotteriesForCampsite(campsiteId: Id): List<Lottery>
 
     suspend fun cancelLottery(lotteryId: Id): CancelOutcome
+
+    suspend fun updateLotterySettings(edited: Lottery)
 
     suspend fun fetchLottery(id: Id): Lottery
 
@@ -864,6 +867,45 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     /**
+     * Saves the owner's edits to a lottery's settings: campsites, entry period, stay periods,
+     * winner count and waitlist limit. Nothing else is written, so entrants who join while the
+     * owner is editing aren't lost, and winners and bookings are untouched.
+     *
+     * Runs as a transaction: it re-reads the lottery and checks the edit with
+     * [LotteryRules.checkEdit] against that latest copy (its phase and waitlist), so an edit
+     * that was fine when the form opened can't break the rules by the time it is saved.
+     *
+     * @param edited The lottery with the new settings. Its id says which lottery to update.
+     * @throws LotteryEditRejectedException if the edit breaks the rules against the latest copy.
+     */
+    override suspend fun updateLotterySettings(edited: Lottery) {
+        val ref = lotteryRef(edited.id)
+        val zone = ZoneId.systemDefault()
+        db
+            .runTransaction { tx ->
+                val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${edited.id.value} not found")
+                val current = parseLottery(edited.id, data)
+                val problems = LotteryRules.checkEdit(
+                    original = current,
+                    phase = current.phase(),
+                    campsites = edited.campsites.toSet(),
+                    entryFirstDay = edited.entryFirstDay(zone),
+                    entryLastDay = edited.entryLastDay(zone),
+                    stayPeriods = edited.stayPeriods,
+                    winnerCount = edited.winnerCount,
+                    waitlistCapacity = edited.waitlistCapacity,
+                    today = LocalDate.now(zone),
+                    zone = zone,
+                )
+                if (!problems.isEmpty) throw LotteryEditRejectedException(edited.id, problems)
+                val all = lotteryToMap(edited)
+                val settings = listOf("campsites", "entryStart", "entryEnd", "stayPeriods", "winnerCount", "waitlistCapacity")
+                tx.update(ref, settings.associateWith { all[it] })
+                null
+            }.await()
+    }
+
+    /**
      * Cancels a lottery, in a transaction that re-reads it so the phase check is up to date.
      *
      * - Not opened yet ([LotteryPhase.UPCOMING]): nobody can have joined, so it is deleted and
@@ -1435,6 +1477,9 @@ object Database {
 
     /** Saves a new lottery and records it on its owner in one write. */
     suspend fun createLottery(lottery: Lottery) = db.createLottery(lottery)
+
+    /** Saves edited lottery settings without touching its waitlist. See [DatabaseInner.updateLotterySettings]. */
+    suspend fun updateLotterySettings(edited: Lottery) = db.updateLotterySettings(edited)
 
     /** Cancels (or, if it hasn't opened yet, deletes) a lottery. See [DatabaseInner.cancelLottery]. */
     suspend fun cancelLottery(lotteryId: Id): CancelOutcome = db.cancelLottery(lotteryId)
