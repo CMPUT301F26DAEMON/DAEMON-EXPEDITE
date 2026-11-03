@@ -1,0 +1,60 @@
+Expedite Cloud Functions
+========================
+
+What's here
+-----------
+drawLotteries (index.js) runs once a day at 12:01 AM Alberta time on Google's servers. Entries
+always close at midnight (the end of the owner's last entry day), so that one run catches every
+lottery that just closed. It finds lotteries whose entry period has ended (drawn == false, cancelled == false, entryEnd <= now) and draws their
+winners: it picks winnerCount entrants at random from "users" (everyone wins if fewer joined),
+then sets "winners", "drawn" = true and "drawnAt". The Android app shows the results.
+
+draw.js holds the winner-picking logic on its own so it can be tested without Firebase.
+
+Files at the repo root used by the Firebase CLI:
+  firebase.json            where the functions and the Firestore index file are
+  .firebaserc              the Firebase project (daemon-exp)
+  firestore.indexes.json   the index the draw query needs
+
+One-time setup (on your computer)
+---------------------------------
+1. Install Node.js 22 or newer (node --version to check).
+2. Install the Firebase CLI:          npm install -g firebase-tools
+3. Log in with the Google account that owns the Firebase project:
+                                       firebase login
+4. Install the functions' packages:   cd functions && npm install
+
+Deploying (from the repo root, the folder with firebase.json)
+------------------------------------------------------------
+    firebase deploy --only functions,firestore:indexes
+
+The first deploy turns on the Google Cloud services it needs (Cloud Functions, Cloud Build,
+Artifact Registry, Cloud Scheduler, Eventarc). That can take a few minutes, and the first try
+sometimes fails while they switch on: just run the command again. The project must be on the
+Blaze plan (it is).
+
+The Firestore index takes a few minutes to build after deploying. Until it's ready the function
+logs an error that links to it; that's expected.
+
+Run the deploy again whenever index.js, draw.js or firestore.indexes.json change.
+
+Checking it works
+-----------------
+- Firebase console > Functions: drawLotteries should be listed.
+- Logs:  firebase functions:log   (or Firebase console > Functions > Logs)
+- Quick test: create a lottery in the app and join it from another account. Then in the
+  Firebase console > Firestore, set that lottery's entryEnd to a time in the past. Then run
+  the draw now instead of waiting for midnight: Google Cloud console > Cloud Scheduler >
+  the drawLotteries job > "Force run". It should then have drawn = true and a "winners" list.
+
+Tests
+-----
+    cd functions && npm test
+
+Cost
+----
+One run a day is about 30 runs a month, a tiny fraction of the free allowance (2 million).
+Cloud Scheduler gives 3 jobs a month free per billing account; this uses 1. 
+
+Owners outside Alberta: their lotteries close at their own midnight and get drawn at the next
+12:01 AM Alberta run, up to a day later. To shorten that, we could change the schedule in index.js to "1 * * * *" (every hour) and deploy again; that's takes ~720 runs a month.

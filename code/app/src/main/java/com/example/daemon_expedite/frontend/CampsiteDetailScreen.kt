@@ -60,6 +60,7 @@ import java.time.YearMonth
  * @param onViewMapClick Called when "View on map" is tapped.
  * @param onJoinLotteryClick Called when "Join Lottery!" is tapped.
  * @param onLeaveLotteryClick Called after the entrant confirms leaving the waiting list.
+ * @param onBookClick Called when a winner taps "Book your stay".
  * @param onMessageOwnerClick Called when the message button on the owner card is tapped.
  * @param onPoliciesClick Called when "Campsite Policies" is tapped.
  * @param isLotteryBusy True while joining or leaving; the lottery button ignores taps.
@@ -75,6 +76,7 @@ fun CampsiteDetailScreen(
     onMessageOwnerClick: () -> Unit,
     onPoliciesClick: () -> Unit,
     isLotteryBusy: Boolean = false,
+    onBookClick: () -> Unit = {},
 ) {
     var askLeave by rememberSaveable { mutableStateOf(false) }
 
@@ -96,7 +98,9 @@ fun CampsiteDetailScreen(
             status = details.lotteryStatus,
             endsText = details.lotteryEndsText,
             opensText = details.lotteryOpensText,
+            bookByText = details.lotteryBookByText,
             busy = isLotteryBusy,
+            onBookClick = onBookClick,
             onJoinClick = onJoinLotteryClick,
             onLeaveClick = { askLeave = true },
         )

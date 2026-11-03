@@ -40,6 +40,7 @@ import kotlin.uuid.Uuid
  * @property lotteryId The lottery the card is about, for Join / Leave. Null when there is none.
  * @property lotteryEndsText When entries close, for example "12 Oct 2026 · 11:59 PM MDT".
  * @property lotteryOpensText When entries open, for example "1 Oct".
+ * @property lotteryBookByText Winners' booking deadline (the first stay night), for example "16 Oct".
  * @property stayPeriods The lottery's bookable nights, shown on the calendar.
  */
 data class CampsiteDetails(
@@ -60,6 +61,7 @@ data class CampsiteDetails(
     val lotteryId: Id? = null,
     val lotteryEndsText: String? = null,
     val lotteryOpensText: String? = null,
+    val lotteryBookByText: String? = null,
     val stayPeriods: List<DatePeriod> = emptyList(),
 )
 
@@ -122,19 +124,29 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
 }
 
 /**
- * What the lottery card shows to entrant [viewer] for this lottery. Entrants only act on a
- * lottery while it is upcoming or open; later phases (results, booking) come with the draw.
+ * What the lottery card shows to entrant [viewer] for this lottery.
+ *
+ * Results only show to entrants who joined; everyone else sees "no lottery" once entries
+ * close. Once stays begin the card goes back to "no lottery" (bookings come in the next step).
  */
-internal fun Lottery.entrantStatus(viewer: Id, now: Instant = Clock.System.now()): LotteryStatus =
-    when (phase(now)) {
+internal fun Lottery.entrantStatus(viewer: Id, now: Instant = Clock.System.now()): LotteryStatus {
+    val joined = viewer in waitingList.users
+    return when (phase(now)) {
         LotteryPhase.UPCOMING -> LotteryStatus.UPCOMING
         LotteryPhase.OPEN -> when {
-            viewer in waitingList.users -> LotteryStatus.JOINED
+            joined -> LotteryStatus.JOINED
             waitingList.isFull() -> LotteryStatus.FULL
             else -> LotteryStatus.OPEN
         }
+        LotteryPhase.DRAWING -> if (joined) LotteryStatus.DRAWING else LotteryStatus.NONE
+        LotteryPhase.BOOKING -> when {
+            viewer in winners -> LotteryStatus.WON
+            joined -> LotteryStatus.LOST
+            else -> LotteryStatus.NONE
+        }
         else -> LotteryStatus.NONE
     }
+}
 
 // region Shared with OwnerCampsiteDetailViewModel
 
@@ -178,6 +190,7 @@ internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: Lotter
             // One minute before midnight reads as "end of that day".
             lotteryEndsText = lottery?.entryEnd?.minus(1.minutes)?.format(zone, END_FORMAT),
             lotteryOpensText = lottery?.entryFirstDay(zone)?.format(OPENS_FORMAT),
+            lotteryBookByText = lottery?.firstStayNight?.format(OPENS_FORMAT),
             stayPeriods = lottery?.stayPeriods.orEmpty(),
         )
     }

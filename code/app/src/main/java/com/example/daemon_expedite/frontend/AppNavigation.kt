@@ -235,6 +235,8 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 },
                 onJoinLotteryClick = { lotteryAction(join = true) },
                 onLeaveLotteryClick = { lotteryAction(join = false) },
+                // TODO: open the booking screen (next PR).
+                onBookClick = { showComingSoon("Booking") },
                 // TODO: open messages once they're built.
                 onMessageOwnerClick = { showComingSoon("Messages") },
             )
