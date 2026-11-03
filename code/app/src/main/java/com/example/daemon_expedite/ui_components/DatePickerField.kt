@@ -41,6 +41,7 @@ import java.time.format.DateTimeFormatter
  * @param icon Leading icon.
  * @param minDate Earliest date that can be picked, or null for no limit.
  * @param error Message shown under the field, or null.
+ * @param enabled False greys the field out; tapping it does nothing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +53,7 @@ fun DatePickerField(
     icon: ImageVector = AppIcons.Calendar,
     minDate: LocalDate? = null,
     error: String? = null,
+    enabled: Boolean = true,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
 
@@ -62,6 +64,7 @@ fun DatePickerField(
         modifier = modifier,
         icon = icon,
         error = error,
+        enabled = enabled,
     )
 
     if (open) {

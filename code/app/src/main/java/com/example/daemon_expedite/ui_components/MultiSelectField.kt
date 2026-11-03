@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
  * @param icon Leading icon, or null for none.
  * @param emptyText Shown instead of a value when there are no options; the field is disabled.
  * @param error Message shown under the field, or null.
+ * @param isOptionEnabled False for options that can't be changed; their checkbox is greyed out.
  */
 @Composable
 fun <T> MultiSelectField(
@@ -64,6 +65,7 @@ fun <T> MultiSelectField(
     icon: ImageVector? = null,
     emptyText: String = "Nothing to choose from",
     error: String? = null,
+    isOptionEnabled: (T) -> Boolean = { true },
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
     // Options in the order they are listed, so the summary doesn't jump around as boxes are ticked.
@@ -100,18 +102,28 @@ fun <T> MultiSelectField(
                 border = BorderStroke(1.dp, AppColors.OutlineStrong),
             ) {
                 options.forEach { option ->
+                    val optionEnabled = isOptionEnabled(option)
                     DropdownMenuItem(
                         modifier = Modifier.height(OPTION_HEIGHT),
-                        text = { Text(optionLabel(option), style = AppTextStyles.ValueMedium, color = AppColors.TextPrimary) },
+                        enabled = optionEnabled,
+                        text = {
+                            Text(
+                                optionLabel(option),
+                                style = AppTextStyles.ValueMedium,
+                                color = AppColors.TextPrimary.copy(alpha = if (optionEnabled) 1f else 0.5f),
+                            )
+                        },
                         onClick = { onToggle(option) },
                         leadingIcon = {
                             Checkbox(
                                 checked = option in selected,
                                 onCheckedChange = { onToggle(option) },
+                                enabled = optionEnabled,
                                 colors = CheckboxDefaults.colors(
                                     checkedColor = AppColors.Primary,
                                     uncheckedColor = AppColors.Secondary,
                                     checkmarkColor = AppColors.TextOnPrimary,
+                                    disabledCheckedColor = AppColors.Primary.copy(alpha = 0.5f),
                                 ),
                             )
                         },

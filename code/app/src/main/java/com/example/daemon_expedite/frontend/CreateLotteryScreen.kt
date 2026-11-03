@@ -34,7 +34,8 @@ import com.example.daemon_expedite.ui_components.YellowButton
 import java.time.LocalDate
 
 /**
- * The owner's Create lottery form, from the Figma frame "Start lottery · Empty".
+ * The owner's Create lottery form, from the Figma frame "Start lottery · Empty". Also the
+ * Edit lottery form when [isEditing] is true; [locks] then greys out what can't change.
  *
  * Changes from the frame, as agreed with the team: "Lottery Period" is when entrants can join,
  * the single calendar became "Stay Periods" (several ranges of bookable nights), and the
@@ -47,6 +48,8 @@ import java.time.LocalDate
  * @param problems Messages to show under the fields (only filled in after the first submit).
  * @param isSaving True while saving: the create button says "Creating…" and ignores taps.
  * @param today The owner's today; entries can't open before it.
+ * @param isEditing True when editing a saved lottery: the title and save button change.
+ * @param locks What can't be changed (only set when editing a lottery whose entries are open).
  */
 @Composable
 fun CreateLotteryScreen(
@@ -56,6 +59,8 @@ fun CreateLotteryScreen(
     isSaving: Boolean,
     today: LocalDate,
     onBackClick: () -> Unit,
+    isEditing: Boolean = false,
+    locks: LotteryEditLocks = LotteryEditLocks(),
     onRetryCampsites: () -> Unit,
     onToggleCampsite: (Id) -> Unit,
     onEntryFirstDayChange: (LocalDate) -> Unit,
@@ -74,7 +79,7 @@ fun CreateLotteryScreen(
             .navigationBarsPadding()
             .imePadding(),
     ) {
-        ScreenHeader(title = "Create Lottery", onBackClick = onBackClick)
+        ScreenHeader(title = if (isEditing) "Edit Lottery" else "Create Lottery", onBackClick = onBackClick)
 
         Column(
             modifier = Modifier
@@ -84,6 +89,12 @@ fun CreateLotteryScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Text("Lottery Details", style = AppTextStyles.PageTitleMultiline, color = AppColors.TextPrimary)
+            if (locks.anyLocked) {
+                Caption(
+                    "Entries are open, so you can add to this lottery but not take anything away: " +
+                        "greyed-out items are fixed, and numbers can only go up."
+                )
+            }
 
             // region Campsites
             SectionHeading("Select Campsites")
@@ -105,6 +116,7 @@ fun CreateLotteryScreen(
                     icon = AppIcons.Campsite,
                     emptyText = "No free campsites. Each campsite can only be in one lottery at a time.",
                     error = problems.campsites,
+                    isOptionEnabled = { it.id !in locks.campsites },
                 )
             }
             // endregion
@@ -118,13 +130,15 @@ fun CreateLotteryScreen(
                 onDateSelected = onEntryFirstDayChange,
                 icon = AppIcons.Calendar,
                 minDate = today,
+                enabled = !locks.openDateLocked,
             )
             DatePickerField(
                 label = "Close date",
                 date = draft.entryLastDay,
                 onDateSelected = onEntryLastDayChange,
                 icon = AppIcons.Clock,
-                minDate = draft.entryFirstDay ?: today,
+                // Not before the open date or today, and once entries are open, only later.
+                minDate = listOfNotNull(draft.entryFirstDay, today, locks.earliestClose).max(),
                 error = problems.entryPeriod,
             )
             // endregion
@@ -142,6 +156,7 @@ fun CreateLotteryScreen(
                 // Stays start after entries close, so winners have time to book.
                 minDate = (draft.entryLastDay ?: today).plusDays(1),
                 error = problems.stayPeriods,
+                isRemovable = { draft.stayPeriods.getOrNull(it) !in locks.stayPeriods },
             )
             // endregion
 
@@ -157,7 +172,8 @@ fun CreateLotteryScreen(
                     keyboardType = KeyboardType.NumberPassword,
                 )
                 if (problems.winnerCount == null && draft.maxWinners > 0) {
-                    Caption("Up to ${draft.maxWinners}: ${draft.campsites.size} campsite(s) × ${draft.stayPeriods.sumOf { it.nights }} night(s).")
+                    val atLeast = locks.minWinners?.let { "At least $it, up" } ?: "Up"
+                    Caption("$atLeast to ${draft.maxWinners}: ${draft.campsites.size} campsite(s) × ${draft.stayPeriods.sumOf { it.nights }} night(s).")
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -170,7 +186,9 @@ fun CreateLotteryScreen(
                     keyboardType = KeyboardType.NumberPassword,
                     imeAction = ImeAction.Done,
                 )
-                if (problems.waitlistCapacity == null) Caption("Leave empty for no limit.")
+                if (problems.waitlistCapacity == null) {
+                    Caption(locks.minCapacity?.let { "At least $it, or leave empty for no limit." } ?: "Leave empty for no limit.")
+                }
             }
             // endregion
 
@@ -178,7 +196,12 @@ fun CreateLotteryScreen(
                 YellowButton(
                     onClick = { if (!isSaving) onCreateClick() },
                     icon = AppIcons.Tick,
-                    buttonText = if (isSaving) "Creating…" else "Create Lottery",
+                    buttonText = when {
+                        isEditing && isSaving -> "Saving…"
+                        isEditing -> "Save changes"
+                        isSaving -> "Creating…"
+                        else -> "Create Lottery"
+                    },
                     customHeight = 58,
                     customWidth = maxWidth.value.toInt(),
                 )

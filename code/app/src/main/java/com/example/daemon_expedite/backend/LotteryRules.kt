@@ -51,6 +51,8 @@ object LotteryRules {
      * @param winnerCount Null if the field is empty.
      * @param waitlistCapacity Null for no limit.
      * @param today The owner's today, passed in so tests can fix it.
+     * @param entriesAlreadyOpen True when editing a lottery whose entries have opened: its open
+     *   date is in the past and can't change, so the "can't open in the past" rule is skipped.
      */
     fun check(
         campsiteCount: Int,
@@ -60,6 +62,7 @@ object LotteryRules {
         winnerCount: Int?,
         waitlistCapacity: Int?,
         today: LocalDate,
+        entriesAlreadyOpen: Boolean = false,
     ): LotteryProblems {
         val sortedStays = stayPeriods.sortedBy { it.start }
         val firstStayNight = sortedStays.firstOrNull()?.start
@@ -70,7 +73,7 @@ object LotteryRules {
 
             entryPeriod = when {
                 entryFirstDay == null || entryLastDay == null -> "Pick when entries open and close"
-                entryFirstDay.isBefore(today) -> "Entries can't open in the past"
+                !entriesAlreadyOpen && entryFirstDay.isBefore(today) -> "Entries can't open in the past"
                 entryLastDay.isBefore(entryFirstDay) -> "Entries must close on or after the day they open"
                 firstStayNight != null && !entryLastDay.isBefore(firstStayNight) ->
                     "Entries must close before the first stay night, so winners have time to book"
@@ -96,6 +99,77 @@ object LotteryRules {
                 winnerCount != null && waitlistCapacity < winnerCount ->
                     "The waitlist must hold at least as many entrants as there are winners"
                 waitlistCapacity < 1 -> "Enter at least 1, or leave empty for no limit"
+                else -> null
+            },
+        )
+    }
+
+    /**
+     * Checks edited settings for [original]. Runs the same checks as [check], plus:
+     *
+     * - Only [LotteryPhase.UPCOMING] and [LotteryPhase.OPEN] lotteries can be edited.
+     * - Once entries are open, the lottery can only grow, so nothing entrants signed up for is
+     *   taken away: campsites and stay periods can be added but not removed, the open date is
+     *   fixed, the close date can only move later, and the winner count and waitlist limit can
+     *   only go up (or the limit be removed).
+     * - The waitlist limit can never be below the number of entrants already on it.
+     *
+     * The database runs this again inside the saving transaction with the latest waitlist.
+     *
+     * @param phase [original]'s phase now.
+     * @param zone The owner's time zone, to turn [original]'s entry times into days.
+     */
+    fun checkEdit(
+        original: Lottery,
+        phase: LotteryPhase,
+        campsites: Set<Id>,
+        entryFirstDay: LocalDate?,
+        entryLastDay: LocalDate?,
+        stayPeriods: List<DatePeriod>,
+        winnerCount: Int?,
+        waitlistCapacity: Int?,
+        today: LocalDate,
+        zone: ZoneId,
+    ): LotteryProblems {
+        if (phase != LotteryPhase.UPCOMING && phase != LotteryPhase.OPEN) {
+            return LotteryProblems(entryPeriod = "Entries have closed, so this lottery can't be edited any more")
+        }
+        val open = phase == LotteryPhase.OPEN
+        val base = check(
+            campsites.size, entryFirstDay, entryLastDay, stayPeriods, winnerCount, waitlistCapacity,
+            today, entriesAlreadyOpen = open,
+        )
+        val joined = original.waitingList.users.size
+        val originalCapacity = original.waitlistCapacity
+
+        return LotteryProblems(
+            campsites = base.campsites ?: when {
+                open && !campsites.containsAll(original.campsites) ->
+                    "Entries are open, so campsites can be added but not removed"
+                else -> null
+            },
+            entryPeriod = base.entryPeriod ?: when {
+                open && entryFirstDay != original.entryFirstDay(zone) ->
+                    "Entries are open, so the open date can't change"
+                open && entryLastDay!!.isBefore(original.entryLastDay(zone)) ->
+                    "Entries are open, so the close date can only move later"
+                else -> null
+            },
+            stayPeriods = base.stayPeriods ?: when {
+                open && !stayPeriods.containsAll(original.stayPeriods) ->
+                    "Entries are open, so stay periods can be added but not removed"
+                else -> null
+            },
+            winnerCount = base.winnerCount ?: when {
+                open && winnerCount!! < original.winnerCount ->
+                    "Entries are open, so winners can only go up (at least ${original.winnerCount})"
+                else -> null
+            },
+            waitlistCapacity = base.waitlistCapacity ?: when {
+                waitlistCapacity != null && waitlistCapacity < joined ->
+                    "$joined entrants have already joined, so the limit can't be lower than that"
+                open && waitlistCapacity != null && originalCapacity != null && waitlistCapacity < originalCapacity ->
+                    "Entries are open, so the limit can only go up (at least $originalCapacity)"
                 else -> null
             },
         )

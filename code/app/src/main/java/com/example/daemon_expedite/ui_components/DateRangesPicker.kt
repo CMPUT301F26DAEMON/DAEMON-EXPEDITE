@@ -58,6 +58,7 @@ import java.time.temporal.ChronoUnit
  * @param modifier [Modifier] applied to the column.
  * @param minDate Earliest day that can be picked, or null for no limit.
  * @param error Message shown under the chips, or null.
+ * @param isRemovable False for ranges that can't be removed; their chip has no ✕ and ignores taps.
  */
 @Composable
 fun DateRangesPicker(
@@ -67,6 +68,7 @@ fun DateRangesPicker(
     modifier: Modifier = Modifier,
     minDate: LocalDate? = null,
     error: String? = null,
+    isRemovable: (index: Int) -> Boolean = { true },
 ) {
     var start by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     var end by rememberSaveable { mutableStateOf<LocalDate?>(null) }
@@ -132,7 +134,7 @@ fun DateRangesPicker(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 ranges.forEachIndexed { index, range ->
-                    RangeChip(range, onRemove = { onRemoveRange(index) })
+                    RangeChip(range, onRemove = if (isRemovable(index)) ({ onRemoveRange(index) }) else null)
                 }
             }
         }
@@ -144,7 +146,7 @@ fun DateRangesPicker(
 }
 
 @Composable
-private fun RangeChip(range: ClosedRange<LocalDate>, onRemove: () -> Unit) {
+private fun RangeChip(range: ClosedRange<LocalDate>, onRemove: (() -> Unit)?) {
     val nights = ChronoUnit.DAYS.between(range.start, range.endInclusive).toInt()
     val text = "${range.start.short()} → ${range.endInclusive.short()} · ${nightsText(nights)}"
     Row(
@@ -152,13 +154,18 @@ private fun RangeChip(range: ClosedRange<LocalDate>, onRemove: () -> Unit) {
             .height(34.dp)
             .clip(CircleShape)
             .background(AppColors.Primary)
-            .clickable(role = Role.Button, onClickLabel = "Remove $text", onClick = onRemove)
+            .then(
+                if (onRemove != null) Modifier.clickable(role = Role.Button, onClickLabel = "Remove $text", onClick = onRemove)
+                else Modifier
+            )
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(text, style = AppTextStyles.TabLabel, color = AppColors.TextOnPrimary)
-        Icon(AppIcons.Cross, contentDescription = null, tint = AppColors.TextOnPrimary.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+        if (onRemove != null) {
+            Icon(AppIcons.Cross, contentDescription = null, tint = AppColors.TextOnPrimary.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+        }
     }
 }
 

@@ -19,7 +19,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
@@ -104,8 +103,8 @@ internal fun Lottery.toSummary(
         else -> "${names.first()} + ${names.size - 1} more"
     }
 
-    val firstEntryDay = firstEntryDay(zone)
-    val lastEntryDay = lastEntryDay(zone)
+    val firstEntryDay = entryFirstDay(zone)
+    val lastEntryDay = entryLastDay(zone)
     val entriesText = when (phase) {
         LotteryPhase.UPCOMING -> "Entries open ${firstEntryDay.short()}"
         LotteryPhase.OPEN -> "Entries close ${lastEntryDay.short()}"
@@ -140,13 +139,6 @@ internal fun LotteryPhase.pill(): Pair<String, PillVariant> = when (this) {
     LotteryPhase.FINISHED -> "Finished" to PillVariant.Muted
     LotteryPhase.CANCELLED -> "Cancelled" to PillVariant.Muted
 }
-
-/** The last day entrants can join: [Lottery.entryEnd] is midnight after it. */
-internal fun Lottery.lastEntryDay(zone: ZoneId): LocalDate =
-    // A minute before midnight is still that day, even across a daylight-saving change.
-    (entryEnd - 1.minutes).toJavaInstant().atZone(zone).toLocalDate()
-
-internal fun Lottery.firstEntryDay(zone: ZoneId): LocalDate = entryStart.toJavaInstant().atZone(zone).toLocalDate()
 
 /** "16 Oct", or "16 Oct 2027" when not in [thisYear]. */
 internal fun LocalDate.shortDate(thisYear: Int): String = format(if (year == thisYear) DAY_MONTH else DAY_MONTH_YEAR)

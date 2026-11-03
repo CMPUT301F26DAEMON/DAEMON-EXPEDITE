@@ -28,6 +28,15 @@ class LotteryNotCancellableException(
     val lotteryId: Id,
 ) : Exception("Lottery $lotteryId can no longer be cancelled")
 
+/**
+ * Thrown when edited lottery settings break the rules against the latest saved lottery, for
+ * example more entrants joined than the new waitlist limit. [problems] says what to fix.
+ */
+class LotteryEditRejectedException(
+    val lotteryId: Id,
+    val problems: LotteryProblems,
+) : Exception("Edit to lottery $lotteryId rejected: $problems")
+
 /** Thrown when joining a lottery whose waitlist limit has been reached. */
 class LotteryFullException(
     val lotteryId: Id,

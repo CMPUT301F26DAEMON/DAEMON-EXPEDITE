@@ -189,4 +189,92 @@ class LotteryTest {
     }
 
     // endregion
+
+    // region Edit rules
+
+    private val pine = Id()
+    private val maple = Id()
+
+    /** Entries 1–5 Oct, stays 16–18 Oct, 2 winners, limit 10, 3 joined. */
+    private fun editable() = Lottery(
+        ownerId = Id(),
+        campsites = listOf(pine),
+        entryStart = midnight(day(10, 1)),
+        entryEnd = midnight(day(10, 6)),
+        stayPeriods = listOf(period(10, 16, 10, 18)),
+        winnerCount = 2,
+        waitingList = WaitingList(capacity = 10, users = listOf(Id(), Id(), Id())),
+    )
+
+    private fun edit(
+        phase: LotteryPhase = LotteryPhase.OPEN,
+        campsites: Set<Id> = setOf(pine),
+        first: LocalDate = day(10, 1),
+        last: LocalDate = day(10, 5),
+        stays: List<DatePeriod> = listOf(period(10, 16, 10, 18)),
+        winners: Int = 2,
+        capacity: Int? = 10,
+        today: LocalDate = day(10, 3),
+    ) = LotteryRules.checkEdit(editable(), phase, campsites, first, last, stays, winners, capacity, today, zone)
+
+    @Test
+    fun checkEdit_openLotteryUnchangedIsFine() {
+        // The open date is in the past, which is fine once entries are open.
+        assertTrue(edit().isEmpty)
+    }
+
+    @Test
+    fun checkEdit_openLotteryCanGrow() {
+        assertTrue(
+            edit(
+                campsites = setOf(pine, maple),
+                last = day(10, 8),
+                stays = listOf(period(10, 16, 10, 18), period(10, 23, 10, 25)),
+                winners = 5,
+                capacity = 20,
+            ).isEmpty
+        )
+        assertTrue(edit(capacity = null).isEmpty) // removing the limit is growing too
+    }
+
+    @Test
+    fun checkEdit_openLotteryCannotShrink() {
+        assertNotNull(edit(campsites = setOf(maple)).campsites)
+        assertNotNull(edit(first = day(10, 2)).entryPeriod)
+        assertNotNull(edit(last = day(10, 4)).entryPeriod)
+        assertNotNull(edit(stays = listOf(period(10, 23, 10, 25))).stayPeriods)
+        assertNotNull(edit(winners = 1).winnerCount)
+        assertNotNull(edit(capacity = 9).waitlistCapacity)
+    }
+
+    @Test
+    fun checkEdit_capacityNeverBelowJoined() {
+        // Upcoming lotteries can shrink, but not below who has joined (3 here).
+        val upcoming = LotteryPhase.UPCOMING
+        assertTrue(edit(upcoming, capacity = 3, today = day(9, 20)).isEmpty)
+        assertNotNull(edit(upcoming, capacity = 2, winners = 2, today = day(9, 20)).waitlistCapacity)
+    }
+
+    @Test
+    fun checkEdit_upcomingCanChangeAnything() {
+        val problems = edit(
+            LotteryPhase.UPCOMING,
+            campsites = setOf(maple),
+            first = day(9, 25),
+            last = day(9, 30),
+            stays = listOf(period(10, 10, 10, 11)),
+            winners = 1,
+            capacity = 5,
+            today = day(9, 20),
+        )
+        assertTrue(problems.isEmpty)
+    }
+
+    @Test
+    fun checkEdit_closedLotteryCannotBeEdited() {
+        assertNotNull(edit(LotteryPhase.DRAWING).entryPeriod)
+        assertNotNull(edit(LotteryPhase.CANCELLED).entryPeriod)
+    }
+
+    // endregion
 }

@@ -148,8 +148,8 @@ internal fun Lottery.toLotteryDetails(
     val summary = toSummary(campsiteNames, now, zone)
     val (status, variant) = phase.pill()
 
-    val opens = firstEntryDay(zone).shortDate(thisYear)
-    val closes = lastEntryDay(zone).shortDate(thisYear)
+    val opens = entryFirstDay(zone).shortDate(thisYear)
+    val closes = entryLastDay(zone).shortDate(thisYear)
     val firstNight = firstStayNight.shortDate(thisYear)
 
     val phaseNote = when (phase) {
