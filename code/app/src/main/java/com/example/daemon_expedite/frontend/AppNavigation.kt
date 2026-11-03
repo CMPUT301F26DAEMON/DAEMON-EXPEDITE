@@ -60,7 +60,8 @@ object Routes {
     // Owner
     const val OWNER_HOME = "owner_home"
     const val OWNER_PROFILE = "owner_profile"
-    const val START_LOTTERY = "start_lottery"
+    const val OWNER_LOTTERIES = "owner_lotteries"
+    const val START_LOTTERY = "start_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
     const val SELECT_LOCATION = "select_location" // opened from Register / Edit campsite only
     const val OWNER_CAMPSITE_DETAIL = "owner_campsite/{$CAMPSITE_ID_ARG}"
@@ -97,7 +98,7 @@ object Routes {
  *                                      └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
  *                                                      ├─► Owner campsite details ─┬─► Map view
  *                                                      │                           └─► Edit campsite ─► Select location
- *                                                      ├─► Start lottery (Lotteries tab)
+ *                                                      ├─► My lotteries ─► Start lottery
  *                                                      └─► Register campsite ─► Select location (map)
  * ```
  * Both profile pages have the role toggle: Entrant / Owner, plus Admin for users found in the
@@ -321,9 +322,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onReservationsClick = { showComingSoon("Reservations") },
                 onMessagesClick = { showComingSoon("Messages") },
                 onNotificationsClick = { showComingSoon("Notifications") },
-                // TEMPORARY: Start Lottery has no other entry point yet. In the Figma it is
-                // reached from a campsite's owner view; move it there when that screen exists.
-                onLotteriesClick = { navController.navigate(Routes.START_LOTTERY) },
+                onLotteriesClick = { navController.navigate(Routes.OWNER_LOTTERIES) },
             )
         }
 
@@ -348,6 +347,23 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                         }
                     }
                 },
+            )
+        }
+
+        composable(Routes.OWNER_LOTTERIES) {
+            val lotteries: OwnerLotteriesViewModel = viewModel()
+            val owner by ownerViewModel.owner.collectAsState()
+            val loadedOwner = (owner as? UiState.Content)?.data
+            // Runs each time this screen comes back, so a newly created lottery shows up.
+            LaunchedEffect(loadedOwner) { loadedOwner?.let(lotteries::load) }
+            val state by lotteries.lotteries.collectAsState()
+            OwnerLotteriesScreen(
+                state = state,
+                onBackClick = { navController.popBackStack() },
+                onRetry = lotteries::retry,
+                // TODO: open the lottery details page once it exists.
+                onLotteryClick = { showComingSoon("Lottery details") },
+                onCreateClick = { navController.navigate(Routes.START_LOTTERY) },
             )
         }
 
