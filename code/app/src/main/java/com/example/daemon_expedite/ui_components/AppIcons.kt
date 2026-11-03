@@ -16,7 +16,7 @@ import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -36,6 +36,12 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.StarOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -49,14 +55,17 @@ object AppIcons {
     val QRCode = Icons.Default.QrCodeScanner
     val Profile = Icons.Default.Person
     val Star = Icons.Default.Star
+    val StarOutline = Icons.Default.StarOutline
     val Dustbin = Icons.Default.Delete
     val Cross = Icons.Default.Close
     val Tick = Icons.Default.Check
     val Calendar = Icons.Default.CalendarMonth
     val EditPencil = Icons.Default.Edit
+    val EditPencilOutlined = Icons.Outlined.Edit
     val Phone = Icons.Default.Phone
     val Email = Icons.Default.Email
     val ArrowBack = Icons.AutoMirrored.Filled.ArrowBack
+    val ArrowForward = Icons.AutoMirrored.Filled.ArrowForward
     val Reservation = Icons.Outlined.EventAvailable
     val LotteryTicket = Icons.Outlined.ConfirmationNumber
     val Chat = Icons.Outlined.ChatBubbleOutline
@@ -78,6 +87,11 @@ object AppIcons {
     val Minus = Icons.Default.Remove
     val MyLocation = Icons.Default.MyLocation
     val Move = Icons.Default.OpenWith
+
+    val DropdownArrow = Icons.Default.KeyboardArrowDown
+    val Camera = Icons.Outlined.PhotoCamera
+    val Info = Icons.Outlined.Info
+    val Clock = Icons.Default.Schedule
 
     /** Thin chevron from the Figma calendar (20x20, 1.8 stroke). Pointing left. */
     val ChevronLeft: ImageVector by lazy { chevron("ChevronLeft", 12.5f, 7.5f) }

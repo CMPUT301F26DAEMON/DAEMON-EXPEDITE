@@ -806,7 +806,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "bookingEnd" to lottery.bookingEndDate.toString(),
                 "winnerCount" to lottery.winnerCount,
                 "winners" to lottery.winners.map { it.value.toString() },
-                "users" to lottery.waitingList.entrants.map { it.value.toString() },
+                "users" to lottery.waitingList.users.map { it.value.toString() },
                 "lotteryStart" to lottery.lotteryStart.toString(),
                 "lotteryEnd" to lottery.lotteryEnd.toString(),
                 "availableDates" to lottery.availableDates.map { it.toString() },
@@ -879,7 +879,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             lotteryStart = Instant.parse(lotteryStart),
             lotteryEnd = Instant.parse(lotteryEnd),
             availableDates = availableDates,
-            waitingList = WaitingList(entrants = users),
+            waitingList = WaitingList(users = users),
         )
     }
 

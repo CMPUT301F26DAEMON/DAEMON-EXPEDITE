@@ -4,9 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -113,7 +110,7 @@ fun EditProfilePhotoScreen(
                 ) {
 
                     Icon(
-                        imageVector = Icons.Outlined.PhotoCamera,
+                        imageVector = AppIcons.Camera,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -150,7 +147,7 @@ fun EditProfilePhotoScreen(
             horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Icon(
-                imageVector = Icons.Outlined.Info,
+                imageVector = AppIcons.Info,
                 contentDescription = null,
                 tint = AppColors.Secondary,
                 modifier = Modifier.size(16.dp)
