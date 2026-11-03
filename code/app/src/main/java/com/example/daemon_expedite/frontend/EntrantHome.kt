@@ -33,12 +33,12 @@ import com.example.daemon_expedite.ui_components.SearchBar
 * Includes a list of recommended campsites.
 * Includes a bottom navigation bar for accessing reservations, lotteries,
 * and messages.
-*
 * The screen only displays what it is given; [HomeViewModel] does the loading and searching.
 *
 * @param profileImageUrl URL of the signed-in user's profile picture, or null to show the fallback.
 * @param searchQuery Text currently in the search bar.
 * @param onSearchQueryChange Called as the user types in the search bar.
+ * @param onFilterClick Called when the filter icon beside the search bar is tapped.
 * @param campsites The campsites to list, or a loading/error state.
 * @param onRetry Called when the user taps the error message to load again.
 * @param onCampsiteClick Called with the id of the tapped campsite.
@@ -52,6 +52,7 @@ fun EntrantHomeScreen(
     profileImageUrl: String? = null,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
+    onFilterClick: () -> Unit = {}, // On FilterClick for opening the filter popup
     campsites: UiState<List<CampsiteSummary>> = UiState.Content(emptyList()),
     onRetry: () -> Unit = {},
     onCampsiteClick: (Id) -> Unit = {},
@@ -95,10 +96,10 @@ fun EntrantHomeScreen(
                 )
             }
             // Smaller buttons than the 48dp default to tighten the filter/profile gap
-            IconButton(onClick = {}, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onFilterClick, modifier = Modifier.size(40.dp)) {
                 Icon(  //Filter icon
                     imageVector = AppIcons.Filter,
-                    contentDescription = "Filter",
+                    contentDescription = "Filter Campsites",
                     tint = AppColors.TextOnPrimary
                 )
             }

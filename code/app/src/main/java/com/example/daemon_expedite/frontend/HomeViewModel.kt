@@ -12,6 +12,22 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+
+/**
+ * Stores the campsite filters selected by the entrant.
+ *
+ * @property location Location entered by the user.
+ * @property startDate Beginning of the selected stay.
+ * @property endDate End of the selected stay.
+ * @property guests Number of guests.
+ */
+data class CampsiteFilters(
+    val location: String = "",
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
+    val guests: Int = 1
+)
 
 /**
  * Data for the entrant home screen: the search text and the campsites to show.
@@ -33,6 +49,9 @@ class HomeViewModel : ViewModel() {
     private val _campsites = MutableStateFlow<UiState<List<CampsiteSummary>>>(UiState.Loading)
     val campsites: StateFlow<UiState<List<CampsiteSummary>>> = _campsites.asStateFlow()
 
+    private val _filters = MutableStateFlow(CampsiteFilters())
+    val filters: StateFlow<CampsiteFilters> = _filters.asStateFlow()
+
     init {
         viewModelScope.launch {
             _query
@@ -45,6 +64,69 @@ class HomeViewModel : ViewModel() {
 
     fun onQueryChange(text: String) {
         _query.value = text
+    }
+
+    /**
+     * Updates the location selected in the filter popup.
+     */
+    fun onFilterLocationChange(location: String) {
+        _filters.value = _filters.value.copy(location = location)
+    }
+
+    /**
+     * Updates the selected campsite stay dates.
+     */
+    fun onFilterDateChange(start: LocalDate?, end: LocalDate?) {
+        _filters.value = _filters.value.copy(
+            startDate = start,
+            endDate = end
+        )
+    }
+
+    /**
+     * Increases or decreases the number of guests.
+     * The minimum number of guests is one.
+     */
+    fun onFilterGuestsChange(change: Int) {
+        val current = _filters.value
+
+        _filters.value = current.copy(
+            guests = (current.guests + change).coerceAtLeast(1)
+        )
+    }
+
+    /**
+     * Resets the filter selections to their default values.
+     */
+    fun resetFilters() {
+        _filters.value = CampsiteFilters()
+    }
+
+    /**
+     * Applies the selected filters and updates the displayed campsites.
+     *
+     * Filters campsites by location, stay dates, and guest capacity.
+     * Campsites owned by the signed-in user are excluded.
+     */
+    fun applyFilters() {
+        viewModelScope.launch {
+            val selectedFilters = _filters.value
+
+            _campsites.value = UiState.Loading
+
+            _campsites.value = loadAsUiState("Couldn't filter campsites") {
+                val viewer = viewerId
+
+                Database.filterCampsites(
+                    location = selectedFilters.location.ifBlank { null },
+                    startDate = selectedFilters.startDate,
+                    endDate = selectedFilters.endDate,
+                    guests = selectedFilters.guests
+                )
+                    .filterNot { viewer != null && it.ownerId == viewer }
+                    .map { it.toSummary() }
+            }
+        }
     }
 
     private var shownBefore = false

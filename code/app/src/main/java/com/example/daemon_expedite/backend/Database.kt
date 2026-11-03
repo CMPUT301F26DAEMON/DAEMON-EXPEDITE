@@ -68,6 +68,16 @@ interface DatabaseInterface {
         cursor: SearchCursor? = null,
     ): CampsitePage
 
+    /**
+     * Filters campsites by location, stay dates, and guest capacity.
+     */
+    suspend fun filterCampsites(
+        location: String?,
+        startDate: LocalDate?,
+        endDate: LocalDate?,
+        guests: Int
+    ): List<Campsite>
+
     suspend fun updateCampsite(campsite: Campsite)
 
     suspend fun deleteCampsite(campsite: Campsite)
@@ -789,6 +799,104 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return CampsitePage(results, null)
     }
 
+    /**
+     * Checks whether the selected dates fall entirely
+     * within a lottery stay period.
+     */
+    private fun matchesStayPeriod(
+        selectedStart: LocalDate,
+        selectedEnd: LocalDate,
+        period: DatePeriod
+    ): Boolean {
+        return !selectedStart.isBefore(period.start) &&
+                !selectedEnd.isAfter(period.end)
+    }
+
+    /**
+     * Filters campsites by location, guest capacity, and lottery stay dates.
+     *
+     * A campsite matches when its address contains the selected location,
+     * its capacity supports the guest count, and an active, non-cancelled
+     * lottery contains the selected stay period.
+     *
+     * @param location Optional location matched against the campsite address.
+     * @param startDate Optional beginning of the requested stay.
+     * @param endDate Optional end of the requested stay.
+     * @param guests Minimum required campsite capacity.
+     * @return Campsites satisfying all selected filters.
+     */
+    override suspend fun filterCampsites(
+        location: String?,
+        startDate: LocalDate?,
+        endDate: LocalDate?,
+        guests: Int
+    ): List<Campsite> {
+
+        require(guests >= 1) { "Guest count must be at least one" }
+
+        require((startDate == null) == (endDate == null)) {
+            "Both start and end dates must be selected"
+        }
+
+        if (startDate != null && endDate != null) {
+            require(!startDate.isAfter(endDate)) {
+                "Start date cannot be after end date"
+            }
+        }
+
+        val campsiteDocs = db.collection("campsites")
+            .whereGreaterThanOrEqualTo("maxOccupancy", guests)
+            .get()
+            .await()
+            .documents
+
+        val results = mutableListOf<Campsite>()
+
+        for (doc in campsiteDocs) {
+            val data = doc.data ?: continue
+            val address = data["address"] as? String ?: ""
+
+            // Check location.
+            if (!location.isNullOrBlank() &&
+                !address.contains(location.trim(), ignoreCase = true)
+            ) {
+                continue
+            }
+
+            val campsiteId = try {
+                Id(Uuid.parse(doc.id))
+            } catch (e: IllegalArgumentException) {
+                Log.w("DatabaseInner", "Invalid campsite ID ${doc.id}", e)
+                continue
+            }
+
+            // Check lottery stay dates.
+            if (startDate != null && endDate != null) {
+                val lotteries = fetchLotteriesForCampsite(campsiteId)
+
+                val matchesDates = lotteries.any { lottery ->
+                    !lottery.cancelled &&
+                            !lottery.phase().isPast &&
+                            lottery.stayPeriods.any { period ->
+                                matchesStayPeriod(startDate, endDate, period)
+                            }
+                }
+
+                if (!matchesDates) continue
+            }
+
+            try {
+                results.add(parseCampsite(campsiteId, data))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("DatabaseInner", "Skipping campsite ${doc.id}", e)
+            }
+        }
+
+        return results
+    }
+
     override suspend fun updateCampsite(campsite: Campsite) {
         addCampsite(campsite)
     }
@@ -1468,6 +1576,29 @@ object Database {
         address: String? = null,
         limit: Int = 7,
     ): CampsitePage = db.searchCampsites(location, radiusInMeters, maxOccupancy, address, limit)
+
+    /**
+     * Filters campsites by location, stay dates, and guest capacity.
+     *
+     * @param location Optional address or location to search for.
+     * @param startDate Optional start date of the stay.
+     * @param endDate Optional end date of the stay.
+     * @param guests Number of guests staying at the campsite.
+     * @return Campsites matching the selected filters.
+     */
+    suspend fun filterCampsites(
+        location: String? = null,
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null,
+        guests: Int = 1
+    ): List<Campsite> {
+        return db.filterCampsites(
+            location = location,
+            startDate = startDate,
+            endDate = endDate,
+            guests = guests
+        )
+    }
 
     suspend fun addLottery(lottery: Lottery) {
         db.addLottery(lottery)

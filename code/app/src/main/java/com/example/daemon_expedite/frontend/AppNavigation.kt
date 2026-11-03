@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import java.time.LocalDate
 
 /** Route names for every screen in the app. Add new screens here. */
 object Routes {
@@ -175,6 +177,12 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             val home: HomeViewModel = viewModel()
             // Runs every time Home comes back on screen (for example after switching back from
             // the owner view), so newly registered campsites appear without restarting the app.
+
+            // Filter popup state
+            var showFilters by remember { mutableStateOf(false) }
+
+            val filters by home.filters.collectAsState()
+
             LaunchedEffect(Unit) { home.onScreenShown() }
             // Hides the signed-in user's own campsites. The splash screen waits for the user,
             // so this is set before the first search finishes.
@@ -185,6 +193,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 profileImageUrl = photoUrl,
                 searchQuery = query,
                 onSearchQueryChange = home::onQueryChange,
+                onFilterClick = { showFilters = true },
                 campsites = campsites,
                 onRetry = home::retry,
                 onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
@@ -193,6 +202,36 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onLotteriesClick = { showComingSoon("Lotteries") },
                 onMessagesClick = { showComingSoon("Messages") },
             )
+            // Show the filter popup when the filter icon is tapped.
+            if (showFilters) {
+                FilterCampsitesSheet(
+                    location = filters.location,
+                    onLocationChange = home::onFilterLocationChange,
+
+                    startDate = filters.startDate,
+                    endDate = filters.endDate,
+                    today = LocalDate.now(),
+
+                    onRangeChange = home::onFilterDateChange,
+
+                    guestCount = filters.guests,
+                    onGuestCountChange = home::onFilterGuestsChange,
+
+                    onApplyFilters = {
+                        home.applyFilters()
+                        showFilters = false
+                    },
+
+                    onResetFilters = {
+                        home.resetFilters()
+                        home.applyFilters()
+                    },
+
+                    onDismiss = {
+                        showFilters = false
+                    }
+                )
+            }
         }
 
         composable(Routes.CAMPSITE_DETAIL) {
