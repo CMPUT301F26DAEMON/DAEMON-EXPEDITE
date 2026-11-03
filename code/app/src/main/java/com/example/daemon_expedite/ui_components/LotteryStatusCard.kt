@@ -38,6 +38,15 @@ enum class LotteryStatus {
     /** A lottery has been set up but entries haven't opened yet. Shows a disabled button. */
     UPCOMING,
 
+    /** Entries closed and the viewer joined; winners are being drawn. Shows a disabled button. */
+    DRAWING,
+
+    /** The viewer was drawn as a winner. Shows "Book your stay". */
+    WON,
+
+    /** The viewer joined but wasn't drawn. Shows a disabled button. */
+    LOST,
+
     /** No lottery is open for this campsite. Shows a disabled button. */
     NONE,
 }
@@ -53,6 +62,9 @@ enum class LotteryStatus {
  * @param endsText When entries close, already formatted, for example "12 Oct 2026 · 11:59 PM MDT".
  *   Used for [LotteryStatus.OPEN], [LotteryStatus.JOINED] and [LotteryStatus.FULL].
  * @param opensText When entries open, for example "1 Oct". Used for [LotteryStatus.UPCOMING].
+ * @param bookByText Booking deadline (the first stay night), for example "16 Oct". Used for
+ *   [LotteryStatus.WON].
+ * @param onBookClick Called when "Book your stay" is tapped ([LotteryStatus.WON]).
  * @param busy True while joining or leaving: the button shows "…" and ignores taps.
  * @param onJoinClick Called when "Join Lottery!" is tapped ([LotteryStatus.OPEN]).
  * @param onLeaveClick Called when "Leave waiting list" is tapped ([LotteryStatus.JOINED]).
@@ -63,9 +75,11 @@ fun LotteryStatusCard(
     modifier: Modifier = Modifier,
     endsText: String? = null,
     opensText: String? = null,
+    bookByText: String? = null,
     busy: Boolean = false,
     onJoinClick: () -> Unit = {},
     onLeaveClick: () -> Unit = {},
+    onBookClick: () -> Unit = {},
 ) {
     val ends = endsText?.let { "Lottery ends $it" }
     when (status) {
@@ -107,6 +121,37 @@ fun LotteryStatusCard(
             modifier = modifier,
         ) {
             DisabledButton("Waiting List Full")
+        }
+
+        LotteryStatus.DRAWING -> CardFrame(
+            border = AppColors.OutlineStrong,
+            icon = AppIcons.Clock,
+            title = "Drawing winners…",
+            subtitle = "Entries are closed. Your result will show here soon.",
+            modifier = modifier,
+        ) {
+            DisabledButton("Results Coming Soon")
+        }
+
+        LotteryStatus.WON -> CardFrame(
+            border = AppColors.Accent,
+            icon = AppIcons.Trophy,
+            title = "You won!",
+            subtitle = "Book your nights" + (bookByText?.let { " before $it" } ?: "") +
+                ". It's first come, first served among winners.",
+            modifier = modifier,
+        ) { width ->
+            YellowButton(onClick = onBookClick, icon = AppIcons.Calendar, buttonText = "Book your stay", customWidth = width)
+        }
+
+        LotteryStatus.LOST -> CardFrame(
+            border = AppColors.OutlineStrong,
+            icon = AppIcons.LotteryTicket,
+            title = "Not selected this time",
+            subtitle = "You weren't drawn in this lottery. Keep an eye out for the next one.",
+            modifier = modifier,
+        ) {
+            DisabledButton("Not Selected")
         }
 
         LotteryStatus.UPCOMING -> CardFrame(
@@ -183,7 +228,7 @@ private fun DisabledButton(text: String) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380, heightDp = 1000)
+@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380, heightDp = 1600)
 @Composable
 private fun LotteryStatusCardPreview() {
     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -191,6 +236,8 @@ private fun LotteryStatusCardPreview() {
         LotteryStatusCard(LotteryStatus.JOINED, endsText = "12 Oct 2026 · 6:00 PM PT")
         LotteryStatusCard(LotteryStatus.FULL, endsText = "12 Oct 2026 · 6:00 PM PT")
         LotteryStatusCard(LotteryStatus.UPCOMING, opensText = "1 Oct")
+        LotteryStatusCard(LotteryStatus.WON, bookByText = "16 Oct")
+        LotteryStatusCard(LotteryStatus.LOST)
         LotteryStatusCard(LotteryStatus.NONE)
     }
 }

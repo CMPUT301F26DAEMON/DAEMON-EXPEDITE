@@ -49,7 +49,32 @@ class EntrantStatusTest {
     }
 
     @Test
-    fun afterEntriesClose_isNone() {
-        assertEquals(LotteryStatus.NONE, lottery(users = listOf(me)).entrantStatus(me, midnight(day(10, 7))))
+    fun afterEntriesClose_joinedSeeDrawingOthersSeeNothing() {
+        val after = midnight(day(10, 7))
+        assertEquals(LotteryStatus.DRAWING, lottery(users = listOf(me)).entrantStatus(me, after))
+        assertEquals(LotteryStatus.NONE, lottery().entrantStatus(me, after))
     }
+
+    @Test
+    fun afterTheDraw_wonLostOrNothing() {
+        val after = midnight(day(10, 7))
+        val other = Id()
+        assertEquals(LotteryStatus.WON, drawn(users = listOf(me, other), winners = listOf(me)).entrantStatus(me, after))
+        assertEquals(LotteryStatus.LOST, drawn(users = listOf(me, other), winners = listOf(other)).entrantStatus(me, after))
+        assertEquals(LotteryStatus.NONE, drawn(users = listOf(other), winners = listOf(other)).entrantStatus(me, after))
+        // Once stays begin the card has nothing to offer yet.
+        assertEquals(LotteryStatus.NONE, drawn(users = listOf(me), winners = listOf(me)).entrantStatus(me, midnight(day(10, 16))))
+    }
+
+    private fun drawn(users: List<Id>, winners: List<Id>) = Lottery(
+        ownerId = Id(),
+        campsites = listOf(Id()),
+        entryStart = midnight(day(10, 1)),
+        entryEnd = midnight(day(10, 6)),
+        stayPeriods = listOf(DatePeriod(day(10, 16), day(10, 18))),
+        winnerCount = 1,
+        waitingList = WaitingList(users = users),
+        winners = winners,
+        drawn = true,
+    )
 }
