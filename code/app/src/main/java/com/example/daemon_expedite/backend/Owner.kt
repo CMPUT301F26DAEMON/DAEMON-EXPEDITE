@@ -88,18 +88,18 @@ open class Owner(
     }
 
     /**
-     * Records a lottery created by this owner.
+     * Saves a new lottery created by this owner and records its id on the owner.
      *
-     * Saves the lottery to the database, records its id on this owner, then saves the
-     * updated owner. Does nothing if the lottery is already recorded.
+     * [Database.createLottery] saves both in one write, so a lottery is never left without its
+     * owner knowing about it. Does nothing if the lottery is already recorded.
      *
-     * @param lottery Lottery. The lottery to add.
+     * @param lottery Lottery. The lottery to add. Its [Lottery.ownerId] must be this owner.
      */
     suspend fun addOwnerLottery(lottery: Lottery) {
         if (lottery.id in _ownerLotteries) return
-        Database.addLottery(lottery)
+        require(lottery.ownerId == id) { "Lottery ${lottery.id} belongs to another owner" }
+        Database.createLottery(lottery)
         _ownerLotteries.add(lottery.id)
-        Database.addOwner(this)
     }
 
     /**

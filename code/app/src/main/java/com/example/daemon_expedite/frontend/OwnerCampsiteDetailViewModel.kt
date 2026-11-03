@@ -12,13 +12,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Outcome of [OwnerCampsiteDetailViewModel.delete]. */
 enum class DeleteResult {
     /** The campsite is gone. */
     DELETED,
 
-    /** Not deleted, because one of the owner's lotteries for this campsite is still running. */
+    /** Not deleted, because the campsite is in a lottery that isn't finished or cancelled. */
     LOTTERY_RUNNING,
 
     /** Not deleted, usually no connection. */
@@ -60,7 +61,8 @@ class OwnerCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
             val fresh = loadAsUiState("Couldn't load this campsite") {
                 val loaded = Database.fetchCampsite(id)
                 campsite = loaded
-                val lottery = loaded.activeLotteryAmong(owner.ownerLotteries)
+                // Only drives the badge, so a failed lookup shouldn't fail the page.
+                val lottery = quietly("Couldn't look up lottery for ${loaded.id}") { loaded.currentLottery() }
                 // OPEN only drives the "Lottery · Active" badge; owners don't see the lottery card.
                 loaded.toDetails(lottery, if (lottery != null) LotteryStatus.OPEN else LotteryStatus.NONE)
             }
@@ -74,7 +76,7 @@ class OwnerCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
     }
 
     /**
-     * Deletes the campsite, unless one of the owner's lotteries for it is still running.
+     * Deletes the campsite, unless it is in a lottery that isn't finished or cancelled.
      *
      * [Database.deleteCampsite] removes the campsite and takes it off the owner in one write.
      * Its photos are deleted afterwards; if that fails it only leaves unused files behind, so
@@ -86,7 +88,16 @@ class OwnerCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
         if (owner == null || campsite == null || _isDeleting.value) return onResult(DeleteResult.FAILED)
         _isDeleting.value = true
         viewModelScope.launch {
-            val result = if (campsite.activeLotteryAmong(owner.ownerLotteries) != null) {
+            val running = try {
+                campsite.currentLottery() != null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null // couldn't check: don't delete
+            }
+            val result = if (running == null) {
+                DeleteResult.FAILED
+            } else if (running) {
                 DeleteResult.LOTTERY_RUNNING
             } else {
                 val ok = runCatchingAll("Deleting campsite ${campsite.id} failed") {
