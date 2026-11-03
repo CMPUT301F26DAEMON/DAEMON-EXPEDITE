@@ -4,11 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -30,21 +28,17 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.backend.Id
-import com.example.daemon_expedite.ui_components.AmenityChips
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.CampsiteImageCarousel
+import com.example.daemon_expedite.ui_components.CampsiteOverview
 import com.example.daemon_expedite.ui_components.CampsitePill
 import com.example.daemon_expedite.ui_components.DateRangeCalendar
-import com.example.daemon_expedite.ui_components.GreenButton
 import com.example.daemon_expedite.ui_components.LotteryStatus
 import com.example.daemon_expedite.ui_components.LotteryStatusCard
 import com.example.daemon_expedite.ui_components.OwnerCard
 import com.example.daemon_expedite.ui_components.PillVariant
-import com.example.daemon_expedite.ui_components.RatingLabel
 import com.example.daemon_expedite.ui_components.ScreenHeader
-import com.example.daemon_expedite.ui_components.StayFactsCard
 import java.time.LocalDate
 
 /**
@@ -73,6 +67,51 @@ fun CampsiteDetailScreen(
     onMessageOwnerClick: () -> Unit,
     onPoliciesClick: () -> Unit,
 ) {
+    CampsiteDetailScaffold(state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
+        CampsiteOverview(
+            name = details.name,
+            imageUrls = details.imageUrls,
+            averageRating = details.averageRating,
+            reviewCount = details.reviewCount,
+            description = details.description,
+            amenities = details.amenities,
+            maxOccupancy = details.maxOccupancy,
+            pricePerNight = details.pricePerNight,
+            onViewMapClick = onViewMapClick,
+            pill = { LotteryPill(details.lotteryStatus) },
+        )
+
+        LotteryStatusCard(
+            status = details.lotteryStatus,
+            endsText = details.lotteryEndsText,
+            onJoinClick = onJoinLotteryClick,
+            onLeaveClick = onLeaveLotteryClick,
+        )
+
+        CalendarSection(title = "Available Dates", start = details.bookingStart, end = details.bookingEnd)
+
+        OwnerCard(
+            name = details.ownerName ?: "Campsite owner",
+            onMessageClick = onMessageOwnerClick,
+        )
+
+        PoliciesLink(onPoliciesClick)
+    }
+}
+
+// region Shared with OwnerCampsiteDetailScreen
+
+/**
+ * The frame both campsite details screens share: header, then a spinner, an error with a
+ * retry link, or [content] in a scrolling column with 24 dp between sections.
+ */
+@Composable
+internal fun CampsiteDetailScaffold(
+    state: UiState<CampsiteDetails>,
+    onBackClick: () -> Unit,
+    onRetry: () -> Unit,
+    content: @Composable ColumnScope.(CampsiteDetails) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -94,94 +133,25 @@ fun CampsiteDetailScreen(
                 )
             }
 
-            is UiState.Content -> DetailsContent(
-                details = state.data,
-                onViewMapClick = onViewMapClick,
-                onJoinLotteryClick = onJoinLotteryClick,
-                onLeaveLotteryClick = onLeaveLotteryClick,
-                onMessageOwnerClick = onMessageOwnerClick,
-                onPoliciesClick = onPoliciesClick,
-            )
+            is UiState.Content -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 412.dp)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 28.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    content(state.data)
+                }
+            }
         }
     }
 }
 
+/** The pill on the photo: amber when a lottery is running, muted otherwise. */
 @Composable
-private fun DetailsContent(
-    details: CampsiteDetails,
-    onViewMapClick: () -> Unit,
-    onJoinLotteryClick: () -> Unit,
-    onLeaveLotteryClick: () -> Unit,
-    onMessageOwnerClick: () -> Unit,
-    onPoliciesClick: () -> Unit,
-) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 412.dp)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 28.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            CampsiteImageCarousel(
-                imageUrls = details.imageUrls,
-                pill = { LotteryPill(details.lotteryStatus) },
-            )
-
-            // Name, rating and description sit closer together than the page's 24dp sections.
-            Column {
-                Text(details.name, style = AppTextStyles.PageTitleMultiline, color = AppColors.TextPrimary)
-                Spacer(Modifier.height(4.dp))
-                RatingLabel(average = details.averageRating, reviewCount = details.reviewCount)
-                if (details.description.isNotBlank()) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(details.description, style = AppTextStyles.BodySmallMultiline, color = AppColors.TextPrimary)
-                }
-            }
-
-            if (details.amenities.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SectionHeading("Amenities")
-                    AmenityChips(details.amenities)
-                }
-            }
-
-            StayFactsCard(maxOccupancy = details.maxOccupancy, pricePerNight = details.pricePerNight)
-
-            FullWidth { width ->
-                GreenButton(onClick = onViewMapClick, icon = AppIcons.MapPin, buttonText = "View on map", customWidth = width)
-            }
-
-            LotteryStatusCard(
-                status = details.lotteryStatus,
-                endsText = details.lotteryEndsText,
-                onJoinClick = onJoinLotteryClick,
-                onLeaveClick = onLeaveLotteryClick,
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionHeading("Available Dates")
-                DateRangeCalendar(
-                    startDate = details.bookingStart,
-                    endDate = details.bookingEnd,
-                    onRangeChange = null, // read-only
-                )
-            }
-
-            OwnerCard(
-                name = details.ownerName ?: "Campsite owner",
-                onMessageClick = onMessageOwnerClick,
-            )
-
-            PoliciesLink(onPoliciesClick)
-        }
-    }
-}
-
-/** The pill on the photo: amber when a lottery is open or joined, muted otherwise. */
-@Composable
-private fun LotteryPill(status: LotteryStatus) {
+internal fun LotteryPill(status: LotteryStatus) {
     if (status == LotteryStatus.NONE) {
         CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = AppIcons.Clock)
     } else {
@@ -189,10 +159,16 @@ private fun LotteryPill(status: LotteryStatus) {
     }
 }
 
+/** A section heading over a read-only [DateRangeCalendar] showing [start] to [end]. */
 @Composable
-private fun SectionHeading(text: String) {
-    Text(text, style = AppTextStyles.HeadingMedium, color = AppColors.TextPrimary)
+internal fun CalendarSection(title: String, start: LocalDate?, end: LocalDate?) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(title, style = AppTextStyles.HeadingMedium, color = AppColors.TextPrimary)
+        DateRangeCalendar(startDate = start, endDate = end, onRangeChange = null)
+    }
 }
+
+// endregion
 
 @Composable
 private fun PoliciesLink(onClick: () -> Unit) {
@@ -212,44 +188,37 @@ private fun PoliciesLink(onClick: () -> Unit) {
     }
 }
 
-/** Gives [content] the full available width in dp, for the shared buttons that take a width. */
-@Composable
-private fun FullWidth(content: @Composable (width: Int) -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        content(maxWidth.value.toInt())
-    }
-}
-
 @Composable
 private fun Centered(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { content() }
 }
 
+/** Sample data for the previews of both details screens. */
+internal fun previewCampsiteDetails(status: LotteryStatus = LotteryStatus.JOINED) = CampsiteDetails(
+    id = Id(),
+    name = "Pine Creek Hideaway",
+    description = "This is the campsite description!",
+    averageRating = 4.9,
+    reviewCount = 48,
+    policies = "",
+    amenities = listOf("Has bathroom", "Water"),
+    maxOccupancy = 6,
+    pricePerNight = "$45",
+    imageUrls = emptyList(),
+    ownerName = "Maya",
+    latitude = 0.0,
+    longitude = 0.0,
+    lotteryStatus = status,
+    lotteryEndsText = "12 Oct 2026 · 6:00 PM PT",
+    bookingStart = LocalDate.of(2026, 10, 16),
+    bookingEnd = LocalDate.of(2026, 10, 18),
+)
+
 @Preview(widthDp = 412, heightDp = 1700)
 @Composable
 private fun CampsiteDetailScreenPreview() {
     CampsiteDetailScreen(
-        state = UiState.Content(
-            CampsiteDetails(
-                id = Id(),
-                name = "Pine Creek Hideaway",
-                description = "This is the campsite description!",
-                averageRating = 4.9,
-                reviewCount = 48,
-                policies = "",
-                amenities = listOf("Has bathroom", "Water"),
-                maxOccupancy = 6,
-                pricePerNight = "$45",
-                imageUrls = emptyList(),
-                ownerName = "Maya",
-                latitude = 0.0,
-                longitude = 0.0,
-                lotteryStatus = LotteryStatus.JOINED,
-                lotteryEndsText = "12 Oct 2026 · 6:00 PM PT",
-                bookingStart = LocalDate.of(2026, 10, 16),
-                bookingEnd = LocalDate.of(2026, 10, 18),
-            )
-        ),
+        state = UiState.Content(previewCampsiteDetails()),
         onBackClick = {},
         onRetry = {},
         onViewMapClick = {},
