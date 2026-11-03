@@ -62,7 +62,7 @@ import com.example.daemon_expedite.frontend.RegisterCampsiteViewModel.Companion.
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BackButton
+import com.example.daemon_expedite.ui_components.ScreenHeader
 import com.example.daemon_expedite.ui_components.FormTextField
 import com.example.daemon_expedite.ui_components.GreenButton
 import com.example.daemon_expedite.ui_components.RedButton
@@ -221,25 +221,6 @@ fun RegisterCampsiteScreen(
 }
 
 // region Building blocks
-
-/** Back button on the left, page title on the right, as in the Figma "App header". */
-@Composable
-internal fun ScreenHeader(title: String, onBackClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .padding(horizontal = 24.dp),
-    ) {
-        Box(modifier = Modifier.align(Alignment.CenterStart)) { BackButton(onClick = onBackClick) }
-        Text(
-            text = title,
-            style = AppTextStyles.PageTitle,
-            color = AppColors.TextOnPrimary,
-            modifier = Modifier.align(Alignment.CenterEnd),
-        )
-    }
-}
 
 @Composable
 private fun SectionHeading(text: String) {

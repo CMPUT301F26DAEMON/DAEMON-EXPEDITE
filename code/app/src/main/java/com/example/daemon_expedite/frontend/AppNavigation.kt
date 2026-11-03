@@ -21,10 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
 
@@ -37,6 +39,17 @@ object Routes {
     const val ENTRANT_PROFILE = "entrant_profile"
     const val EDIT_PROFILE = "edit_profile"
     const val EDIT_PROFILE_PHOTO = "edit_profile_photo"
+    const val CAMPSITE_ID_ARG = "campsiteId"
+    const val CAMPSITE_DETAIL = "campsite/{$CAMPSITE_ID_ARG}"
+
+    // Opened from Campsite details only; they read the campsite it already loaded.
+    const val CAMPSITE_MAP = "campsite/{$CAMPSITE_ID_ARG}/map"
+    const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
+
+    /** The [CAMPSITE_DETAIL] route for one campsite. */
+    fun campsiteDetail(id: Id) = "campsite/${id.value}"
+    fun campsiteMap(id: Id) = "campsite/${id.value}/map"
+    fun campsitePolicies(id: Id) = "campsite/${id.value}/policies"
 
     // Owner
     const val OWNER_HOME = "owner_home"
@@ -47,7 +60,6 @@ object Routes {
 
     // Not built yet. When a screen is added, give it a route here and replace the
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
-    // const val CAMPSITE_DETAIL = "campsite/{campsiteId}"
     // const val RESERVATIONS = "reservations"
     // const val LOTTERIES = "lotteries"
     // const val MESSAGES = "messages"
@@ -67,11 +79,13 @@ object Routes {
  *
  * Flow:
  * ```
- * Splash ─► Home ─► Entrant profile ─┬─► Edit profile ─► Edit photo
- *                                    ├─► Edit photo
- *                                    └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
- *                                                    ├─► Start lottery (Lotteries tab)
- *                                                    └─► Register campsite ─► Select location (map)
+ * Splash ─► Home ─┬─► Campsite details ─┬─► Map view
+ *                 │                     └─► Campsite policies
+ *                 └─► Entrant profile ─┬─► Edit profile ─► Edit photo
+ *                                      ├─► Edit photo
+ *                                      └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
+ *                                                      ├─► Start lottery (Lotteries tab)
+ *                                                      └─► Register campsite ─► Select location (map)
  * ```
  * Both profile pages have the role toggle: Entrant / Owner, plus Admin for users found in the
  * "admins" collection at start-up (see [SessionState.Ready.isAdmin]).
@@ -150,12 +164,51 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onSearchQueryChange = home::onQueryChange,
                 campsites = campsites,
                 onRetry = home::retry,
-                // TODO: navigate to Routes.CAMPSITE_DETAIL with the id once that screen exists.
-                onCampsiteClick = { showComingSoon("Campsite details") },
+                onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
                 onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
                 onReservationsClick = { showComingSoon("Reservations") },
                 onLotteriesClick = { showComingSoon("Lotteries") },
                 onMessagesClick = { showComingSoon("Messages") },
+            )
+        }
+
+        composable(Routes.CAMPSITE_DETAIL) {
+            // Reads the campsite id from the route through its SavedStateHandle.
+            val detail: CampsiteDetailViewModel = viewModel()
+            LaunchedEffect(user) { user?.let(detail::load) }
+            val state by detail.details.collectAsState()
+            CampsiteDetailScreen(
+                state = state,
+                onBackClick = { navController.popBackStack() },
+                onRetry = detail::retry,
+                onViewMapClick = {
+                    (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteMap(it.data.id)) }
+                },
+                onPoliciesClick = {
+                    (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
+                },
+                // TODO: replace these as the lottery actions and messages are built.
+                onJoinLotteryClick = { showComingSoon("Joining a lottery") },
+                onLeaveLotteryClick = { showComingSoon("Leaving a lottery") },
+                onMessageOwnerClick = { showComingSoon("Messages") },
+            )
+        }
+
+        composable(Routes.CAMPSITE_MAP) { entry ->
+            // Same campsite as the details screen underneath, so nothing is loaded again.
+            val details = rememberCampsiteDetails(navController, entry)
+            CampsiteMapScreen(
+                latitude = details?.latitude ?: 0.0,
+                longitude = details?.longitude ?: 0.0,
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.CAMPSITE_POLICIES) { entry ->
+            val details = rememberCampsiteDetails(navController, entry)
+            CampsitePoliciesScreen(
+                policies = details?.policies.orEmpty(),
+                onBackClick = { navController.popBackStack() },
             )
         }
 
@@ -369,6 +422,18 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
         // endregion
     }
+}
+
+/**
+ * The campsite already loaded by the Campsite details screen under [entry] in the back stack,
+ * or null if it isn't loaded. The map and policies pages only open once it has loaded.
+ */
+@Composable
+private fun rememberCampsiteDetails(navController: NavHostController, entry: NavBackStackEntry): CampsiteDetails? {
+    val detailEntry = remember(entry) { navController.getBackStackEntry(Routes.CAMPSITE_DETAIL) }
+    val detail: CampsiteDetailViewModel = viewModel(detailEntry)
+    val state by detail.details.collectAsState()
+    return (state as? UiState.Content)?.data
 }
 
 /**

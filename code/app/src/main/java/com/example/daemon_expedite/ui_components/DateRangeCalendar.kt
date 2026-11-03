@@ -71,7 +71,8 @@ import java.time.format.FormatStyle
  *
  * @param startDate First day of the selected range, or null if nothing is selected.
  * @param endDate Last day of the selected range, or null if only a start is selected.
- * @param onRangeChange Called with the new (start, end) pair after a tap.
+ * @param onRangeChange Called with the new (start, end) pair after a tap. Pass null for a
+ *   read-only calendar that only shows the range (days can't be tapped, months can still be changed).
  * @param modifier [Modifier] applied to the calendar card.
  * @param initialMonth Month shown first. Defaults to the month of [startDate], or the current month.
  * @param minDate Days before this are greyed out and cannot be tapped. Null means no limit.
@@ -81,7 +82,7 @@ import java.time.format.FormatStyle
 fun DateRangeCalendar(
     startDate: LocalDate?,
     endDate: LocalDate?,
-    onRangeChange: (start: LocalDate?, end: LocalDate?) -> Unit,
+    onRangeChange: ((start: LocalDate?, end: LocalDate?) -> Unit)?,
     modifier: Modifier = Modifier,
     initialMonth: YearMonth = startDate?.let(YearMonth::from) ?: YearMonth.now(),
     minDate: LocalDate? = null,
@@ -116,9 +117,11 @@ fun DateRangeCalendar(
                                 startDate = startDate,
                                 endDate = endDate,
                                 enabled = enabled,
-                                onClick = {
-                                    val (s, e) = nextDateRange(startDate, endDate, date)
-                                    onRangeChange(s, e)
+                                onClick = onRangeChange?.let { change ->
+                                    {
+                                        val (s, e) = nextDateRange(startDate, endDate, date)
+                                        change(s, e)
+                                    }
                                 },
                             )
                         }
@@ -209,7 +212,7 @@ private fun DayCell(
     startDate: LocalDate?,
     endDate: LocalDate?,
     enabled: Boolean,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
 ) {
     val isStart = date == startDate
     val isEnd = date == endDate
@@ -240,7 +243,10 @@ private fun DayCell(
             .height(48.dp)
             .clip(shape)
             .then(if (highlighted) Modifier.background(AppColors.Primary) else Modifier)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .then(
+                if (onClick != null) Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                else Modifier
+            )
             .semantics {
                 contentDescription = description
                 selected = highlighted

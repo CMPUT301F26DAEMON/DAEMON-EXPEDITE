@@ -1,7 +1,9 @@
 package com.example.daemon_expedite.ui_components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MyLocation
@@ -92,6 +94,10 @@ object AppIcons {
     val Camera = Icons.Outlined.PhotoCamera
     val Info = Icons.Outlined.Info
     val Clock = Icons.Default.Schedule
+
+    // Campsite details (Material stand-ins for the Figma Lucide icons).
+    val CircleCheck = Icons.Outlined.CheckCircle
+    val LeaveList = Icons.AutoMirrored.Outlined.Logout
 
     /** Thin chevron from the Figma calendar (20x20, 1.8 stroke). Pointing left. */
     val ChevronLeft: ImageVector by lazy { chevron("ChevronLeft", 12.5f, 7.5f) }
