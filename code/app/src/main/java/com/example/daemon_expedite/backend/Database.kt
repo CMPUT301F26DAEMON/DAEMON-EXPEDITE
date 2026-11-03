@@ -800,8 +800,19 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     /**
-     * Checks whether the selected dates fall entirely
-     * within a lottery stay period.
+     * Checks whether the selected stay falls entirely within a lottery stay period.
+     *
+     * The start date represents the check-in date, while the end date represents
+     * the checkout date. The checkout date is exclusive, meaning the camper
+     * leaves that morning and does not stay overnight.
+     *
+     * For a single-night stay, the selected end date should be one day after
+     * the selected start date.
+     *
+     * @param selectedStart Check-in date of the requested stay.
+     * @param selectedEnd Checkout date of the requested stay.
+     * @param period Lottery stay period to compare against.
+     * @return True if the entire requested stay is within the lottery stay period.
      */
     private fun matchesStayPeriod(
         selectedStart: LocalDate,
