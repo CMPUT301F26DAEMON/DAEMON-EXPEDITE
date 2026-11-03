@@ -13,3 +13,7 @@ class InvalidDataException(
     message: String,
     cause: Throwable? = null,
 ) : Exception(message, cause)
+
+class NotFoundException(
+    message: String,
+) : Exception(message)
