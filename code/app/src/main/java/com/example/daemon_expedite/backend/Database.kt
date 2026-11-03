@@ -6,6 +6,7 @@ import android.util.Log
 import com.firebase.geofire.GeoFireUtils
 import com.firebase.geofire.GeoLocation
 import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
 import com.google.firebase.app
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
@@ -20,6 +21,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import java.io.File
+import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Instant
 import kotlin.to
@@ -70,6 +72,12 @@ interface DatabaseInterface {
     suspend fun deleteCampsite(campsite: Campsite)
 
     suspend fun addLottery(lottery: Lottery)
+
+    suspend fun createLottery(lottery: Lottery)
+
+    suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery>
+
+    suspend fun fetchLotteriesForCampsite(campsiteId: Id): List<Lottery>
 
     suspend fun fetchLottery(id: Id): Lottery
 
@@ -794,98 +802,143 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .await()
     }
 
+    // region Lotteries
+
+    private fun lotteryRef(id: Id) = db.collection("lotteries").document(id.value.toString())
+
+    /**
+     * Saves [lottery], replacing any stored copy. For a brand-new lottery use [createLottery],
+     * which also records it on the owner.
+     *
+     * Document layout (see [lotteryToMap]): times are Firestore Timestamps so the Cloud
+     * Function can query "entry closed and not drawn yet"; stay and booking dates are
+     * "yyyy-MM-dd" strings because they are calendar days, not moments.
+     */
     override suspend fun addLottery(lottery: Lottery) {
-        val lotteryData =
-            mapOf(
-                "id" to lottery.id.value.toString(),
-                "campsites" to lottery.campsites.map { it.value.toString() },
-                "maxBookableByASingleUser" to lottery.maxBookableByASingleUser,
-                "registrationStart" to lottery.registrationStart.toString(),
-                "registrationEnd" to lottery.registrationEnd.toString(),
-                "bookingStart" to lottery.bookingStartDate.toString(),
-                "bookingEnd" to lottery.bookingEndDate.toString(),
-                "winnerCount" to lottery.winnerCount,
-                "winners" to lottery.winners.map { it.value.toString() },
-                "users" to lottery.waitingList.users.map { it.value.toString() },
-                "lotteryStart" to lottery.lotteryStart.toString(),
-                "lotteryEnd" to lottery.lotteryEnd.toString(),
-                "availableDates" to lottery.availableDates.map { it.toString() },
-            )
+        lotteryRef(lottery.id).set(lotteryToMap(lottery)).await()
+    }
+
+    /** Saves a new lottery and adds its id to the owner's `ownerLotteries`, in one write. */
+    override suspend fun createLottery(lottery: Lottery) {
         db
-            .collection("lotteries")
-            .document(lottery.id.value.toString())
-            .set(lotteryData)
+            .batch()
+            .apply {
+                set(lotteryRef(lottery.id), lotteryToMap(lottery))
+                update(ownerRef(lottery.ownerId), "ownerLotteries", FieldValue.arrayUnion(lottery.id.value.toString()))
+            }.commit()
             .await()
     }
 
     override suspend fun fetchLottery(id: Id): Lottery {
-        val lotteryData =
-            db
-                .collection("lotteries")
-                .document(id.value.toString())
-                .get()
-                .await()
-                .data
-        if (lotteryData == null) {
-            throw Exception("Lottery data is null")
-        }
-        val idData = lotteryData["id"] as String
-        val campsitesData = lotteryData["campsites"] as List<*>
-        val campsites = mutableListOf<Id>()
-        for (item in campsitesData) {
-            campsites.add(Id(Uuid.parse(item.toString())))
-        }
-        // Firestore returns whole numbers as Long, so `as Int` would always crash.
-        val maxBook = (lotteryData["maxBookableByASingleUser"] as Number).toInt()
-        val registrationStart = lotteryData["registrationStart"] as String
-        val registrationEnd = lotteryData["registrationEnd"] as String
-        val bookingStart = lotteryData["bookingStart"] as String
-        val bookingEnd = lotteryData["bookingEnd"] as String
-        val winnerCount = (lotteryData["winnerCount"] as Number).toInt()
-        val winnersData = lotteryData["winners"] as List<*>
-        val winners = mutableListOf<Id>()
-        for (item in winnersData) {
-            winners.add(Id(Uuid.parse(item.toString())))
-        }
-        val lotteryStart = lotteryData["lotteryStart"] as String
-        val lotteryEnd = lotteryData["lotteryEnd"] as String
-        val availableDatesData = lotteryData["availableDates"] as List<*>
-        val availableDates = mutableListOf<Instant>()
-        for (item in availableDatesData) {
-            availableDates.add(Instant.parse(item.toString()))
-        }
-        val users =
-            (lotteryData["users"] as? List<*>)
-                ?.mapNotNull { item ->
-                    item?.toString()?.let {
-                        try {
-                            Id(Uuid.parse(it))
-                        } catch (e: IllegalArgumentException) {
-                            Log.w("DatabaseInner", "Skipping malformed user id '$it' in lottery $id", e)
-                            null
-                        }
-                    }
-                } ?: emptyList()
-        return Lottery(
-            id = Id(Uuid.parse(idData)),
-            campsites = campsites,
-            maxBookableByASingleUser = maxBook,
-            registrationStart = Instant.parse(registrationStart),
-            registrationEnd = Instant.parse(registrationEnd),
-            bookingStartDate = Instant.parse(bookingStart),
-            bookingEndDate = Instant.parse(bookingEnd),
-            winnerCount = winnerCount,
-            winners = winners,
-            lotteryStart = Instant.parse(lotteryStart),
-            lotteryEnd = Instant.parse(lotteryEnd),
-            availableDates = availableDates,
-            waitingList = WaitingList(users = users),
-        )
+        val data = lotteryRef(id).get().await().data ?: throw NotFoundException("Lottery ${id.value} not found")
+        return parseLottery(id, data)
     }
+
+    /** Every lottery created by [ownerId], in no particular order. Unreadable ones are skipped. */
+    override suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery> =
+        db
+            .collection("lotteries")
+            .whereEqualTo("owner", ownerId.value.toString())
+            .get()
+            .await()
+            .documents
+            .mapNotNull { parseLotteryOrNull(it.id, it.data) }
+
+    /**
+     * Every lottery that includes [campsiteId], past ones too. Unreadable ones are skipped.
+     * At most one of them is not past (see [LotteryPhase.isPast]).
+     */
+    override suspend fun fetchLotteriesForCampsite(campsiteId: Id): List<Lottery> =
+        db
+            .collection("lotteries")
+            .whereArrayContains("campsites", campsiteId.value.toString())
+            .get()
+            .await()
+            .documents
+            .mapNotNull { parseLotteryOrNull(it.id, it.data) }
 
     override suspend fun updateLottery(lottery: Lottery) {
         addLottery(lottery)
     }
+
+    private fun lotteryToMap(lottery: Lottery): Map<String, Any?> =
+        mapOf(
+            "id" to lottery.id.value.toString(),
+            "owner" to lottery.ownerId.value.toString(),
+            "campsites" to lottery.campsites.map { it.value.toString() },
+            "entryStart" to lottery.entryStart.toTimestamp(),
+            "entryEnd" to lottery.entryEnd.toTimestamp(),
+            "stayPeriods" to lottery.stayPeriods.map { it.toMap() },
+            "winnerCount" to lottery.winnerCount,
+            "waitlistCapacity" to lottery.waitlistCapacity,
+            "users" to lottery.waitingList.users.map { it.value.toString() },
+            "winners" to lottery.winners.map { it.value.toString() },
+            "bookings" to
+                lottery.bookings.map {
+                    it.period.toMap() + mapOf("user" to it.user.value.toString(), "campsite" to it.campsite.value.toString())
+                },
+            "drawn" to lottery.drawn,
+            "cancelled" to lottery.cancelled,
+        )
+
+    /**
+     * Builds a [Lottery] from its document. Not `suspend`, so it can run inside a transaction.
+     *
+     * @throws InvalidDataException if a required field is missing or malformed.
+     */
+    private fun parseLottery(id: Id, data: Map<String, Any?>): Lottery {
+        fun fail(field: String): Nothing = throw InvalidDataException("Lottery ${id.value}: bad or missing '$field'")
+
+        fun idOf(value: Any?, field: String): Id =
+            try {
+                Id(Uuid.parse(value as String))
+            } catch (e: Exception) {
+                fail(field)
+            }
+
+        fun ids(field: String): List<Id> = (data[field] as? List<*>)?.map { idOf(it, field) } ?: emptyList()
+
+        fun time(field: String): Instant = (data[field] as? Timestamp)?.asInstant() ?: fail(field)
+
+        fun period(map: Any?, field: String): DatePeriod =
+            try {
+                val m = map as Map<*, *>
+                DatePeriod(LocalDate.parse(m["start"] as String), LocalDate.parse(m["end"] as String))
+            } catch (e: Exception) {
+                fail(field)
+            }
+
+        val capacity = (data["waitlistCapacity"] as? Number)?.toInt()
+        return Lottery(
+            id = id,
+            ownerId = idOf(data["owner"], "owner"),
+            campsites = ids("campsites"),
+            entryStart = time("entryStart"),
+            entryEnd = time("entryEnd"),
+            stayPeriods = (data["stayPeriods"] as? List<*>)?.map { period(it, "stayPeriods") } ?: fail("stayPeriods"),
+            winnerCount = (data["winnerCount"] as? Number)?.toInt() ?: fail("winnerCount"),
+            waitingList = WaitingList(capacity = capacity ?: Int.MAX_VALUE, users = ids("users")),
+            winners = ids("winners"),
+            bookings =
+                (data["bookings"] as? List<*>)?.map {
+                    val m = it as? Map<*, *> ?: fail("bookings")
+                    Booking(idOf(m["user"], "bookings"), idOf(m["campsite"], "bookings"), period(m, "bookings"))
+                } ?: emptyList(),
+            drawn = data["drawn"] as? Boolean ?: false,
+            cancelled = data["cancelled"] as? Boolean ?: false,
+        )
+    }
+
+    /** [parseLottery], but logs and returns null for a document that can't be read (for lists). */
+    private fun parseLotteryOrNull(docId: String, data: Map<String, Any?>?): Lottery? =
+        try {
+            parseLottery(Id(Uuid.parse(docId)), data ?: return null)
+        } catch (e: Exception) {
+            Log.w("DatabaseInner", "Skipping unreadable lottery $docId", e)
+            null
+        }
+
+    // endregion
 
     override suspend fun addReservation(reservation: Reservation) {
         val reservationData =
@@ -937,28 +990,50 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         }
     }
 
+    /**
+     * Adds [userId] to the lottery's waiting list and the lottery to the user's `lotteries`.
+     *
+     * Runs as a transaction that re-reads the lottery, so the open check and the capacity
+     * check use the latest data: two entrants can't both take the last spot. Joining twice
+     * does nothing.
+     *
+     * @throws LotteryClosedException if the entry period isn't running.
+     * @throws LotteryFullException if the waitlist limit is reached.
+     */
     override suspend fun addUserToLottery(lotteryId: Id, userId: Id) {
-        val lotteryRef = db.collection("lotteries").document(lotteryId.value.toString())
+        val lotteryRef = lotteryRef(lotteryId)
         val userRef = db.collection("users").document(userId.value.toString())
         db
-            .batch()
-            .apply {
-                update(lotteryRef, "users", FieldValue.arrayUnion(userId.value.toString()))
-                update(userRef, "lotteries", FieldValue.arrayUnion(lotteryId.value.toString()))
-            }.commit()
-            .await()
+            .runTransaction { tx ->
+                val data = tx.get(lotteryRef).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
+                val lottery = parseLottery(lotteryId, data)
+                if (lottery.phase() != LotteryPhase.OPEN) throw LotteryClosedException(lotteryId)
+                if (userId in lottery.waitingList.users) return@runTransaction null
+                if (lottery.waitingList.isFull()) throw LotteryFullException(lotteryId)
+                tx.update(lotteryRef, "users", FieldValue.arrayUnion(userId.value.toString()))
+                tx.update(userRef, "lotteries", FieldValue.arrayUnion(lotteryId.value.toString()))
+                null
+            }.await()
     }
 
+    /**
+     * Removes [userId] from the lottery's waiting list and the lottery from the user's
+     * `lotteries`. Only allowed while the entry period is running, so nobody can leave after
+     * the draw.
+     *
+     * @throws LotteryClosedException if the entry period isn't running.
+     */
     override suspend fun removeUserFromLottery(lotteryId: Id, userId: Id) {
-        val lotteryRef = db.collection("lotteries").document(lotteryId.value.toString())
+        val lotteryRef = lotteryRef(lotteryId)
         val userRef = db.collection("users").document(userId.value.toString())
         db
-            .batch()
-            .apply {
-                update(lotteryRef, "users", FieldValue.arrayRemove(userId.value.toString()))
-                update(userRef, "lotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
-            }.commit()
-            .await()
+            .runTransaction { tx ->
+                val data = tx.get(lotteryRef).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
+                if (parseLottery(lotteryId, data).phase() != LotteryPhase.OPEN) throw LotteryClosedException(lotteryId)
+                tx.update(lotteryRef, "users", FieldValue.arrayRemove(userId.value.toString()))
+                tx.update(userRef, "lotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
+                null
+            }.await()
     }
 
 //     override suspend fun addReservation(reservation: Reservation) {
@@ -1324,6 +1399,13 @@ object Database {
 
     suspend fun fetchLottery(id: Id): Lottery = db.fetchLottery(id)
 
+    /** Saves a new lottery and records it on its owner in one write. */
+    suspend fun createLottery(lottery: Lottery) = db.createLottery(lottery)
+
+    suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery> = db.fetchOwnerLotteries(ownerId)
+
+    suspend fun fetchLotteriesForCampsite(campsiteId: Id): List<Lottery> = db.fetchLotteriesForCampsite(campsiteId)
+
     suspend fun updateLottery(lottery: Lottery) {
         db.updateLottery(lottery)
     }
@@ -1377,3 +1459,13 @@ object Database {
 
     suspend fun deleteCampsite(campsite: Campsite) = db.deleteCampsite(campsite)
 }
+
+// region Lottery document helpers
+
+private fun Instant.toTimestamp(): Timestamp = Timestamp(epochSeconds, nanosecondsOfSecond)
+
+private fun Timestamp.asInstant(): Instant = Instant.fromEpochSeconds(seconds, nanoseconds.toLong())
+
+private fun DatePeriod.toMap(): Map<String, String> = mapOf("start" to start.toString(), "end" to end.toString())
+
+// endregion

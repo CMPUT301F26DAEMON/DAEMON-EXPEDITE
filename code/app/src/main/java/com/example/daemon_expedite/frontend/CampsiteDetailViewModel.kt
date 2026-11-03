@@ -8,6 +8,7 @@ import com.example.daemon_expedite.backend.Campsite
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
+import com.example.daemon_expedite.backend.LotteryPhase
 import com.example.daemon_expedite.backend.User
 import com.example.daemon_expedite.ui_components.LotteryStatus
 import kotlinx.coroutines.async
@@ -21,6 +22,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -34,9 +36,9 @@ import kotlin.uuid.Uuid
  * @property imageUrls Download URLs for the campsite's photos (Storage paths can't be shown directly).
  * @property ownerName Null if the owner's profile couldn't be loaded.
  * @property lotteryStatus Where the viewer stands with this campsite's lottery.
- * @property lotteryEndsText When the lottery closes, for example "12 Oct 2026 · 6:00 PM MDT".
- * @property bookingStart First day of the lottery's booking period, shown on the calendar.
- * @property bookingEnd Last day of the lottery's booking period.
+ * @property lotteryEndsText When entries close, for example "12 Oct 2026 · 11:59 PM MDT".
+ * @property bookingStart First night of the lottery's first stay period, shown on the calendar.
+ * @property bookingEnd Check-out day of that stay period.
  */
 data class CampsiteDetails(
     val id: Id,
@@ -85,14 +87,13 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
             _details.value = UiState.Loading
             _details.value = loadAsUiState("Couldn't load this campsite") {
                 val campsite = Database.fetchCampsite(id)
-                // TODO: there is no way yet to find an open lottery the viewer hasn't joined
-                //  (campsites don't store their lottery ids). Once Database can look up a campsite's
-                //  lotteries, return LotteryStatus.OPEN for an active one the viewer isn't in.
-                val joined = campsite.activeLotteryAmong(viewer.lotteryIds)
-                campsite.toDetails(
-                    lottery = joined,
-                    lotteryStatus = if (joined != null) LotteryStatus.JOINED else LotteryStatus.NONE,
-                )
+                val lottery = campsite.currentLottery()
+                val status = when {
+                    lottery == null || lottery.phase() != LotteryPhase.OPEN -> LotteryStatus.NONE
+                    viewer.id in lottery.waitingList.users -> LotteryStatus.JOINED
+                    else -> LotteryStatus.OPEN
+                }
+                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status)
             }
         }
     }
@@ -141,9 +142,11 @@ internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: Lotter
             latitude = location.latitude,
             longitude = location.longitude,
             lotteryStatus = lotteryStatus,
-            lotteryEndsText = lottery?.lotteryEnd?.format(zone, END_FORMAT),
-            bookingStart = lottery?.bookingStartDate?.toLocalDate(zone),
-            bookingEnd = lottery?.bookingEndDate?.toLocalDate(zone),
+            // One minute before midnight reads as "end of that day".
+            lotteryEndsText = lottery?.entryEnd?.minus(1.minutes)?.format(zone, END_FORMAT),
+            // TODO: show every stay period once the calendar can highlight several ranges.
+            bookingStart = lottery?.stayPeriods?.firstOrNull()?.start,
+            bookingEnd = lottery?.stayPeriods?.firstOrNull()?.end,
         )
     }
 
@@ -159,14 +162,11 @@ private suspend fun Campsite.ownerName(): String? =
         ?.takeIf { it.isNotBlank() }
 
 /**
- * The first lottery in [lotteryIds] that includes this campsite and is still running, or null.
- * Lotteries that can't be loaded are skipped.
+ * The lottery this campsite is in that isn't finished or cancelled, or null. A campsite is in
+ * at most one such lottery at a time.
  */
-internal suspend fun Campsite.activeLotteryAmong(lotteryIds: List<Id>): Lottery? = coroutineScope {
-    lotteryIds.map { lotteryId ->
-        async { quietly("Couldn't load lottery $lotteryId") { Database.fetchLottery(lotteryId) } }
-    }.awaitAll().firstOrNull { it != null && id in it.campsites && it.isActive() }
-}
+internal suspend fun Campsite.currentLottery(): Lottery? =
+    Database.fetchLotteriesForCampsite(id).firstOrNull { !it.phase().isPast }
 
 /** Runs [block], logging and returning null if it fails, so one missing piece doesn't fail the page. */
 internal suspend fun <T> quietly(message: String, block: suspend () -> T): T? =
@@ -184,8 +184,6 @@ private val END_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM y
 
 private fun Instant.toZoned(zone: ZoneId) =
     java.time.Instant.ofEpochMilli(toEpochMilliseconds()).atZone(zone)
-
-private fun Instant.toLocalDate(zone: ZoneId): LocalDate = toZoned(zone).toLocalDate()
 
 private fun Instant.format(zone: ZoneId, formatter: DateTimeFormatter): String = toZoned(zone).format(formatter)
 

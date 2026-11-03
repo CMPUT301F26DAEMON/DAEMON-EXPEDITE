@@ -17,3 +17,13 @@ class InvalidDataException(
 class NotFoundException(
     message: String,
 ) : Exception(message)
+
+/** Thrown when joining or leaving a lottery outside its entry period. */
+class LotteryClosedException(
+    val lotteryId: Id,
+) : Exception("Lottery $lotteryId is not open for entries")
+
+/** Thrown when joining a lottery whose waitlist limit has been reached. */
+class LotteryFullException(
+    val lotteryId: Id,
+) : Exception("Lottery $lotteryId waiting list is full")
