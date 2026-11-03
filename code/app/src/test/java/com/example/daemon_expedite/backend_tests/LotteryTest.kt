@@ -105,6 +105,17 @@ class LotteryTest {
     }
 
     @Test
+    fun canCancel_onlyBeforeStaysBegin() {
+        assertTrue(LotteryPhase.UPCOMING.canCancel)
+        assertTrue(LotteryPhase.OPEN.canCancel)
+        assertTrue(LotteryPhase.DRAWING.canCancel)
+        assertTrue(LotteryPhase.BOOKING.canCancel)
+        assertFalse(LotteryPhase.STAYS.canCancel)
+        assertFalse(LotteryPhase.FINISHED.canCancel)
+        assertFalse(LotteryPhase.CANCELLED.canCancel)
+    }
+
+    @Test
     fun waitlistCapacity_nullMeansNoLimit() {
         assertNull(lottery().waitlistCapacity)
         val limited = Lottery(

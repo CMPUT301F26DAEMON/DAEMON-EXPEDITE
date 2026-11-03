@@ -43,6 +43,9 @@ enum class LotteryPhase {
 
     /** True for lotteries that belong under "Past": finished or cancelled. */
     val isPast: Boolean get() = this == FINISHED || this == CANCELLED
+
+    /** True while the owner may still cancel: any time before the first stay night. */
+    val canCancel: Boolean get() = this in setOf(UPCOMING, OPEN, DRAWING, BOOKING)
 }
 
 /**
@@ -153,3 +156,12 @@ class Lottery(
 
 /** Midnight at the start of this day in [zone]. */
 internal fun LocalDate.startOfDay(zone: ZoneId): Instant = atStartOfDay(zone).toInstant().toKotlinInstant()
+
+/** What [Database.cancelLottery] did. */
+enum class CancelOutcome {
+    /** It hadn't opened yet, so it was deleted. */
+    DELETED,
+
+    /** It was marked cancelled and kept. */
+    CANCELLED,
+}
