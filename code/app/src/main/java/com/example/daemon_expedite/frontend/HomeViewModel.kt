@@ -179,7 +179,7 @@ class HomeViewModel : ViewModel() {
     private suspend fun fetch(text: String): List<CampsiteSummary> {
         val viewer = viewerId
         return Database
-            .searchCampsite(address = text.trim().ifBlank { null }, limit = RESULT_LIMIT + OWN_CAMPSITE_ALLOWANCE)
+            .searchCampsite(location = text.trim().ifBlank { null }, limit = RESULT_LIMIT + OWN_CAMPSITE_ALLOWANCE)
             .campsites
             .filterNot { viewer != null && it.ownerId == viewer }
             .take(RESULT_LIMIT)

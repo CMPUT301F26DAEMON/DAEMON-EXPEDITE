@@ -1,12 +1,10 @@
 
 package com.example.daemon_expedite.frontend
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -17,7 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.ui_components.*
-
+import kotlin.Char
 
 @Composable
 fun EditProfileScreen(
@@ -31,45 +29,44 @@ fun EditProfileScreen(
     onSaveClick: (name: String, email: String, phoneNumber: String) -> Unit = { _, _, _ -> },
     // While true the save button is disabled, so a slow save can't be sent twice.
     isSaving: Boolean = false,
-    onCancelClick: () -> Unit = {}
+    onCancelClick: () -> Unit = {},
 ) {
-
-    //editable
+    // editable
     var editableName by rememberSaveable { mutableStateOf(name) }
     var editableEmail by rememberSaveable { mutableStateOf(email) }
     var editablePhone by rememberSaveable { mutableStateOf(phoneNumber) }
 
     BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppColors.Background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
-            .padding(horizontal = 20.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(AppColors.Background)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(horizontal = 20.dp),
     ) {
-
         val fieldWidth = minOf(maxWidth, 356.dp).value.toInt()
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 16.dp, bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
             ) {
-
                 Box(
-                    modifier = Modifier.align(Alignment.CenterStart)
+                    modifier = Modifier.align(Alignment.CenterStart),
                 ) {
                     BackButton(
-                        onClick = onBackClick
+                        onClick = onBackClick,
                     )
                 }
 
@@ -77,7 +74,7 @@ fun EditProfileScreen(
                     text = "Edit profile",
                     style = AppTextStyles.PageTitle,
                     color = AppColors.TextOnPrimary,
-                    modifier = Modifier.align(Alignment.CenterEnd)
+                    modifier = Modifier.align(Alignment.CenterEnd),
                 )
             }
 
@@ -87,7 +84,7 @@ fun EditProfileScreen(
                 imageUrl = profileImageUrl,
                 size = 96.dp,
                 onEditClick = onProfilePhotoClick,
-                showBorder = true
+                showBorder = true,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -95,7 +92,7 @@ fun EditProfileScreen(
             Text(
                 text = "Change profile photo",
                 style = AppTextStyles.Caption,
-                color = AppColors.TextSecondary
+                color = AppColors.TextSecondary,
             )
 
             Spacer(modifier = Modifier.height(22.dp))
@@ -103,9 +100,8 @@ fun EditProfileScreen(
             // Editable profile information
             Column(
                 modifier = Modifier.width(fieldWidth.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-
                 // Name field
                 ProfileTextField(
                     label = "Name",
@@ -113,7 +109,7 @@ fun EditProfileScreen(
                     onValueChange = { editableName = it },
                     icon = AppIcons.Profile,
                     keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Next,
                 )
 
                 // Email field
@@ -123,17 +119,25 @@ fun EditProfileScreen(
                     onValueChange = { editableEmail = it },
                     icon = AppIcons.Email,
                     keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Next,
                 )
 
                 // Phone number field
                 ProfileTextField(
                     label = "Phone number",
                     value = editablePhone,
-                    onValueChange = { editablePhone = it },
+                    onValueChange = {
+                        val output = mutableListOf<Char>()
+                        for (char in it) {
+                            if (char.isDigit()) {
+                                output.add(char)
+                            }
+                        }
+                        editablePhone = output.joinToString("")
+                    },
                     icon = AppIcons.Phone,
                     keyboardType = KeyboardType.Phone,
-                    imeAction = ImeAction.Done
+                    imeAction = ImeAction.Done,
                 )
             }
 
@@ -144,12 +148,9 @@ fun EditProfileScreen(
                 },
                 icon = AppIcons.Tick,
                 buttonText = if (isSaving) "Saving…" else "Save changes",
-                customHeight =58,
-                customWidth = fieldWidth
+                customHeight = 58,
+                customWidth = fieldWidth,
             )
-
-
-
         }
     }
 }
@@ -158,7 +159,7 @@ fun EditProfileScreen(
     showBackground = true,
     backgroundColor = 0xFF121514,
     widthDp = 402,
-    heightDp = 850
+    heightDp = 850,
 )
 @Composable
 private fun EditProfileScreenPreview() {
