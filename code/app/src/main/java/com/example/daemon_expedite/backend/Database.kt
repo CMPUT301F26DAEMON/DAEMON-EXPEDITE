@@ -62,7 +62,7 @@ interface DatabaseInterface {
     suspend fun searchCampsites(
         location: String? = null,
         maxOccupancy: Int? = null,
-        dates: DatePeriod?,
+        dates: DatePeriod? = null,
         titleText: String? = null,
         limit: Int = 7,
         cursor: SearchCursor? = null,
@@ -1460,7 +1460,7 @@ object Database {
     suspend fun searchCampsite(
         location: String? = null,
         maxOccupancy: Int? = null,
-        dates: DatePeriod?,
+        dates: DatePeriod? = null,
         titleText: String? = null,
         limit: Int = 7,
     ): CampsitePage = db.searchCampsites(location, maxOccupancy, dates, titleText, limit)
