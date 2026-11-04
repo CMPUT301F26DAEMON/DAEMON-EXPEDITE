@@ -3,12 +3,11 @@ package com.example.daemon_expedite.backend
 import android.location.Location
 import android.net.Uri
 import android.util.Log
-import com.firebase.geofire.GeoFireUtils
-import com.firebase.geofire.GeoLocation
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.app
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -23,6 +22,7 @@ import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Instant
 import kotlin.to
@@ -60,10 +60,9 @@ interface DatabaseInterface {
     suspend fun fetchCampsite(campsiteId: Id): Campsite
 
     suspend fun searchCampsites(
-        location: Location? = null,
-        radius: Int? = null,
+        location: String? = null,
         maxOccupancy: Int? = null,
-        text: String? = null,
+        titleText: String? = null,
         limit: Int = 7,
         cursor: SearchCursor? = null,
     ): CampsitePage
@@ -92,9 +91,15 @@ interface DatabaseInterface {
 
     suspend fun fetchReservation(id: Id): Reservation?
 
-    suspend fun addUserToLottery(lotteryId: Id, userId: Id)
+    suspend fun addUserToLottery(
+        lotteryId: Id,
+        userId: Id,
+    )
 
-    suspend fun removeUserFromLottery(lotteryId: Id, userId: Id)
+    suspend fun removeUserFromLottery(
+        lotteryId: Id,
+        userId: Id,
+    )
 
     suspend fun updateReservation(reservation: Reservation)
 
@@ -169,10 +174,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "phoneNumber" to user.phoneNumber,
                 "notificationsEnabled" to user.notificationsEnabled,
                 "profileImage" to
-                        user.profileImage
-                            ?.id
-                            ?.value
-                            ?.toString(),
+                    user.profileImage
+                        ?.id
+                        ?.value
+                        ?.toString(),
                 "lotteries" to user.lotteryIds.map { it.value.toString() },
                 "reservations" to user.reservationIds.map { it.value.toString() },
                 "chats" to user.chatIds.map { it.value.toString() },
@@ -556,7 +561,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "tags" to campsite.tags,
                 // Must be a List: Firestore throws on Kotlin/Java arrays ("use Lists instead").
                 "location" to listOf(campsite.location.latitude, campsite.location.longitude),
-                "geohash" to GeoFireUtils.getGeoHashForLocation(GeoLocation(campsite.location.latitude, campsite.location.longitude)),
+                "nameLower" to normalizeForSearch(campsite.name),
+                "addressLower" to normalizeForSearch(campsite.address),
                 "maxOccupancy" to campsite.maxOccupancy,
                 "policies" to campsite.policies,
                 "pricePerNight" to campsite.pricePerNight,
@@ -692,70 +698,68 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
     /**
      * Function to search for campsites
-     * @param location: Location? -> this is the location desired by the user
-     * @param radius: Int? -> this is the radius within which to search the campsites
-     * @param maxOccupancy: Int? -> this is the maximum occupancy allowed
-     * @param text: String? -> this is the text to search for in the address of the campsite
-     * @param limit: Int -> this is the number of campsites to return
-     * @param cursor: SearchCursor? -> this is an internal pagination cursor, basically pass this in the next search campsites function call, and it will start from the last returned campsite. pass null for new query
+     * @param location String? -> this is the location desired by the user
+     * @param maxOccupancy Int? -> this is the maximum occupancy allowed
+     * @param titleText String? -> this is the text to search for in the title of the campsite
+     * @param limit Int -> this is the number of campsites to return
+     * @param cursor SearchCursor? -> this is an internal pagination cursor, basically pass this in the next search campsites function call, and it will start from the last returned campsite. pass null for new query
      *
      * @return CampsitePage -> object which holds campsites and SearchCursor for the next search query, cursor will be null if no more campsites are found
      * */
     override suspend fun searchCampsites(
-        location: Location?,
-        radius: Int?,
+        location: String?,
         maxOccupancy: Int?,
-        text: String?,
+        titleText: String?,
         limit: Int,
         cursor: SearchCursor?,
     ): CampsitePage {
-        val collection = db.collection("campsites")
+        val title = titleText?.trim()?.lowercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
+        val place = location?.trim()?.lowercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
 
-        // One query per geohash bound, or a single plain query without a location
-        val queries: List<Query> =
-            if (location != null && radius != null) {
-                val center = GeoLocation(location.latitude, location.longitude)
-                GeoFireUtils.getGeoHashQueryBounds(center, radius.toDouble()).map { b ->
-                    collection.orderBy("geohash").startAt(b.startHash).endAt(b.endHash)
+        // Exactly one server-side range, in priority order
+        var base: Query = db.collection("campsites")
+        base =
+            when {
+                title != null -> {
+                    base.orderBy("nameLower").startAt(title).endAt(title + '\uf8ff')
                 }
-            } else {
-                var q: Query = collection
-                if (maxOccupancy != null) {
-                    q = q.whereGreaterThanOrEqualTo("maxOccupancy", maxOccupancy)
+
+                place != null -> {
+                    base.orderBy("addressLower").startAt(place).endAt(place + '\uf8ff')
                 }
-                q =
-                    if (!text.isNullOrEmpty()) {
-                        q
-                            .orderBy("address")
-                            .whereGreaterThanOrEqualTo("address", text)
-                            .whereLessThan("address", text + '\uf8ff')
-                    } else {
-                        q.orderBy(FieldPath.documentId())
-                    }
-                listOf(q)
+
+                maxOccupancy != null -> {
+                    base.orderBy("maxOccupancy").whereGreaterThanOrEqualTo("maxOccupancy", maxOccupancy)
+                }
+
+                else -> {
+                    base.orderBy(FieldPath.documentId())
+                }
             }
 
-        // Runs on every candidate. Redundant with the server-side filters in the
-        // non-geo case, but harmless, and required in the geo case.
+        // Every filter is re-checked here, so the ones not used server-side still apply
         fun passesFilters(data: Map<String, Any?>): Boolean {
+            if (title != null) {
+                val name = (data["name"] as? String)?.lowercase(Locale.ROOT) ?: return false
+                if (!name.startsWith(title)) return false
+            }
+            if (place != null) {
+                val address = (data["address"] as? String)?.lowercase(Locale.ROOT) ?: return false
+                if (!address.startsWith(place)) return false
+            }
             if (maxOccupancy != null) {
                 val max = (data["maxOccupancy"] as? Number)?.toInt() ?: 0
                 if (max < maxOccupancy) return false
             }
-            if (!text.isNullOrEmpty()) {
-                val address = data["address"] as? String ?: return false
-                if (!address.startsWith(text)) return false
-            }
-            return withinRadius(location, radius, data) // exact check, bounds overshoot the circle
+            return true
         }
 
         val batchSize = (limit * 2).toLong().coerceAtLeast(20)
         val results = mutableListOf<Campsite>()
-        var boundIndex = cursor?.boundIndex ?: 0
-        var lastDoc = cursor?.lastDoc
+        var lastDoc: DocumentSnapshot? = cursor?.lastDoc
 
-        while (boundIndex < queries.size) {
-            var query = queries[boundIndex].limit(batchSize)
+        while (true) {
+            var query = base.limit(batchSize)
             if (lastDoc != null) query = query.startAfter(lastDoc)
 
             val docs = query.get().await().documents
@@ -772,21 +776,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     continue
                 }
 
-                // Cursor is the last doc *returned*; anything examined after it
-                // gets re-examined next call, which costs a few reads but loses nothing
-                if (results.size >= limit) {
-                    return CampsitePage(results, SearchCursor(boundIndex, doc))
-                }
+                if (results.size >= limit) return CampsitePage(results, SearchCursor(doc))
             }
 
-            if (docs.size < batchSize) {
-                boundIndex++ // this bound is exhausted, move to the next
-                lastDoc = null
-            } else {
-                lastDoc = docs.last()
-            }
+            if (docs.size < batchSize) return CampsitePage(results, null) // ran out of data
+            lastDoc = docs.last()
         }
-        return CampsitePage(results, null)
     }
 
     override suspend fun updateCampsite(campsite: Campsite) {
@@ -885,18 +880,19 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .runTransaction { tx ->
                 val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${edited.id.value} not found")
                 val current = parseLottery(edited.id, data)
-                val problems = LotteryRules.checkEdit(
-                    original = current,
-                    phase = current.phase(),
-                    campsites = edited.campsites.toSet(),
-                    entryFirstDay = edited.entryFirstDay(zone),
-                    entryLastDay = edited.entryLastDay(zone),
-                    stayPeriods = edited.stayPeriods,
-                    winnerCount = edited.winnerCount,
-                    waitlistCapacity = edited.waitlistCapacity,
-                    today = LocalDate.now(zone),
-                    zone = zone,
-                )
+                val problems =
+                    LotteryRules.checkEdit(
+                        original = current,
+                        phase = current.phase(),
+                        campsites = edited.campsites.toSet(),
+                        entryFirstDay = edited.entryFirstDay(zone),
+                        entryLastDay = edited.entryLastDay(zone),
+                        stayPeriods = edited.stayPeriods,
+                        winnerCount = edited.winnerCount,
+                        waitlistCapacity = edited.waitlistCapacity,
+                        today = LocalDate.now(zone),
+                        zone = zone,
+                    )
                 if (!problems.isEmpty) throw LotteryEditRejectedException(edited.id, problems)
                 val all = lotteryToMap(edited)
                 val settings = listOf("campsites", "entryStart", "entryEnd", "stayPeriods", "winnerCount", "waitlistCapacity")
@@ -923,12 +919,16 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 val lottery = parseLottery(lotteryId, data)
                 val phase = lottery.phase()
                 when {
-                    !phase.canCancel -> throw LotteryNotCancellableException(lotteryId)
+                    !phase.canCancel -> {
+                        throw LotteryNotCancellableException(lotteryId)
+                    }
+
                     phase == LotteryPhase.UPCOMING -> {
                         tx.delete(ref)
                         tx.update(ownerRef(lottery.ownerId), "ownerLotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
                         CancelOutcome.DELETED
                     }
+
                     else -> {
                         tx.update(ref, "cancelled", true)
                         CancelOutcome.CANCELLED
@@ -962,10 +962,16 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      *
      * @throws InvalidDataException if a required field is missing or malformed.
      */
-    private fun parseLottery(id: Id, data: Map<String, Any?>): Lottery {
+    private fun parseLottery(
+        id: Id,
+        data: Map<String, Any?>,
+    ): Lottery {
         fun fail(field: String): Nothing = throw InvalidDataException("Lottery ${id.value}: bad or missing '$field'")
 
-        fun idOf(value: Any?, field: String): Id =
+        fun idOf(
+            value: Any?,
+            field: String,
+        ): Id =
             try {
                 Id(Uuid.parse(value as String))
             } catch (e: Exception) {
@@ -976,7 +982,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
         fun time(field: String): Instant = (data[field] as? Timestamp)?.asInstant() ?: fail(field)
 
-        fun period(map: Any?, field: String): DatePeriod =
+        fun period(
+            map: Any?,
+            field: String,
+        ): DatePeriod =
             try {
                 val m = map as Map<*, *>
                 DatePeriod(LocalDate.parse(m["start"] as String), LocalDate.parse(m["end"] as String))
@@ -1006,7 +1015,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     /** [parseLottery], but logs and returns null for a document that can't be read (for lists). */
-    private fun parseLotteryOrNull(docId: String, data: Map<String, Any?>?): Lottery? =
+    private fun parseLotteryOrNull(
+        docId: String,
+        data: Map<String, Any?>?,
+    ): Lottery? =
         try {
             parseLottery(Id(Uuid.parse(docId)), data ?: return null)
         } catch (e: Exception) {
@@ -1076,7 +1088,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * @throws LotteryClosedException if the entry period isn't running.
      * @throws LotteryFullException if the waitlist limit is reached.
      */
-    override suspend fun addUserToLottery(lotteryId: Id, userId: Id) {
+    override suspend fun addUserToLottery(
+        lotteryId: Id,
+        userId: Id,
+    ) {
         val lotteryRef = lotteryRef(lotteryId)
         val userRef = db.collection("users").document(userId.value.toString())
         db
@@ -1099,7 +1114,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      *
      * @throws LotteryClosedException if the entry period isn't running.
      */
-    override suspend fun removeUserFromLottery(lotteryId: Id, userId: Id) {
+    override suspend fun removeUserFromLottery(
+        lotteryId: Id,
+        userId: Id,
+    ) {
         val lotteryRef = lotteryRef(lotteryId)
         val userRef = db.collection("users").document(userId.value.toString())
         db
@@ -1111,43 +1129,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 null
             }.await()
     }
-
-//     override suspend fun addReservation(reservation: Reservation) {
-//         val reservationData =
-//             mapOf(
-//                 "id" to reservation.id.value.toString(),
-//                 "campsite" to reservation.campsite.value.toString(),
-//                 "reservationDates" to reservation.reservationDates.map { it.toString() },
-//                 "reservedBy" to reservation.reservedBy.value.toString(),
-//                 "isCancelled" to reservation.isCancelled,
-//             )
-//         db
-//             .collection("reservations")
-//             .document(reservation.id.value.toString())
-//             .set(reservationData)
-//             .await()
-//     }
-
-//     override suspend fun fetchReservation(id: Id): Reservation {
-//         val data =
-//             db
-//                 .collection("reservations")
-//                 .document(id.value.toString())
-//                 .get()
-//                 .await()
-//                 .data ?: throw NotFoundException("Reservation ${id.value} not found")
-//         val dates =
-//             (data["reservationDates"] as? List<*>)
-//                 ?.map { Instant.parse(it as? String ?: throw InvalidDataException("Malformed reservation date")) }
-//                 ?: throw InvalidDataException("Reservation ${id.value} has no reservation dates")
-//         return Reservation(
-//             id = Id(Uuid.parse(data["id"] as? String ?: throw InvalidDataException("Reservation id is missing"))),
-//             campsite = Id(Uuid.parse(data["campsite"] as? String ?: throw InvalidDataException("Campsite id is missing"))),
-//             reservationDates = dates.toTypedArray(),
-//             reservedBy = Id(Uuid.parse(data["reservedBy"] as? String ?: throw InvalidDataException("User id is missing"))),
-//             isCancelled = data["isCancelled"] as? Boolean ?: false,
-//         )
-//     }
 
     override suspend fun updateReservation(reservation: Reservation) {
         addReservation(reservation)
@@ -1416,6 +1397,17 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         } catch (e: Exception) {
             throw Exception("Failed to load image $path", e)
         }
+
+    private val PUNCTUATION = Regex("[\\p{P}\\p{S}]+")
+    private val WHITESPACE = Regex("\\s+")
+
+    /** Lowercase, punctuation removed, whitespace collapsed: "Calgary, Alberta" -> "calgary alberta" */
+    fun normalizeForSearch(text: String): String =
+        text
+            .lowercase(Locale.ROOT)
+            .replace(PUNCTUATION, " ")
+            .replace(WHITESPACE, " ")
+            .trim()
 }
 
 object Database {
@@ -1459,15 +1451,14 @@ object Database {
 
     /**
      * Searches campsites. Every filter is optional; leave it null to skip it.
-     * [address] matches the start of the address and is case-sensitive.
+     * [location] matches the start of the address and is case-sensitive.
      */
     suspend fun searchCampsite(
-        location: Location? = null,
-        radiusInMeters: Int? = null,
+        location: String? = null,
         maxOccupancy: Int? = null,
-        address: String? = null,
+        titleText: String? = null,
         limit: Int = 7,
-    ): CampsitePage = db.searchCampsites(location, radiusInMeters, maxOccupancy, address, limit)
+    ): CampsitePage = db.searchCampsites(location, maxOccupancy, titleText, limit)
 
     suspend fun addLottery(lottery: Lottery) {
         db.addLottery(lottery)
@@ -1492,9 +1483,15 @@ object Database {
         db.updateLottery(lottery)
     }
 
-    suspend fun addUserToLottery(lotteryId: Id, userId: Id) = db.addUserToLottery(lotteryId, userId)
+    suspend fun addUserToLottery(
+        lotteryId: Id,
+        userId: Id,
+    ) = db.addUserToLottery(lotteryId, userId)
 
-    suspend fun removeUserFromLottery(lotteryId: Id, userId: Id) = db.removeUserFromLottery(lotteryId, userId)
+    suspend fun removeUserFromLottery(
+        lotteryId: Id,
+        userId: Id,
+    ) = db.removeUserFromLottery(lotteryId, userId)
 
     suspend fun uploadImage(
         uploaderId: Id,
@@ -1516,7 +1513,10 @@ object Database {
 
     suspend fun fetchImage(id: Id): Image = db.fetchImage(id)
 
-    suspend fun addImage(campsiteId: Id, image: Image) = db.addImage(campsiteId, image)
+    suspend fun addImage(
+        campsiteId: Id,
+        image: Image,
+    ) = db.addImage(campsiteId, image)
 
     /** Deletes an image's record and its Storage file. Remove references to it first. */
     suspend fun deleteImage(id: Id) = db.deleteImage(id)

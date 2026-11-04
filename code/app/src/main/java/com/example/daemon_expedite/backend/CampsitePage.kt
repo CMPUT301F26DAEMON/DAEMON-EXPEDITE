@@ -21,6 +21,5 @@ data class CampsitePage(
  * @property lastDoc the last document returned, so the next page starts after it.
  */
 data class SearchCursor(
-    val boundIndex: Int,
     val lastDoc: DocumentSnapshot,
 )
