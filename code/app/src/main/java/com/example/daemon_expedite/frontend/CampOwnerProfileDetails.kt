@@ -17,16 +17,18 @@ import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.ui_components.*
 
 /**
- * Profile page for the owner view.
+ * Profile page for the owner and admin views.
  *
  * Read-only: the photo, name, email and phone belong to the account (the entrant profile), so
  * they are only shown here. Changing them is done from the entrant profile. This page only
- * switches roles and deletes the owner side of the account.
+ * switches roles and, for owners, deletes the owner side of the account.
  *
  * @param profileImageUrl URL of the user's profile photo, or null for the default image.
  * @param isAdmin Adds the Admin option to the role toggle. Only true for users in "admins".
+ * @param currentRole The view this page was opened from, shown as selected in the role toggle.
  * @param onRoleSelected Called when another role is tapped (switches views straight away).
- * @param onDeleteProfile Called after the user confirms deleting the owner profile.
+ * @param onDeleteProfile Called after the user confirms deleting the owner profile. Pass null
+ *   to hide the Delete Profile button (admin status is managed in Firebase, not in the app).
  */
 @Composable
 fun ProfileDetailsScreen(
@@ -35,9 +37,10 @@ fun ProfileDetailsScreen(
     email: String = "",
     phoneNumber: String = "",
     isAdmin: Boolean = false,
+    currentRole: ProfileRole = ProfileRole.OWNER,
     onBackClick: () -> Unit = {},
     onRoleSelected: (ProfileRole) -> Unit = {},
-    onDeleteProfile: () -> Unit = {}
+    onDeleteProfile: (() -> Unit)? = {}
 ) {
     var showDeleteDialog by rememberSaveable {
         mutableStateOf(false)
@@ -163,35 +166,37 @@ fun ProfileDetailsScreen(
 
             // Role selector (Entrant / Owner, plus Admin for admins)
             RoleSelector(
-                current = ProfileRole.OWNER,
+                current = currentRole,
                 isAdmin = isAdmin,
                 onRoleSelected = onRoleSelected,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(
-                modifier = Modifier.height(20.dp)
-            )
+            if (onDeleteProfile != null) {
+                Spacer(
+                    modifier = Modifier.height(20.dp)
+                )
 
-            Text(
-                text = "ACCOUNT ACTIONS",
-                style = AppTextStyles.Overline,
-                color = AppColors.TextSecondary,
-                modifier = Modifier.align(Alignment.Start)
-            )
+                Text(
+                    text = "ACCOUNT ACTIONS",
+                    style = AppTextStyles.Overline,
+                    color = AppColors.TextSecondary,
+                    modifier = Modifier.align(Alignment.Start)
+                )
 
-            Spacer(
-                modifier = Modifier.height(10.dp)
-            )
+                Spacer(
+                    modifier = Modifier.height(10.dp)
+                )
 
-            // Delete Profile button
-            RedButton(
-                onClick = { showDeleteDialog = true },
-                icon = AppIcons.Dustbin,
-                buttonText = "Delete Profile",
-                customHeight = 58,
-                customWidth = contentWidth.value.toInt()
-            )
+                // Delete Profile button
+                RedButton(
+                    onClick = { showDeleteDialog = true },
+                    icon = AppIcons.Dustbin,
+                    buttonText = "Delete Profile",
+                    customHeight = 58,
+                    customWidth = contentWidth.value.toInt()
+                )
+            }
         }
     }
 
@@ -209,7 +214,7 @@ fun ProfileDetailsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteDialog = false
-                    onDeleteProfile()
+                    onDeleteProfile?.invoke()
                 }) {
                     Text(text = "Delete", color = AppColors.Danger)
                 }

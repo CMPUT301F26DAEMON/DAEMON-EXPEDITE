@@ -87,6 +87,10 @@ object Routes {
 
     fun editCampsite(id: Id) = "owner_campsite/${id.value}/edit"
 
+    // Admin (only reachable for users in the "admins" collection)
+    const val ADMIN_HOME = "admin_home"
+    const val ADMIN_PROFILE = "admin_profile"
+
     // Not built yet. When a screen is added, give it a route here and replace the
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
     // const val LOTTERIES = "lotteries"
@@ -112,16 +116,19 @@ object Routes {
  *                 ├─► My reservations
  *                 └─► Entrant profile ─┬─► Edit profile ─► Edit photo
  *                                      ├─► Edit photo
- *                                      └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
- *                                                      ├─► Owner campsite details ─┬─► Map view
- *                                                      │                           └─► Edit campsite ─► Select location
- *                                                      ├─► My lotteries ─┬─► Lottery details ─┬─► Owner campsite details
- *                                                      │                 │                   └─► Edit lottery
- *                                                      │                 └─► Create lottery
- *                                                      └─► Register campsite ─► Select location (map)
+ *                                      ├─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
+ *                                      │               ├─► Owner campsite details ─┬─► Map view
+ *                                      │               │                           └─► Edit campsite ─► Select location
+ *                                      │               ├─► My lotteries ─┬─► Lottery details ─┬─► Owner campsite details
+ *                                      │               │                 │                   └─► Edit lottery
+ *                                      │               │                 └─► Create lottery
+ *                                      │               └─► Register campsite ─► Select location (map)
+ *                                      └─► Admin home* ─┬─► Admin profile (role toggle)
+ *                                                       └─► Campsite details
  * ```
- * Both profile pages have the role toggle: Entrant / Owner, plus Admin for users found in the
- * "admins" collection at start-up (see [SessionState.Ready.isAdmin]).
+ * All three profile pages have the role toggle: Entrant / Owner, plus Admin for users found in
+ * the "admins" collection at start-up (see [SessionState.Ready.isAdmin]). The toggle on any of
+ * them can open any role's home; the tree above only shows the first way in.
  *
  * @param session Created here by default; pass one in for tests.
  */
@@ -144,10 +151,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
     fun showComingSoon(screen: String) = toast("$screen isn't built yet")
 
     /**
-     * Switches to [role]'s home screen from either profile page.
+     * Switches to [role]'s home screen from any profile page.
      *
      * Entrant home is always at the bottom of the back stack, so switching to it pops back
-     * there; switching to Owner replaces whatever is above Entrant home.
+     * there; switching to Owner or Admin replaces whatever is above Entrant home.
      */
     fun switchRole(role: ProfileRole) =
         when (role) {
@@ -161,9 +168,11 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 }
             }
 
-            // TODO: navigate to the admin home once it exists (only offered when isAdmin is true).
+            // Only offered by the toggle when isAdmin is true.
             ProfileRole.ADMIN -> {
-                showComingSoon("Admin view")
+                navController.navigate(Routes.ADMIN_HOME) {
+                    popUpTo(Routes.HOME) // keep Entrant home underneath, drop the profile pages
+                }
             }
         }
 
@@ -634,6 +643,49 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     navController.popBackStack()
                 },
                 onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        // endregion
+
+        // region Admin
+
+        composable(Routes.ADMIN_HOME) {
+            // Same campsite list and search as Entrant home, with its own HomeViewModel
+            // (scoped to this screen, so the admin's search doesn't change Entrant home's).
+            val home: HomeViewModel = viewModel()
+            LaunchedEffect(Unit) { home.onScreenShown() }
+            LaunchedEffect(user) { home.setViewer(user?.id) }
+            val query by home.query.collectAsState()
+            val campsites by home.campsites.collectAsState()
+            AdminHomeScreen(
+                profileImageUrl = photoUrl,
+                searchQuery = query,
+                onSearchQueryChange = home::onQueryChange,
+                campsites = campsites,
+                onRetry = home::retry,
+                onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
+                onFilterClick = home::onFilterClick,
+                onProfileClick = { navController.navigate(Routes.ADMIN_PROFILE) },
+                onMessagesClick = { showComingSoon("Messages") },
+                onProfilesClick = { showComingSoon("Profiles") },
+                onNotificationsClick = { showComingSoon("Notifications") },
+                onImagesClick = { showComingSoon("Images") },
+            )
+        }
+
+        composable(Routes.ADMIN_PROFILE) {
+            // The owner's read-only profile page, with Admin selected and no delete button.
+            ProfileDetailsScreen(
+                profileImageUrl = photoUrl,
+                name = user?.name.orEmpty(),
+                email = user?.email.orEmpty(),
+                phoneNumber = user?.phoneNumber.orEmpty(),
+                isAdmin = isAdmin,
+                currentRole = ProfileRole.ADMIN,
+                onBackClick = { navController.popBackStack() },
+                onRoleSelected = { switchRole(it) },
+                onDeleteProfile = null,
             )
         }
 
