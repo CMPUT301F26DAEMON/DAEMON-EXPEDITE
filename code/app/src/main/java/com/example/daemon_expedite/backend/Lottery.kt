@@ -14,8 +14,9 @@ import kotlin.time.toKotlinInstant
  * @property user The winner who booked.
  * @property campsite The campsite booked. Must be one of the lottery's campsites.
  * @property period The nights booked. Must fit inside one of the lottery's stay periods.
+ * @property reservation The [Reservation] created for this booking.
  */
-data class Booking(val user: Id, val campsite: Id, val period: DatePeriod)
+data class Booking(val user: Id, val campsite: Id, val period: DatePeriod, val reservation: Id? = null)
 
 /**
  * Where a lottery is in its life. Worked out from its dates by [Lottery.phase]; only
@@ -73,6 +74,7 @@ enum class LotteryPhase {
  * @property waitingList Entrants who joined. Its capacity is the optional waitlist limit.
  * @property winners Entrants drawn. Empty until [drawn].
  * @property bookings Bookings made by winners, at most one per winner.
+ * @property declined Winners who turned their win down. Final: they can't book any more.
  * @property drawn Set by the Cloud Function once winners are picked.
  * @property cancelled Set when the owner cancels. Cancelled lotteries are kept so entrants
  * can still see them under past lotteries.
@@ -88,6 +90,7 @@ class Lottery(
     val waitingList: WaitingList = WaitingList(),
     winners: List<Id> = emptyList(),
     bookings: List<Booking> = emptyList(),
+    declined: List<Id> = emptyList(),
     drawn: Boolean = false,
     cancelled: Boolean = false,
 ) {
@@ -104,6 +107,8 @@ class Lottery(
     var winners: List<Id> = winners.toList()
         private set
     var bookings: List<Booking> = bookings.toList()
+        private set
+    var declined: List<Id> = declined.toList()
         private set
     var drawn: Boolean = drawn
         private set

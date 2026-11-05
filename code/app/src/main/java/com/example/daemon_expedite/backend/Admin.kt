@@ -91,13 +91,9 @@ class Admin(
      * @param ownerId Id. The id of the owner to remove.
      */
 
-    /**
+
     suspend fun removeOwner(ownerId: Id) {
-        val owner = Database.getOwner(ownerId) ?: return
-        owner.ownerCampsites.forEach { campsiteId ->
-           // Database.deleteCampsite(campsiteId)
-        }
         Database.deleteOwner(ownerId)
     }
-    */
+
 }

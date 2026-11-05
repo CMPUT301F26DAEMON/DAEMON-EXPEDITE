@@ -1,27 +1,28 @@
 package com.example.daemon_expedite.backend
 
-import kotlin.time.Clock
-import kotlin.time.Instant
+import java.time.LocalDate
 
 /**
- * A booking of a [Campsite] by a [User] for a set of dates.
+ * A booking of a [Campsite] by a [User] for a range of nights.
  *
- * A reservation is created after a user wins a [Lottery] for a campsite and decided to reserve.
- * It starts out not cancelled and can later be declined/rejected by the user/campsite owner,
- * which sets [isCancelled] to `true`.
- * Whether the stay has finished is computed from [reservationDates] by [isPast], not stored.
+ * A reservation is created when a lottery winner books their stay (see
+ * [Database.bookLotteryStay]). It starts out not cancelled and can later be cancelled by the user
+ * or rejected by the campsite owner, which sets [isCancelled] to `true`.
+ * Whether the stay has finished is computed from [period] by [isPast], not stored.
  *
  * @property id unique identifier of this reservation.
  * @property campsite id of the [Campsite] being reserved.
- * @property reservationDates the dates covered by this reservation.
+ * @property period the nights reserved: from the first night to the check-out day.
  * @property reservedBy id of the [User] who holds the reservation.
- * @property isCancelled `true` if the reservation was canceled (declined, or rejected). Only changed through [cancel].
+ * @property lotteryId the [Lottery] this reservation was won in, or null if it wasn't.
+ * @property isCancelled `true` if the reservation was cancelled (declined, or rejected). Only changed through [cancel].
  */
 class Reservation(
     val id: Id = Id(),
     val campsite: Id,
-    val reservationDates: Array<Instant>,
+    val period: DatePeriod,
     val reservedBy: Id,
+    val lotteryId: Id? = null,
     isCancelled: Boolean = false,
 ) {
     var isCancelled: Boolean = isCancelled
@@ -29,23 +30,19 @@ class Reservation(
 
     /**
      * Cancels this reservation, e.g. when the user cancels their booking.
-     * Has no effect if it is already canceled.
+     * Has no effect if it is already cancelled.
      */
     fun cancel() {
         if (!isCancelled) {
             isCancelled = true
-            // Database.updateReservation(this)
         }
     }
 
     /**
-     * Checks whether the last date in [reservationDates] is before [now].
+     * Checks whether the stay is over: it is once the check-out day has arrived.
      *
-     * @param now the current time; defaults to the system clock, overridable for testing.
-     * @return `true` if the stay has finished, `false` otherwise (or if there are no dates).
+     * @param today the current day; defaults to the device's today, overridable for testing.
+     * @return `true` if the stay has finished, `false` otherwise.
      */
-    fun isPast(now: Instant = Clock.System.now()): Boolean {
-        val lastDate = reservationDates.maxOrNull() ?: return false
-        return lastDate < now
-    }
+    fun isPast(today: LocalDate = LocalDate.now()): Boolean = !today.isBefore(period.end)
 }

@@ -37,6 +37,14 @@ class LotteryEditRejectedException(
     val problems: LotteryProblems,
 ) : Exception("Edit to lottery $lotteryId rejected: $problems")
 
+/**
+ * Thrown when a winner's booking or decline can't go ahead, for example the nights were just
+ * taken. [message] is written to be shown to the user (see [BookingRules.check]).
+ */
+class BookingRejectedException(
+    message: String,
+) : Exception(message)
+
 /** Thrown when joining a lottery whose waitlist limit has been reached. */
 class LotteryFullException(
     val lotteryId: Id,

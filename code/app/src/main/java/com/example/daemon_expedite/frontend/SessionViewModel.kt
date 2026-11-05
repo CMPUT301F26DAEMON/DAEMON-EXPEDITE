@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
+import com.example.daemon_expedite.backend.BookingRejectedException
+import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Image
 import com.example.daemon_expedite.backend.LotteryClosedException
@@ -199,6 +201,29 @@ class SessionViewModel : ViewModel() {
         lotteryAction("Leaving lottery $lotteryId failed", onResult) { it.leaveLottery(lotteryId) }
 
     /**
+     * Books a lottery winner's stay. See [User.bookLotteryStay]. [onResult] gets null when it
+     * worked, or a message to show (for example "Some of those nights were just booked by
+     * someone else").
+     */
+    fun bookLotteryStay(lotteryId: Id, campsiteId: Id, period: DatePeriod, onResult: (String?) -> Unit) {
+        val user = user ?: return onResult(GENERIC_ERROR)
+        viewModelScope.launch {
+            val problem = try {
+                user.bookLotteryStay(lotteryId, campsiteId, period)
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Firestore may wrap exceptions thrown inside a transaction.
+                generateSequence<Throwable>(e) { it.cause }.filterIsInstance<BookingRejectedException>().firstOrNull()?.message
+                    ?: GENERIC_ERROR.also { Log.e(TAG, "Booking lottery $lotteryId failed", e) }
+            }
+            userChanged()
+            onResult(problem)
+        }
+    }
+
+    /**
      * Runs a join or leave and redraws. Unlike [saveUser] it doesn't save the whole user
      * afterwards: the database call already updated both the lottery and the user in one
      * transaction, and a full save could undo a change made from another device.
@@ -348,6 +373,7 @@ class SessionViewModel : ViewModel() {
 
     private companion object {
         const val TAG = "SessionViewModel"
+        const val GENERIC_ERROR = "Something went wrong. Check your connection and try again."
     }
 }
 

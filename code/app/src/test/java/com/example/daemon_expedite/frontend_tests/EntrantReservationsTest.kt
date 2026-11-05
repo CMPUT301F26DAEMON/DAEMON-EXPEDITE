@@ -1,5 +1,6 @@
 package com.example.daemon_expedite.frontend_tests
 
+import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Reservation
 import com.example.daemon_expedite.frontend.CampsiteSummary
@@ -38,37 +39,27 @@ class EntrantReservationsTest {
         cancelled: Boolean = false,
     ) = Reservation(
         campsite = campsite,
-        reservationDates = arrayOf(noon(from), noon(to)),
+        period = DatePeriod(from, to),
         reservedBy = Id(),
         isCancelled = cancelled,
     )
 
     @Test
     fun cancelledIsCancelledEvenAfterItsDates() {
-        assertEquals(ReservationStatus.CANCELLED, reservation(day(10, 10), day(10, 12), cancelled = true).status(now))
-        assertEquals(ReservationStatus.CANCELLED, reservation(day(9, 1), day(9, 3), cancelled = true).status(now))
+        assertEquals(ReservationStatus.CANCELLED, reservation(day(10, 10), day(10, 12), cancelled = true).status(now, zone))
+        assertEquals(ReservationStatus.CANCELLED, reservation(day(9, 1), day(9, 3), cancelled = true).status(now, zone))
     }
 
     @Test
     fun pastWhenLastDateIsBeforeNow() {
-        assertEquals(ReservationStatus.PAST, reservation(day(9, 28), day(10, 2)).status(now))
+        assertEquals(ReservationStatus.PAST, reservation(day(9, 28), day(10, 2)).status(now, zone))
     }
 
     @Test
     fun activeWhenLastDateIsNotBeforeNow() {
-        assertEquals(ReservationStatus.ACTIVE, reservation(day(10, 10), day(10, 12)).status(now))
+        assertEquals(ReservationStatus.ACTIVE, reservation(day(10, 10), day(10, 12)).status(now, zone))
         // A stay that has started but not ended is still active.
-        assertEquals(ReservationStatus.ACTIVE, reservation(day(10, 1), day(10, 5)).status(now))
-    }
-
-    @Test
-    fun usesTheLatestDateEvenIfNotLastInTheArray() {
-        val outOfOrder = Reservation(
-            campsite = pine,
-            reservationDates = arrayOf(noon(day(10, 5)), noon(day(10, 1))),
-            reservedBy = Id(),
-        )
-        assertEquals(ReservationStatus.ACTIVE, outOfOrder.status(now))
+        assertEquals(ReservationStatus.ACTIVE, reservation(day(10, 1), day(10, 5)).status(now, zone))
     }
 
     @Test
@@ -99,9 +90,6 @@ class EntrantReservationsTest {
     @Test
     fun datesText() {
         assertEquals("10 Oct – 12 Oct", reservation(day(10, 10), day(10, 12)).datesText(now, zone))
-        assertEquals("10 Oct", reservation(day(10, 10), day(10, 10)).datesText(now, zone))
         assertEquals("30 Dec – 2 Jan 2027", reservation(day(12, 30), LocalDate.of(2027, 1, 2)).datesText(now, zone))
-        val noDates = Reservation(campsite = pine, reservationDates = emptyArray(), reservedBy = Id())
-        assertEquals("Dates not set", noDates.datesText(now, zone))
     }
 }

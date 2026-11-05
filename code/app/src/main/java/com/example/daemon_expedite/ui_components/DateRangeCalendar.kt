@@ -80,6 +80,8 @@ import java.time.format.FormatStyle
  * @param maxDate Days after this are greyed out and cannot be tapped. Null means no limit.
  * @param addedRanges Ranges already chosen (for example by [DateRangesPicker]), drawn in a lighter
  *   green behind the current selection. Each runs from its `start` to its `endInclusive` day.
+ * @param isDateEnabled Extra rule for which days can be tapped, on top of [minDate] and [maxDate].
+ *   Days it returns false for are greyed out.
  * @param addedRangesColor Fill for [addedRanges]. Pass [AppColors.Primary] on read-only calendars
  *   where they are the only thing shown.
  */
@@ -94,6 +96,7 @@ fun DateRangeCalendar(
     maxDate: LocalDate? = null,
     addedRanges: List<ClosedRange<LocalDate>> = emptyList(),
     addedRangesColor: Color = AppColors.PrimaryMuted,
+    isDateEnabled: (LocalDate) -> Boolean = { true },
 ) {
     var visibleMonth by rememberSaveable { mutableStateOf(initialMonth) }
 
@@ -117,7 +120,8 @@ fun DateRangeCalendar(
                     Box(Modifier.weight(1f).height(48.dp)) {
                         if (date != null) {
                             val enabled = (minDate == null || !date.isBefore(minDate)) &&
-                                (maxDate == null || !date.isAfter(maxDate))
+                                (maxDate == null || !date.isAfter(maxDate)) &&
+                                isDateEnabled(date)
                             DayCell(
                                 date = date,
                                 column = column,

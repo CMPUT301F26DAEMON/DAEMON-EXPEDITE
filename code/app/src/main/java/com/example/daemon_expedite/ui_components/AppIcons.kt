@@ -4,7 +4,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MyLocation
@@ -100,6 +104,10 @@ object AppIcons {
     val CircleCheck = Icons.Outlined.CheckCircle
     val LeaveList = Icons.AutoMirrored.Outlined.Logout
     val AddCircle = Icons.Outlined.AddCircleOutline
+    val CheckboxChecked = Icons.Outlined.CheckBox
+    val CheckboxEmpty = Icons.Outlined.CheckBoxOutlineBlank
+    val CalendarCross = Icons.Outlined.EventBusy
+    val CancelCircle = Icons.Outlined.Cancel
 
     /** Thin chevron from the Figma calendar (20x20, 1.8 stroke). Pointing left. */
     val ChevronLeft: ImageVector by lazy { chevron("ChevronLeft", 12.5f, 7.5f) }

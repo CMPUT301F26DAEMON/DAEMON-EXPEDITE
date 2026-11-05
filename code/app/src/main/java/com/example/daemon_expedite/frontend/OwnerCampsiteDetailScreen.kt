@@ -82,7 +82,8 @@ fun OwnerCampsiteDetailScreen(
             ConfirmDialog(
                 title = "Delete campsite?",
                 message = "${details.name} and its photos will be deleted. This can't be undone.",
-                confirmText = "Delete",
+                confirmText = "Yes, delete campsite",
+                dismissText = "Keep it",
                 onConfirm = {
                     askDelete = false
                     onDeleteConfirmed()
