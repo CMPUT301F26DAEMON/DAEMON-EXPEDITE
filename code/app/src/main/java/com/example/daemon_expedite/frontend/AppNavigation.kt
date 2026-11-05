@@ -28,6 +28,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.daemon_expedite.R
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -54,8 +55,13 @@ object Routes {
 
     /** The [CAMPSITE_DETAIL] route for one campsite. */
     fun campsiteDetail(id: Id) = "campsite/${id.value}"
+
     fun campsitePolicies(id: Id) = "campsite/${id.value}/policies"
-    fun campsiteMap(latitude: Double, longitude: Double) = "campsite_map/$latitude/$longitude"
+
+    fun campsiteMap(
+        latitude: Double,
+        longitude: Double,
+    ) = "campsite_map/$latitude/$longitude"
 
     // Owner
     const val OWNER_HOME = "owner_home"
@@ -67,7 +73,9 @@ object Routes {
     const val EDIT_LOTTERY = "owner_lottery/{$LOTTERY_ID_ARG}/edit"
 
     fun ownerLotteryDetail(id: Id) = "owner_lottery/${id.value}"
+
     fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
+
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
     const val SELECT_LOCATION = "select_location" // opened from Register / Edit campsite only
@@ -75,6 +83,7 @@ object Routes {
     const val EDIT_CAMPSITE = "owner_campsite/{$CAMPSITE_ID_ARG}/edit"
 
     fun ownerCampsiteDetail(id: Id) = "owner_campsite/${id.value}"
+
     fun editCampsite(id: Id) = "owner_campsite/${id.value}/edit"
 
     // Not built yet. When a screen is added, give it a route here and replace the
@@ -83,7 +92,7 @@ object Routes {
     // const val LOTTERIES = "lotteries"
     // const val MESSAGES = "messages"
     // const val NOTIFICATIONS = "notifications"
-    // const val POLICIES = "policies"
+    const val POLICIES = "policies"
 }
 
 /**
@@ -130,6 +139,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
     val ownerViewModel: OwnerViewModel = viewModel()
 
     fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
     fun showComingSoon(screen: String) = toast("$screen isn't built yet")
 
     /**
@@ -138,14 +148,23 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
      * Entrant home is always at the bottom of the back stack, so switching to it pops back
      * there; switching to Owner replaces whatever is above Entrant home.
      */
-    fun switchRole(role: ProfileRole) = when (role) {
-        ProfileRole.ENTRANT -> navController.popBackStack(Routes.HOME, inclusive = false)
-        ProfileRole.OWNER -> navController.navigate(Routes.OWNER_HOME) {
-            popUpTo(Routes.HOME) // keep Entrant home underneath, drop the profile pages
+    fun switchRole(role: ProfileRole) =
+        when (role) {
+            ProfileRole.ENTRANT -> {
+                navController.popBackStack(Routes.HOME, inclusive = false)
+            }
+
+            ProfileRole.OWNER -> {
+                navController.navigate(Routes.OWNER_HOME) {
+                    popUpTo(Routes.HOME) // keep Entrant home underneath, drop the profile pages
+                }
+            }
+
+            // TODO: navigate to the admin home once it exists (only offered when isAdmin is true).
+            ProfileRole.ADMIN -> {
+                showComingSoon("Admin view")
+            }
         }
-        // TODO: navigate to the admin home once it exists (only offered when isAdmin is true).
-        ProfileRole.ADMIN -> showComingSoon("Admin view")
-    }
 
     NavHost(
         navController = navController,
@@ -156,7 +175,6 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         popEnterTransition = popEnterTransition,
         popExitTransition = popExitTransition,
     ) {
-
         composable(Routes.SPLASH) {
             SplashRoute(
                 state = sessionState,
@@ -210,11 +228,21 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 action(lotteryId) { result ->
                     lotteryBusy = false
                     when (result) {
-                        LotteryActionResult.DONE ->
+                        LotteryActionResult.DONE -> {
                             toast(if (join) "You're on the waiting list" else "You left the waiting list")
-                        LotteryActionResult.FULL -> toast("Sorry, the waiting list just filled up.")
-                        LotteryActionResult.CLOSED -> toast("Entries for this lottery are closed.")
-                        LotteryActionResult.FAILED -> toast("Something went wrong. Check your connection and try again.")
+                        }
+
+                        LotteryActionResult.FULL -> {
+                            toast("Sorry, the waiting list just filled up.")
+                        }
+
+                        LotteryActionResult.CLOSED -> {
+                            toast("Entries for this lottery are closed.")
+                        }
+
+                        LotteryActionResult.FAILED -> {
+                            toast("Something went wrong. Check your connection and try again.")
+                        }
                     }
                     session.user?.let(detail::refresh)
                 }
@@ -271,7 +299,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onUpdateProfileClick = { navController.navigate(Routes.EDIT_PROFILE) },
                 isAdmin = isAdmin,
                 onRoleSelected = { switchRole(it) },
-                onPoliciesClick = { showComingSoon("Policies") },
+                onPoliciesClick = { navController.navigate(Routes.POLICIES) },
                 onNotificationsChanged = { enabled ->
                     session.setNotificationsEnabled(enabled) { ok ->
                         if (!ok) toast("Couldn't save notification setting")
@@ -283,6 +311,18 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                         if (ok) navController.restartAtSplash() else toast("Couldn't delete profile")
                     }
                 },
+            )
+        }
+
+        composable(Routes.POLICIES) {
+            val context = LocalContext.current
+            val mdText =
+                remember(context) {
+                    loadMarkdownFromAsset(context, "app_policies.md")
+                }
+            AppPolicyScreen(
+                markdownText = mdText,
+                onBackClick = { navController.popBackStack() },
             )
         }
 
@@ -309,14 +349,15 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
         composable(Routes.EDIT_PROFILE_PHOTO) {
             // Opens the system photo picker. No storage permission is needed for this.
-            val pickPhoto = rememberLauncherForActivityResult(
-                ActivityResultContracts.PickVisualMedia()
-            ) { uri ->
-                if (uri == null) return@rememberLauncherForActivityResult // user cancelled
-                session.uploadProfilePhoto(uri) { ok ->
-                    if (ok) navController.popBackStack() else toast("Couldn't upload photo")
+            val pickPhoto =
+                rememberLauncherForActivityResult(
+                    ActivityResultContracts.PickVisualMedia(),
+                ) { uri ->
+                    if (uri == null) return@rememberLauncherForActivityResult // user cancelled
+                    session.uploadProfilePhoto(uri) { ok ->
+                        if (ok) navController.popBackStack() else toast("Couldn't upload photo")
+                    }
                 }
-            }
             EditProfilePhotoScreen(
                 profileImageUrl = photoUrl,
                 onBackClick = { navController.popBackStack() },
@@ -421,16 +462,20 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                                 toast("Lottery deleted")
                                 navController.popBackStack() // My Lotteries reloads when shown
                             }
+
                             CancelResult.CANCELLED -> {
                                 toast("Lottery cancelled")
                                 detail.load() // now shows as Cancelled
                             }
+
                             CancelResult.TOO_LATE -> {
                                 toast("Stays have started, so this lottery can't be cancelled any more.")
                                 detail.load()
                             }
-                            CancelResult.FAILED ->
+
+                            CancelResult.FAILED -> {
                                 toast("Couldn't cancel the lottery. Check your connection and try again.")
+                            }
                         }
                     }
                 },
@@ -487,10 +532,14 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                                 user?.let { ownerViewModel.load(it, force = true) }
                                 navController.popBackStack()
                             }
-                            DeleteResult.LOTTERY_RUNNING ->
+
+                            DeleteResult.LOTTERY_RUNNING -> {
                                 toast("This campsite has a lottery running. Delete it after the lottery ends.")
-                            DeleteResult.FAILED ->
+                            }
+
+                            DeleteResult.FAILED -> {
                                 toast("Couldn't delete campsite. Check your connection and try again.")
+                            }
                         }
                     }
                 },
@@ -516,19 +565,30 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             LaunchedEffect(campsiteId) { campsiteId?.let { form.startEditing(it) } }
             val load by form.editLoad.collectAsState()
             when {
-                campsiteId == null -> CenteredMessage(CAMPSITE_NOT_FOUND)
-                load is UiState.Loading -> CenteredSpinner()
-                load is UiState.Error -> CenteredMessage(
-                    "${(load as UiState.Error).message}. Tap to try again.",
-                    onClick = { form.startEditing(campsiteId, force = true) },
-                )
-                else -> CampsiteFormRoute(
-                    navController = navController,
-                    form = form,
-                    ownerViewModel = ownerViewModel,
-                    isEditing = true,
-                    toast = ::toast,
-                )
+                campsiteId == null -> {
+                    CenteredMessage(CAMPSITE_NOT_FOUND)
+                }
+
+                load is UiState.Loading -> {
+                    CenteredSpinner()
+                }
+
+                load is UiState.Error -> {
+                    CenteredMessage(
+                        "${(load as UiState.Error).message}. Tap to try again.",
+                        onClick = { form.startEditing(campsiteId, force = true) },
+                    )
+                }
+
+                else -> {
+                    CampsiteFormRoute(
+                        navController = navController,
+                        form = form,
+                        ownerViewModel = ownerViewModel,
+                        isEditing = true,
+                        toast = ::toast,
+                    )
+                }
             }
         }
 
@@ -573,12 +633,14 @@ private fun CampsiteFormRoute(
     // System photo picker, no storage permission needed. Asks for no more than the
     // photos still allowed (the multi-picker needs a limit of at least 2).
     val remaining = RegisterCampsiteViewModel.MAX_PHOTOS - draft.photos.size
-    val pickPhotos = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(maxOf(remaining, 2))
-    ) { uris -> form.addPhotos(uris) }
-    val pickPhoto = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
-    ) { uri -> uri?.let { form.addPhotos(listOf(it)) } }
+    val pickPhotos =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.PickMultipleVisualMedia(maxOf(remaining, 2)),
+        ) { uris -> form.addPhotos(uris) }
+    val pickPhoto =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.PickVisualMedia(),
+        ) { uri -> uri?.let { form.addPhotos(listOf(it)) } }
 
     RegisterCampsiteScreen(
         draft = draft,
@@ -594,7 +656,11 @@ private fun CampsiteFormRoute(
         onChooseOnMapClick = { navController.navigate(Routes.SELECT_LOCATION) },
         onAddPhotosClick = {
             val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            if (remaining > 1) pickPhotos.launch(request) else if (remaining == 1) pickPhoto.launch(request)
+            if (remaining > 1) {
+                pickPhotos.launch(request)
+            } else if (remaining == 1) {
+                pickPhoto.launch(request)
+            }
         },
         onRemovePhoto = form::removePhoto,
         onRegisterClick = {
@@ -609,11 +675,20 @@ private fun CampsiteFormRoute(
                             ownerViewModel.refreshCampsites()
                             navController.popBackStack()
                         }
-                        SubmitResult.INVALID -> toast("Some details are missing. Check the form.")
-                        SubmitResult.FAILED -> toast(
-                            if (isEditing) "Couldn't save changes. Check your connection and try again."
-                            else "Couldn't register campsite. Check your connection and try again."
-                        )
+
+                        SubmitResult.INVALID -> {
+                            toast("Some details are missing. Check the form.")
+                        }
+
+                        SubmitResult.FAILED -> {
+                            toast(
+                                if (isEditing) {
+                                    "Couldn't save changes. Check your connection and try again."
+                                } else {
+                                    "Couldn't register campsite. Check your connection and try again."
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -678,11 +753,20 @@ private fun LotteryFormRoute(
                             toast(if (editing) "Changes saved" else "Lottery created")
                             navController.popBackStack() // the page underneath reloads when shown
                         }
-                        SubmitResult.INVALID -> toast("Some details need fixing. Check the form.")
-                        SubmitResult.FAILED -> toast(
-                            if (editing) "Couldn't save changes. Check your connection and try again."
-                            else "Couldn't create the lottery. Check your connection and try again."
-                        )
+
+                        SubmitResult.INVALID -> {
+                            toast("Some details need fixing. Check the form.")
+                        }
+
+                        SubmitResult.FAILED -> {
+                            toast(
+                                if (editing) {
+                                    "Couldn't save changes. Check your connection and try again."
+                                } else {
+                                    "Couldn't create the lottery. Check your connection and try again."
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -698,15 +782,19 @@ private fun CenteredSpinner() {
 }
 
 @Composable
-private fun CenteredMessage(text: String, onClick: (() -> Unit)? = null) {
+private fun CenteredMessage(
+    text: String,
+    onClick: (() -> Unit)? = null,
+) {
     Box(Modifier.fillMaxSize().background(AppColors.Background), contentAlignment = Alignment.Center) {
         Text(
             text = text,
             style = AppTextStyles.BodyMedium,
             color = AppColors.TextSecondary,
-            modifier = Modifier
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                    .padding(24.dp),
         )
     }
 }
@@ -716,7 +804,10 @@ private fun CenteredMessage(text: String, onClick: (() -> Unit)? = null) {
  * or null if it isn't loaded. The map and policies pages only open once it has loaded.
  */
 @Composable
-private fun rememberCampsiteDetails(navController: NavHostController, entry: NavBackStackEntry): CampsiteDetails? {
+private fun rememberCampsiteDetails(
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+): CampsiteDetails? {
     val detailEntry = remember(entry) { navController.getBackStackEntry(Routes.CAMPSITE_DETAIL) }
     val detail: CampsiteDetailViewModel = viewModel(detailEntry)
     val state by detail.details.collectAsState()
@@ -740,7 +831,11 @@ private fun NavHostController.restartAtSplash() {
  * the screen and tapping it calls [onRetry].
  */
 @Composable
-private fun SplashRoute(state: SessionState, onRetry: () -> Unit, onReady: () -> Unit) {
+private fun SplashRoute(
+    state: SessionState,
+    onRetry: () -> Unit,
+    onReady: () -> Unit,
+) {
     LaunchedEffect(state is SessionState.Ready) {
         if (state is SessionState.Ready) onReady()
     }
@@ -752,11 +847,12 @@ private fun SplashRoute(state: SessionState, onRetry: () -> Unit, onReady: () ->
                 text = "Couldn't connect. Tap to try again.",
                 style = AppTextStyles.BodyMedium,
                 color = AppColors.TextSecondary,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 64.dp)
-                    .clickable(onClick = onRetry)
-                    .padding(12.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 64.dp)
+                        .clickable(onClick = onRetry)
+                        .padding(12.dp),
             )
         }
     }
