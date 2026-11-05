@@ -36,7 +36,8 @@ data class FilterState(
  * ViewModel lives as long as the Home screen, which stays at the bottom of the back stack.
  *
  * Campsites owned by the signed-in user are left out (see [setViewer]): you can't book your own
- * campsite, so entrant home doesn't offer it. They still show on the owner home page.
+ * campsite, so entrant home doesn't offer it. They still show on the owner home page. Admin home
+ * never calls [setViewer], so it lists every campsite, the admin's own included.
  * Searching waits until the user stops typing for [SEARCH_DELAY_MS] so the database is not
  * queried on every key press.
  */

@@ -216,8 +216,9 @@ internal fun CalendarSection(title: String, ranges: List<ClosedRange<LocalDate>>
 
 // endregion
 
+/** The underlined "Campsite Policies" link. Also used by [AdminCampsiteDetailScreen]. */
 @Composable
-private fun PoliciesLink(onClick: () -> Unit) {
+internal fun PoliciesLink(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clickable(role = Role.Button, onClick = onClick)

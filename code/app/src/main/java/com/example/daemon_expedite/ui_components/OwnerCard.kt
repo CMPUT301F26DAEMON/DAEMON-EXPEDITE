@@ -23,19 +23,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 /**
- * Card showing who owns a campsite, with an optional button to message them.
+ * Card showing who owns a campsite, with an optional button to message them or (on the admin
+ * view) a red button to delete them.
  *
  * Built from the "Expedite/Card/Owner" component in the Figma file.
  *
  * @param name Owner's name.
  * @param modifier [Modifier] applied to the card.
  * @param onMessageClick Called when the message button is tapped. Null hides the button.
+ * @param onDeleteClick Called when the red delete button is tapped. Null hides the button.
  */
 @Composable
 fun OwnerCard(
     name: String,
     modifier: Modifier = Modifier,
     onMessageClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(24.dp)
     Row(
@@ -67,6 +70,11 @@ fun OwnerCard(
         if (onMessageClick != null) {
             IconButton(onClick = onMessageClick) {
                 Icon(AppIcons.Chat, contentDescription = "Message $name", tint = AppColors.TextPrimary, modifier = Modifier.size(24.dp))
+            }
+        }
+        if (onDeleteClick != null) {
+            IconButton(onClick = onDeleteClick) {
+                Icon(AppIcons.Dustbin, contentDescription = "Delete owner $name", tint = AppColors.Danger, modifier = Modifier.size(24.dp))
             }
         }
     }

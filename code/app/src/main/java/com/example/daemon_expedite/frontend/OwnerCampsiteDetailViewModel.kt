@@ -83,9 +83,7 @@ class OwnerCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
     /**
      * Deletes the campsite, unless it is in a lottery that isn't finished or cancelled.
      *
-     * [Database.deleteCampsite] removes the campsite and takes it off the owner in one write.
-     * Its photos are deleted afterwards; if that fails it only leaves unused files behind, so
-     * the delete still counts as done.
+     * See [deleteCampsiteAndPhotos] for what is deleted.
      */
     fun delete(onResult: (DeleteResult) -> Unit) {
         val owner = owner
@@ -104,21 +102,35 @@ class OwnerCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
                 DeleteResult.FAILED
             } else if (running) {
                 DeleteResult.LOTTERY_RUNNING
+            } else if (deleteCampsiteAndPhotos(campsite)) {
+                DeleteResult.DELETED
             } else {
-                val ok = runCatchingAll("Deleting campsite ${campsite.id} failed") {
-                    Database.deleteCampsite(campsite)
-                }
-                if (ok) {
-                    campsite.images.forEach { image ->
-                        runCatchingAll("Couldn't delete image ${image.id} of deleted campsite") {
-                            Database.deleteImage(image.id)
-                        }
-                    }
-                }
-                if (ok) DeleteResult.DELETED else DeleteResult.FAILED
+                DeleteResult.FAILED
             }
             _isDeleting.value = false
             onResult(result)
         }
     }
+}
+
+/**
+ * Deletes [campsite] and its photos. Returns true if the campsite is gone. Shared by the owner's
+ * and the admin's campsite pages.
+ *
+ * [Database.deleteCampsite] removes the campsite and takes it off the owner in one write.
+ * Its photos are deleted afterwards; if that fails it only leaves unused files behind, so
+ * the delete still counts as done.
+ */
+internal suspend fun deleteCampsiteAndPhotos(campsite: Campsite): Boolean {
+    val ok = runCatchingAll("Deleting campsite ${campsite.id} failed") {
+        Database.deleteCampsite(campsite)
+    }
+    if (ok) {
+        campsite.images.forEach { image ->
+            runCatchingAll("Couldn't delete image ${image.id} of deleted campsite") {
+                Database.deleteImage(image.id)
+            }
+        }
+    }
+    return ok
 }
