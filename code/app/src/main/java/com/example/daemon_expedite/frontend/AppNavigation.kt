@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -23,12 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.daemon_expedite.R
+import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -46,7 +47,6 @@ object Routes {
     const val CAMPSITE_DETAIL = "campsite/{$CAMPSITE_ID_ARG}"
     const val RESERVATIONS = "reservations"
 
-    // Opened from Campsite details only; it reads the campsite that screen already loaded.
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
 
     // Map view takes the coordinates in the route, so both details screens can open it.
@@ -69,6 +69,11 @@ object Routes {
     const val OWNER_PROFILE = "owner_profile"
     const val OWNER_LOTTERIES = "owner_lotteries"
     const val LOTTERY_ID_ARG = "lotteryId"
+
+    // A lottery winner's booking screen. The campsite is the one picked first.
+    const val BOOK_LOTTERY_STAY = "lottery/{$LOTTERY_ID_ARG}/book/{$CAMPSITE_ID_ARG}"
+    fun bookLotteryStay(lotteryId: Id, campsiteId: Id) = "lottery/${lotteryId.value}/book/${campsiteId.value}"
+
     const val OWNER_LOTTERY_DETAIL = "owner_lottery/{$LOTTERY_ID_ARG}"
 
     const val EDIT_LOTTERY = "owner_lottery/{$LOTTERY_ID_ARG}/edit"
@@ -253,7 +258,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         composable(Routes.CAMPSITE_DETAIL) {
             // Reads the campsite id from the route through its SavedStateHandle.
             val detail: CampsiteDetailViewModel = viewModel()
-            LaunchedEffect(user) { user?.let(detail::load) }
+            // Runs each time the page comes back (for example after booking), and keeps the old
+            // details on screen while it reloads.
+            LaunchedEffect(user) { user?.let(detail::refresh) }
             val state by detail.details.collectAsState()
             var lotteryBusy by remember { mutableStateOf(false) }
 
@@ -300,8 +307,11 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 },
                 onJoinLotteryClick = { lotteryAction(join = true) },
                 onLeaveLotteryClick = { lotteryAction(join = false) },
-                // TODO: open the booking screen (next PR).
-                onBookClick = { showComingSoon("Booking") },
+                onBookClick = {
+                    (state as? UiState.Content)?.data?.let { details ->
+                        details.lotteryId?.let { navController.navigate(Routes.bookLotteryStay(it, details.id)) }
+                    }
+                },
                 // TODO: open messages once they're built.
                 onMessageOwnerClick = { showComingSoon("Messages") },
             )
@@ -317,10 +327,69 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         }
 
         composable(Routes.CAMPSITE_POLICIES) { entry ->
-            val details = rememberCampsiteDetails(navController, entry)
+            // Loads the campsite named in the route, so any screen can link to its policies.
+            val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toIdOrNull() }
+            val policies by produceState<String?>(null, campsiteId) {
+                value = campsiteId?.let { id ->
+                    quietly("Couldn't load policies for $id") { Database.fetchCampsite(id).policies }
+                }.orEmpty()
+            }
             CampsitePoliciesScreen(
-                policies = details?.policies.orEmpty(),
+                policies = policies,
                 onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.BOOK_LOTTERY_STAY) {
+            // Reads the lottery and first campsite from the route.
+            val booking: BookingViewModel = viewModel()
+            val options by booking.options.collectAsState()
+            val selection by booking.selection.collectAsState()
+            val declining by booking.isDeclining.collectAsState()
+            var isBooking by remember { mutableStateOf(false) }
+            val viewer = user?.id
+            BookingScreen(
+                state = options,
+                selection = selection,
+                problem = viewer?.let { booking.problem(it) },
+                isBooking = isBooking,
+                isDeclining = declining,
+                onBackClick = { navController.popBackStack() },
+                onRetry = booking::load,
+                onCampsiteClick = booking::selectCampsite,
+                onDatesChange = booking::onDatesChange,
+                onAgreeChange = booking::setAgreedToRules,
+                onPoliciesClick = { id -> navController.navigate(Routes.campsitePolicies(id)) },
+                onReserveClick = {
+                    val lotteryId = (options as? UiState.Content)?.data?.lottery?.id
+                    val campsite = selection.campsite
+                    val period = selection.period
+                    if (lotteryId != null && campsite != null && period != null) {
+                        isBooking = true
+                        session.bookLotteryStay(lotteryId, campsite, period) { problem ->
+                            isBooking = false
+                            if (problem == null) {
+                                toast("Booked! See you at camp.")
+                                navController.popBackStack() // the campsite page refreshes when shown
+                            } else {
+                                toast(problem)
+                                booking.load() // someone may have taken those nights
+                            }
+                        }
+                    }
+                },
+                onDeclineConfirmed = {
+                    if (viewer != null) {
+                        booking.decline(viewer) { problem ->
+                            if (problem == null) {
+                                toast("You declined this lottery")
+                                navController.popBackStack()
+                            } else {
+                                toast(problem)
+                            }
+                        }
+                    }
+                },
             )
         }
 
@@ -877,21 +946,6 @@ private fun CenteredMessage(
                     .padding(24.dp),
         )
     }
-}
-
-/**
- * The campsite already loaded by the Campsite details screen under [entry] in the back stack,
- * or null if it isn't loaded. The map and policies pages only open once it has loaded.
- */
-@Composable
-private fun rememberCampsiteDetails(
-    navController: NavHostController,
-    entry: NavBackStackEntry,
-): CampsiteDetails? {
-    val detailEntry = remember(entry) { navController.getBackStackEntry(Routes.CAMPSITE_DETAIL) }
-    val detail: CampsiteDetailViewModel = viewModel(detailEntry)
-    val state by detail.details.collectAsState()
-    return (state as? UiState.Content)?.data
 }
 
 /**

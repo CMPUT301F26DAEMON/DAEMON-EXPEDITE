@@ -24,13 +24,13 @@ import kotlin.time.toJavaInstant
 enum class ReservationStatus { ACTIVE, PAST, CANCELLED }
 
 /**
- * Cancelled if [Reservation.isCancelled], otherwise past if its last date is before [now]
- * (see [Reservation.isPast]), otherwise active. A cancelled stay stays under Cancelled even
- * after its dates have gone by.
+ * Cancelled if [Reservation.isCancelled], otherwise past once its check-out day has arrived on
+ * [now] in [zone] (see [Reservation.isPast]), otherwise active. A cancelled stay stays under
+ * Cancelled even after its dates have gone by.
  */
-internal fun Reservation.status(now: Instant): ReservationStatus = when {
+internal fun Reservation.status(now: Instant, zone: ZoneId = ZoneId.systemDefault()): ReservationStatus = when {
     isCancelled -> ReservationStatus.CANCELLED
-    isPast(now) -> ReservationStatus.PAST
+    isPast(now.toJavaInstant().atZone(zone).toLocalDate()) -> ReservationStatus.PAST
     else -> ReservationStatus.ACTIVE
 }
 
@@ -101,8 +101,9 @@ class EntrantReservationsViewModel : ViewModel() {
             val cancelled = Reservation(
                 id = current.id,
                 campsite = current.campsite,
-                reservationDates = current.reservationDates,
+                period = current.period,
                 reservedBy = current.reservedBy,
+                lotteryId = current.lotteryId,
             ).apply { cancel() }
             val saved = try {
                 Database.updateReservation(cancelled)
@@ -158,13 +159,13 @@ internal fun groupReservations(
     now: Instant = Clock.System.now(),
     zone: ZoneId = ZoneId.systemDefault(),
 ): EntrantReservations {
-    val byStatus = reservations.groupBy { it.status(now) }
+    val byStatus = reservations.groupBy { it.status(now, zone) }
     fun list(status: ReservationStatus, newestFirst: Boolean): List<ReservationSummary> {
         val group = byStatus[status].orEmpty()
         val sorted = if (newestFirst) {
-            group.sortedByDescending { it.reservationDates.minOrNull() }
+            group.sortedByDescending { it.period.start }
         } else {
-            group.sortedBy { it.reservationDates.minOrNull() }
+            group.sortedBy { it.period.start }
         }
         return sorted.map { it.toSummary(campsites[it.campsite] ?: unavailableCampsite(it.campsite), now, zone) }
     }
@@ -178,17 +179,13 @@ internal fun groupReservations(
 private fun Reservation.toSummary(campsite: CampsiteSummary, now: Instant, zone: ZoneId) =
     ReservationSummary(id = id, campsite = campsite, datesText = datesText(now, zone))
 
-/** "16 Oct – 18 Oct" from the first to the last date, "16 Oct" for one day. */
+/** "16 Oct – 18 Oct", from the first night to the check-out day. */
 internal fun Reservation.datesText(
     now: Instant = Clock.System.now(),
     zone: ZoneId = ZoneId.systemDefault(),
 ): String {
-    val first = reservationDates.minOrNull() ?: return "Dates not set"
-    val last = reservationDates.maxOrNull() ?: first
     val thisYear = now.toJavaInstant().atZone(zone).year
-    val start = first.toJavaInstant().atZone(zone).toLocalDate()
-    val end = last.toJavaInstant().atZone(zone).toLocalDate()
-    return if (start == end) start.shortDate(thisYear) else "${start.shortDate(thisYear)} – ${end.shortDate(thisYear)}"
+    return "${period.start.shortDate(thisYear)} – ${period.end.shortDate(thisYear)}"
 }
 
 /** Card details for a campsite that couldn't be loaded, so its reservation still shows. */

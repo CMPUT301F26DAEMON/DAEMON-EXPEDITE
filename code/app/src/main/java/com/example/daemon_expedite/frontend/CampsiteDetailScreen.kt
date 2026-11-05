@@ -99,6 +99,7 @@ fun CampsiteDetailScreen(
             endsText = details.lotteryEndsText,
             opensText = details.lotteryOpensText,
             bookByText = details.lotteryBookByText,
+            bookingText = details.lotteryBookingText,
             busy = isLotteryBusy,
             onBookClick = onBookClick,
             onJoinClick = onJoinLotteryClick,
@@ -119,8 +120,9 @@ fun CampsiteDetailScreen(
                 title = "Leave the waiting list?",
                 message = "You won't be in the draw for ${details.name}. " +
                     "You can join again while entries are open, if there's still room.",
-                confirmText = "Leave",
-                dismissText = "Stay in",
+                confirmText = "Yes, leave waiting list",
+                dismissText = "Stay on the list",
+                icon = AppIcons.LeaveList,
                 onConfirm = {
                     askLeave = false
                     onLeaveLotteryClick()

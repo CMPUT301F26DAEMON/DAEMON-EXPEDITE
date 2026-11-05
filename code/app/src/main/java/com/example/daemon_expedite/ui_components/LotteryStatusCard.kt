@@ -47,6 +47,15 @@ enum class LotteryStatus {
     /** The viewer joined but wasn't drawn. Shows a disabled button. */
     LOST,
 
+    /** The viewer won and booked their stay. Shows what they booked. */
+    BOOKED,
+
+    /** The viewer won but turned it down. Shows a disabled button. */
+    DECLINED,
+
+    /** The viewer won but didn't book before the first night, so the win lapsed. */
+    MISSED,
+
     /** No lottery is open for this campsite. Shows a disabled button. */
     NONE,
 }
@@ -64,6 +73,8 @@ enum class LotteryStatus {
  * @param opensText When entries open, for example "1 Oct". Used for [LotteryStatus.UPCOMING].
  * @param bookByText Booking deadline (the first stay night), for example "16 Oct". Used for
  *   [LotteryStatus.WON].
+ * @param bookingText What the viewer booked, for example "Pine Creek · 16 Oct → 18 Oct · 2 nights".
+ *   Used for [LotteryStatus.BOOKED].
  * @param onBookClick Called when "Book your stay" is tapped ([LotteryStatus.WON]).
  * @param busy True while joining or leaving: the button shows "…" and ignores taps.
  * @param onJoinClick Called when "Join Lottery!" is tapped ([LotteryStatus.OPEN]).
@@ -76,6 +87,7 @@ fun LotteryStatusCard(
     endsText: String? = null,
     opensText: String? = null,
     bookByText: String? = null,
+    bookingText: String? = null,
     busy: Boolean = false,
     onJoinClick: () -> Unit = {},
     onLeaveClick: () -> Unit = {},
@@ -154,6 +166,35 @@ fun LotteryStatusCard(
             DisabledButton("Not Selected")
         }
 
+        LotteryStatus.BOOKED -> CardFrame(
+            border = AppColors.Primary,
+            icon = AppIcons.CircleCheck,
+            title = "You're booked",
+            subtitle = bookingText,
+            modifier = modifier,
+            button = null,
+        )
+
+        LotteryStatus.DECLINED -> CardFrame(
+            border = AppColors.OutlineStrong,
+            icon = AppIcons.CancelCircle,
+            title = "You declined this win",
+            subtitle = "Your spot was released for other winners.",
+            modifier = modifier,
+        ) {
+            DisabledButton("Declined")
+        }
+
+        LotteryStatus.MISSED -> CardFrame(
+            border = AppColors.OutlineStrong,
+            icon = AppIcons.Clock,
+            title = "Booking has closed",
+            subtitle = "You didn't book before the first night, so your win was released.",
+            modifier = modifier,
+        ) {
+            DisabledButton("Booking Closed")
+        }
+
         LotteryStatus.UPCOMING -> CardFrame(
             border = AppColors.OutlineStrong,
             icon = AppIcons.Clock,
@@ -177,8 +218,9 @@ fun LotteryStatusCard(
 }
 
 /**
- * Shared layout of the three cards: icon and title, a line of detail, then a full-width button.
+ * Shared layout of the cards: icon and title, a line of detail, then a full-width button.
  * [button] gets the width available inside the card, since the shared buttons take a width in dp.
+ * Pass null for a card without a button.
  */
 @Composable
 private fun CardFrame(
@@ -187,7 +229,7 @@ private fun CardFrame(
     title: String,
     subtitle: String?,
     modifier: Modifier,
-    button: @Composable (width: Int) -> Unit,
+    button: (@Composable (width: Int) -> Unit)?,
 ) {
     val shape = RoundedCornerShape(16.dp)
     Column(
@@ -206,8 +248,10 @@ private fun CardFrame(
         if (subtitle != null) {
             Text(subtitle, style = AppTextStyles.BodySmallMultiline, color = AppColors.Secondary)
         }
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            button(maxWidth.value.toInt())
+        if (button != null) {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                button(maxWidth.value.toInt())
+            }
         }
     }
 }
@@ -228,7 +272,7 @@ private fun DisabledButton(text: String) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380, heightDp = 1600)
+@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380, heightDp = 1800)
 @Composable
 private fun LotteryStatusCardPreview() {
     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -238,6 +282,7 @@ private fun LotteryStatusCardPreview() {
         LotteryStatusCard(LotteryStatus.UPCOMING, opensText = "1 Oct")
         LotteryStatusCard(LotteryStatus.WON, bookByText = "16 Oct")
         LotteryStatusCard(LotteryStatus.LOST)
+        LotteryStatusCard(LotteryStatus.BOOKED, bookingText = "Pine Creek · 16 Oct → 18 Oct · 2 nights")
         LotteryStatusCard(LotteryStatus.NONE)
     }
 }

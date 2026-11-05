@@ -32,6 +32,7 @@ import androidx.compose.material3.Button
  * @param buttonText The text label displayed inside the button.
  * @param customHeight The height of the button in dp. Defaults to 58 dp.
  * @param customWidth The width of the button in dp. Defaults to 356 dp.
+ * @param enabled False shows the greyed-out "disabled" look from the Figma and ignores taps.
  */
 @Composable
 fun GreenButton(
@@ -39,17 +40,21 @@ fun GreenButton(
     icon: ImageVector? = null,
     buttonText: String,
     customHeight: Int = 56,
-    customWidth: Int = 356
+    customWidth: Int = 356,
+    enabled: Boolean = true,
 ) {
     Button(
         onClick = { onClick() },
+        enabled = enabled,
         modifier = Modifier
             .width(customWidth.dp)
             .height(customHeight.dp),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = AppColors.TextOnPrimary,
-            containerColor = AppColors.Primary
+            containerColor = AppColors.Primary,
+            disabledContainerColor = AppColors.SurfaceDisabled,
+            disabledContentColor = AppColors.TextSecondary,
 
         )
     ) {

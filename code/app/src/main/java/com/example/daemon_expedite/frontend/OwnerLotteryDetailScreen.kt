@@ -132,8 +132,9 @@ fun OwnerLotteryDetailScreen(
                     "Entrants will see it as cancelled and its campsites will be free for a new lottery. " +
                         "This can't be undone."
                 },
-                confirmText = "Cancel lottery",
+                confirmText = "Yes, cancel lottery",
                 dismissText = "Keep it",
+                icon = AppIcons.CancelCircle,
                 onConfirm = {
                     askCancel = false
                     onCancelConfirmed()

@@ -25,6 +25,7 @@ import java.time.ZoneId
 import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 import kotlin.to
 import kotlin.uuid.Uuid
 
@@ -83,6 +84,10 @@ interface DatabaseInterface {
     suspend fun cancelLottery(lotteryId: Id): CancelOutcome
 
     suspend fun updateLotterySettings(edited: Lottery)
+
+    suspend fun bookLotteryStay(lotteryId: Id, userId: Id, campsiteId: Id, period: DatePeriod): Reservation
+
+    suspend fun declineLottery(lotteryId: Id, userId: Id)
 
     suspend fun fetchLottery(id: Id): Lottery
 
@@ -953,10 +958,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             "waitlistCapacity" to lottery.waitlistCapacity,
             "users" to lottery.waitingList.users.map { it.value.toString() },
             "winners" to lottery.winners.map { it.value.toString() },
-            "bookings" to
-                lottery.bookings.map {
-                    it.period.toMap() + mapOf("user" to it.user.value.toString(), "campsite" to it.campsite.value.toString())
-                },
+            "bookings" to lottery.bookings.map { it.toMap() },
+            "declined" to lottery.declined.map { it.value.toString() },
             "drawn" to lottery.drawn,
             "cancelled" to lottery.cancelled,
         )
@@ -1011,8 +1014,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             bookings =
                 (data["bookings"] as? List<*>)?.map {
                     val m = it as? Map<*, *> ?: fail("bookings")
-                    Booking(idOf(m["user"], "bookings"), idOf(m["campsite"], "bookings"), period(m, "bookings"))
+                    Booking(
+                        user = idOf(m["user"], "bookings"),
+                        campsite = idOf(m["campsite"], "bookings"),
+                        period = period(m, "bookings"),
+                        reservation = m["reservation"]?.let { r -> idOf(r, "bookings") },
+                    )
                 } ?: emptyList(),
+            declined = ids("declined"),
             drawn = data["drawn"] as? Boolean ?: false,
             cancelled = data["cancelled"] as? Boolean ?: false,
         )
@@ -1032,53 +1041,49 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
     // endregion
 
-    override suspend fun addReservation(reservation: Reservation) {
-        val reservationData =
+    private fun reservationRef(id: Id) = db.collection("reservations").document(id.value.toString())
+
+    private fun reservationToMap(reservation: Reservation): Map<String, Any?> =
+        reservation.period.toMap() +
             mapOf(
                 "id" to reservation.id.value.toString(),
                 "campsite" to reservation.campsite.value.toString(),
-                "reservationDates" to reservation.reservationDates.map { it.toString() },
                 "reservedBy" to reservation.reservedBy.value.toString(),
+                "lottery" to reservation.lotteryId?.value?.toString(),
                 "isCancelled" to reservation.isCancelled,
             )
-        db
-            .collection("reservations")
-            .document(reservation.id.value.toString())
-            .set(reservationData)
-            .await()
+
+    /**
+     * Reads reservations saved before they had `start`/`end`: a list of instants. The earliest
+     * day is the first night and the latest the check-out day (one night if they're the same).
+     */
+    private fun legacyReservationPeriod(dates: List<*>): DatePeriod {
+        val days = dates.map { Instant.parse(it.toString()).toJavaInstant().atZone(ZoneId.systemDefault()).toLocalDate() }
+        val first = days.min()
+        return DatePeriod(first, maxOf(days.max(), first.plusDays(1)))
     }
 
+    override suspend fun addReservation(reservation: Reservation) {
+        reservationRef(reservation.id).set(reservationToMap(reservation)).await()
+    }
+
+    /** The reservation with [id], or null if there isn't one or it can't be read. */
     override suspend fun fetchReservation(id: Id): Reservation? {
+        val data = reservationRef(id).get().await().data ?: return null
         return try {
-            val reservationData =
-                db
-                    .collection("reservations")
-                    .document(id.value.toString())
-                    .get()
-                    .await() ?: throw NotFoundException("Document not found")
-            val id =
-                reservationData["id"] as? String
-                    ?: throw NotFoundException("Reservation Id not found")
-            val campsite =
-                reservationData["campsite"] as? String
-                    ?: throw NotFoundException("Campsite Id not found")
-            val reservationDatesData =
-                reservationData["reservationDates"] as? List<*>
-                    ?: throw NotFoundException("Reservation Dates not found")
-            val reservedBy =
-                reservationData["reservedBy"] as? String
-                    ?: throw NotFoundException("Reserved By not found")
-            val isCancelled =
-                reservationData["isCancelled"] as? Boolean ?: throw NotFoundException(
-                    "Reservation found but status not available",
-                )
-            val reservationDates = reservationDatesData.map { Instant.parse(it.toString()) }.toTypedArray()
-            return Reservation(Id(Uuid.parse(id)), Id(Uuid.parse(campsite)), reservationDates, Id(Uuid.parse(reservedBy)), isCancelled)
-        } catch (e: NotFoundException) {
-            Log.e("DatabaseInner", "Error fetching reservation ${e.message}")
-            null
+            Reservation(
+                id = id,
+                campsite = Id(Uuid.parse(data["campsite"] as String)),
+                period = (data["start"] as? String)
+                    ?.let { DatePeriod(LocalDate.parse(it), LocalDate.parse(data["end"] as String)) }
+                    ?: legacyReservationPeriod(data["reservationDates"] as List<*>),
+                reservedBy = Id(Uuid.parse(data["reservedBy"] as String)),
+                lotteryId = (data["lottery"] as? String)?.let { Id(Uuid.parse(it)) },
+                isCancelled = data["isCancelled"] as? Boolean ?: false,
+            )
         } catch (e: Exception) {
-            throw e
+            Log.e("DatabaseInner", "Unreadable reservation ${id.value}", e)
+            null
         }
     }
 
@@ -1130,6 +1135,67 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 if (parseLottery(lotteryId, data).phase() != LotteryPhase.OPEN) throw LotteryClosedException(lotteryId)
                 tx.update(lotteryRef, "users", FieldValue.arrayRemove(userId.value.toString()))
                 tx.update(userRef, "lotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
+                null
+            }.await()
+    }
+
+    /**
+     * Books [period] at [campsiteId] for lottery winner [userId], first come first served.
+     *
+     * Runs as a transaction that re-reads the lottery and checks the booking with
+     * [BookingRules.check] against that latest copy, so two winners can never get the same
+     * night. In the same write it:
+     * - adds the booking to the lottery's `bookings`,
+     * - creates the [Reservation],
+     * - adds the reservation to the user's `reservations` and the owner's `ownerReservations`.
+     *
+     * @return The new reservation.
+     * @throws BookingRejectedException if the booking breaks a rule; its message says why.
+     */
+    override suspend fun bookLotteryStay(lotteryId: Id, userId: Id, campsiteId: Id, period: DatePeriod): Reservation {
+        val ref = lotteryRef(lotteryId)
+        val reservation = Reservation(campsite = campsiteId, period = period, reservedBy = userId, lotteryId = lotteryId)
+        db
+            .runTransaction { tx ->
+                val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
+                val lottery = parseLottery(lotteryId, data)
+                BookingRules.check(lottery, lottery.phase(), userId, campsiteId, period)
+                    ?.let { throw BookingRejectedException(it) }
+
+                val booking = Booking(userId, campsiteId, period, reservation.id)
+                tx.update(ref, "bookings", (lottery.bookings + booking).map { it.toMap() })
+                tx.set(reservationRef(reservation.id), reservationToMap(reservation))
+                tx.update(
+                    db.collection("users").document(userId.value.toString()),
+                    "reservations",
+                    FieldValue.arrayUnion(reservation.id.value.toString()),
+                )
+                tx.update(ownerRef(lottery.ownerId), "ownerReservations", FieldValue.arrayUnion(reservation.id.value.toString()))
+                null
+            }.await()
+        return reservation
+    }
+
+    /**
+     * Records that winner [userId] turns their win down. Final: they can't book afterwards.
+     * Only during the booking window, and only before they've booked (cancel the booking first).
+     *
+     * @throws BookingRejectedException if they can't decline; its message says why.
+     */
+    override suspend fun declineLottery(lotteryId: Id, userId: Id) {
+        val ref = lotteryRef(lotteryId)
+        db
+            .runTransaction { tx ->
+                val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
+                val lottery = parseLottery(lotteryId, data)
+                val problem = when {
+                    lottery.phase() != LotteryPhase.BOOKING -> "Booking for this lottery is closed"
+                    userId !in lottery.winners -> "Only winners can decline"
+                    lottery.bookings.any { it.user == userId } -> "You've booked a stay. Cancel it before declining."
+                    else -> null
+                }
+                problem?.let { throw BookingRejectedException(it) }
+                tx.update(ref, "declined", FieldValue.arrayUnion(userId.value.toString()))
                 null
             }.await()
     }
@@ -1474,6 +1540,13 @@ object Database {
     /** Saves a new lottery and records it on its owner in one write. */
     suspend fun createLottery(lottery: Lottery) = db.createLottery(lottery)
 
+    /** Books a lottery winner's stay. See [DatabaseInner.bookLotteryStay]. */
+    suspend fun bookLotteryStay(lotteryId: Id, userId: Id, campsiteId: Id, period: DatePeriod): Reservation =
+        db.bookLotteryStay(lotteryId, userId, campsiteId, period)
+
+    /** Turns down a lottery win. See [DatabaseInner.declineLottery]. */
+    suspend fun declineLottery(lotteryId: Id, userId: Id) = db.declineLottery(lotteryId, userId)
+
     /** Saves edited lottery settings without touching its waitlist. See [DatabaseInner.updateLotterySettings]. */
     suspend fun updateLotterySettings(edited: Lottery) = db.updateLotterySettings(edited)
 
@@ -1554,5 +1627,13 @@ private fun Instant.toTimestamp(): Timestamp = Timestamp(epochSeconds, nanosecon
 private fun Timestamp.asInstant(): Instant = Instant.fromEpochSeconds(seconds, nanoseconds.toLong())
 
 private fun DatePeriod.toMap(): Map<String, String> = mapOf("start" to start.toString(), "end" to end.toString())
+
+private fun Booking.toMap(): Map<String, String?> =
+    period.toMap() +
+        mapOf(
+            "user" to user.value.toString(),
+            "campsite" to campsite.value.toString(),
+            "reservation" to reservation?.value?.toString(),
+        )
 
 // endregion

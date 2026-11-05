@@ -62,8 +62,6 @@ class EntrantStatusTest {
         assertEquals(LotteryStatus.WON, drawn(users = listOf(me, other), winners = listOf(me)).entrantStatus(me, after))
         assertEquals(LotteryStatus.LOST, drawn(users = listOf(me, other), winners = listOf(other)).entrantStatus(me, after))
         assertEquals(LotteryStatus.NONE, drawn(users = listOf(other), winners = listOf(other)).entrantStatus(me, after))
-        // Once stays begin the card has nothing to offer yet.
-        assertEquals(LotteryStatus.NONE, drawn(users = listOf(me), winners = listOf(me)).entrantStatus(me, midnight(day(10, 16))))
     }
 
     private fun drawn(users: List<Id>, winners: List<Id>) = Lottery(
@@ -77,4 +75,32 @@ class EntrantStatusTest {
         winners = winners,
         drawn = true,
     )
+
+    @Test
+    fun bookedDeclinedOrMissed() {
+        val booking = midnight(day(10, 7))
+        val stays = midnight(day(10, 16))
+        val stay = DatePeriod(day(10, 16), day(10, 18))
+        val booked = Lottery(
+            ownerId = Id(), campsites = listOf(Id()),
+            entryStart = midnight(day(10, 1)), entryEnd = midnight(day(10, 6)),
+            stayPeriods = listOf(stay), winnerCount = 1,
+            waitingList = WaitingList(users = listOf(me)), winners = listOf(me),
+            bookings = listOf(com.example.daemon_expedite.backend.Booking(me, Id(), stay)), drawn = true,
+        )
+        assertEquals(LotteryStatus.BOOKED, booked.entrantStatus(me, booking))
+        assertEquals(LotteryStatus.BOOKED, booked.entrantStatus(me, stays))
+
+        val declined = Lottery(
+            ownerId = Id(), campsites = listOf(Id()),
+            entryStart = midnight(day(10, 1)), entryEnd = midnight(day(10, 6)),
+            stayPeriods = listOf(stay), winnerCount = 1,
+            waitingList = WaitingList(users = listOf(me)), winners = listOf(me),
+            declined = listOf(me), drawn = true,
+        )
+        assertEquals(LotteryStatus.DECLINED, declined.entrantStatus(me, booking))
+
+        // Won but never booked: missed once stays begin.
+        assertEquals(LotteryStatus.MISSED, drawn(users = listOf(me), winners = listOf(me)).entrantStatus(me, stays))
+    }
 }

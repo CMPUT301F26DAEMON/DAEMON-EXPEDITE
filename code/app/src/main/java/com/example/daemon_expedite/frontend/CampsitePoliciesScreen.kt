@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,12 +24,13 @@ import com.example.daemon_expedite.ui_components.ScreenHeader
  *
  * Built from the "Campsite Policies" frame in the Figma file.
  *
- * @param policies The policy text written by the owner. Blank shows a short placeholder.
+ * @param policies The policy text written by the owner, or null while it loads. Blank shows a
+ *   short placeholder.
  * @param onBackClick Called when the back button is tapped.
  */
 @Composable
 fun CampsitePoliciesScreen(
-    policies: String,
+    policies: String?,
     onBackClick: () -> Unit,
 ) {
     Column(
@@ -45,7 +47,9 @@ fun CampsitePoliciesScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            if (policies.isBlank()) {
+            if (policies == null) {
+                CircularProgressIndicator(color = AppColors.Primary)
+            } else if (policies.isBlank()) {
                 Text(
                     text = "The owner hasn't added any policies for this campsite yet.",
                     style = AppTextStyles.BodySmallMultiline,

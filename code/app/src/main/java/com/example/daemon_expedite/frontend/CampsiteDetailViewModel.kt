@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.daemon_expedite.backend.Booking
 import com.example.daemon_expedite.backend.Campsite
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Database
@@ -41,6 +42,8 @@ import kotlin.uuid.Uuid
  * @property lotteryEndsText When entries close, for example "12 Oct 2026 · 11:59 PM MDT".
  * @property lotteryOpensText When entries open, for example "1 Oct".
  * @property lotteryBookByText Winners' booking deadline (the first stay night), for example "16 Oct".
+ * @property lotteryBookingText What the viewer booked in this lottery, for example
+ *   "Pine Creek · 16 Oct → 18 Oct · 2 nights", or null if they haven't.
  * @property stayPeriods The lottery's bookable nights, shown on the calendar.
  */
 data class CampsiteDetails(
@@ -62,6 +65,7 @@ data class CampsiteDetails(
     val lotteryEndsText: String? = null,
     val lotteryOpensText: String? = null,
     val lotteryBookByText: String? = null,
+    val lotteryBookingText: String? = null,
     val stayPeriods: List<DatePeriod> = emptyList(),
 )
 
@@ -94,7 +98,7 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
                 val campsite = Database.fetchCampsite(id)
                 val lottery = campsite.currentLottery()
                 val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
-                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status)
+                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status, viewer = viewer.id)
             }
         }
     }
@@ -116,7 +120,7 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
                 val campsite = Database.fetchCampsite(id)
                 val lottery = campsite.currentLottery()
                 val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
-                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status)
+                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status, viewer = viewer.id)
             }
             if (fresh is UiState.Content || _details.value !is UiState.Content) _details.value = fresh
         }
@@ -127,10 +131,13 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
  * What the lottery card shows to entrant [viewer] for this lottery.
  *
  * Results only show to entrants who joined; everyone else sees "no lottery" once entries
- * close. Once stays begin the card goes back to "no lottery" (bookings come in the next step).
+ * close. A winner who hasn't booked or declined by the first night has missed the deadline.
  */
 internal fun Lottery.entrantStatus(viewer: Id, now: Instant = Clock.System.now()): LotteryStatus {
     val joined = viewer in waitingList.users
+    val booked = bookings.any { it.user == viewer }
+    val declinedWin = viewer in declined
+    val won = viewer in winners
     return when (phase(now)) {
         LotteryPhase.UPCOMING -> LotteryStatus.UPCOMING
         LotteryPhase.OPEN -> when {
@@ -140,8 +147,16 @@ internal fun Lottery.entrantStatus(viewer: Id, now: Instant = Clock.System.now()
         }
         LotteryPhase.DRAWING -> if (joined) LotteryStatus.DRAWING else LotteryStatus.NONE
         LotteryPhase.BOOKING -> when {
-            viewer in winners -> LotteryStatus.WON
+            booked -> LotteryStatus.BOOKED
+            declinedWin -> LotteryStatus.DECLINED
+            won -> LotteryStatus.WON
             joined -> LotteryStatus.LOST
+            else -> LotteryStatus.NONE
+        }
+        LotteryPhase.STAYS -> when {
+            booked -> LotteryStatus.BOOKED
+            declinedWin -> LotteryStatus.DECLINED
+            won -> LotteryStatus.MISSED
             else -> LotteryStatus.NONE
         }
         else -> LotteryStatus.NONE
@@ -165,11 +180,13 @@ internal fun String?.toIdOrNull(): Id? = this?.let { runCatching { Id(Uuid.parse
  *
  * @param lottery The lottery to show the end time and booking period of, if any.
  * @param lotteryStatus What the lottery card and photo badge should show.
+ * @param viewer The signed-in entrant, to show what they booked. Null on the owner's page.
  */
-internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: LotteryStatus): CampsiteDetails =
+internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: LotteryStatus, viewer: Id? = null): CampsiteDetails =
     coroutineScope {
         val urls = async { imageUrls() }
         val owner = async { ownerName() }
+        val booking = async { lottery?.bookings?.firstOrNull { it.user == viewer }?.let { describeBooking(it) } }
         val zone = ZoneId.systemDefault()
         CampsiteDetails(
             id = id,
@@ -191,9 +208,22 @@ internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: Lotter
             lotteryEndsText = lottery?.entryEnd?.minus(1.minutes)?.format(zone, END_FORMAT),
             lotteryOpensText = lottery?.entryFirstDay(zone)?.format(OPENS_FORMAT),
             lotteryBookByText = lottery?.firstStayNight?.format(OPENS_FORMAT),
+            lotteryBookingText = booking.await(),
             stayPeriods = lottery?.stayPeriods.orEmpty(),
         )
     }
+
+/**
+ * "Pine Creek · 16 Oct → 18 Oct · 2 nights". The booked campsite may be another campsite in the
+ * same lottery, so its name is looked up unless it is this one.
+ */
+private suspend fun Campsite.describeBooking(booking: Booking): String {
+    val name = if (booking.campsite == id) name
+    else quietly("Couldn't load campsite ${booking.campsite}") { Database.fetchCampsite(booking.campsite).name } ?: "Campsite"
+    val period = booking.period
+    return "$name · ${period.start.format(OPENS_FORMAT)} → ${period.end.format(OPENS_FORMAT)} · " +
+        if (period.nights == 1) "1 night" else "${period.nights} nights"
+}
 
 /** Download URLs for the photos, in order. Photos whose URL can't be found are skipped. */
 internal suspend fun Campsite.imageUrls(): List<String> = coroutineScope {

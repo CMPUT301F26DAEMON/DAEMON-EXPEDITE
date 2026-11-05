@@ -82,6 +82,20 @@ open class User(
         _lotteries.remove(lotteryId)
     }
 
+    /**
+     * Books [period] at [campsiteId] as a winner of [lotteryId]. [Database.bookLotteryStay] saves
+     * the booking, the reservation and this user's `reservations` in one transaction; then the
+     * reservation is remembered here too.
+     *
+     * @throws BookingRejectedException if the booking breaks a rule (for example the nights
+     *   were just taken); its message says why.
+     */
+    suspend fun bookLotteryStay(lotteryId: Id, campsiteId: Id, period: DatePeriod): Reservation {
+        val reservation = Database.bookLotteryStay(lotteryId, id, campsiteId, period)
+        if (reservation.id !in _reservations) _reservations.add(reservation.id)
+        return reservation
+    }
+
     suspend fun removeLottery(lottery: Lottery) {
         if (_lotteries.remove(lottery.id)) {
             Database.updateUser(this)
