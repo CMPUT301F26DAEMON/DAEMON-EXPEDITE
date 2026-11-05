@@ -62,6 +62,7 @@ interface DatabaseInterface {
     suspend fun searchCampsites(
         location: String? = null,
         maxOccupancy: Int? = null,
+        dates: DatePeriod? = null,
         titleText: String? = null,
         limit: Int = 7,
         cursor: SearchCursor? = null,
@@ -678,24 +679,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         }
     }
 
-    fun withinRadius(
-        location: Location?,
-        radius: Int?,
-        data: Map<String, Any?>,
-    ): Boolean {
-        if (location == null || radius == null) return true
-        val locationData = data["location"] as? List<*>
-        val lat = (locationData?.getOrNull(0) as? Number)?.toDouble()
-        val lng = (locationData?.getOrNull(1) as? Number)?.toDouble()
-        if (lat == null || lng == null) return false
-        val point =
-            Location("").apply {
-                latitude = lat
-                longitude = lng
-            }
-        return location.distanceTo(point) <= radius
-    }
-
     /**
      * Function to search for campsites
      * @param location String? -> this is the location desired by the user
@@ -709,14 +692,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     override suspend fun searchCampsites(
         location: String?,
         maxOccupancy: Int?,
+        dates: DatePeriod?,
         titleText: String?,
         limit: Int,
         cursor: SearchCursor?,
     ): CampsitePage {
-        val title = titleText?.trim()?.lowercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
-        val place = location?.trim()?.lowercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
+        val title = titleText?.let(::normalizeForSearch)?.takeIf { it.isNotEmpty() }
+        val place = location?.let(::normalizeForSearch)?.takeIf { it.isNotEmpty() }
 
-        // Exactly one server-side range, in priority order
         var base: Query = db.collection("campsites")
         base =
             when {
@@ -737,14 +720,13 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 }
             }
 
-        // Every filter is re-checked here, so the ones not used server-side still apply
         fun passesFilters(data: Map<String, Any?>): Boolean {
             if (title != null) {
-                val name = (data["name"] as? String)?.lowercase(Locale.ROOT) ?: return false
+                val name = (data["name"] as? String)?.let(::normalizeForSearch) ?: return false
                 if (!name.startsWith(title)) return false
             }
             if (place != null) {
-                val address = (data["address"] as? String)?.lowercase(Locale.ROOT) ?: return false
+                val address = (data["address"] as? String)?.let(::normalizeForSearch) ?: return false
                 if (!address.startsWith(place)) return false
             }
             if (maxOccupancy != null) {
@@ -752,6 +734,23 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 if (max < maxOccupancy) return false
             }
             return true
+        }
+
+        // One lottery fetch per owner per call, not per campsite
+        val lotteryCache = mutableMapOf<Id, List<Lottery>>()
+
+        suspend fun isAvailable(
+            _campsiteId: Id,
+            ownerId: Id,
+        ): Boolean {
+            if (dates == null) return true
+            val lotteries = lotteryCache.getOrPut(ownerId) { fetchOwnerLotteries(ownerId) }
+            return lotteries.any { lottery ->
+                !lottery.drawn &&
+                    !lottery.cancelled &&
+                    // lottery.campsiteId == campsiteId &&   // if lotteries are per campsite
+                    lottery.stayPeriods.any { it.contains(dates) }
+            }
         }
 
         val batchSize = (limit * 2).toLong().coerceAtLeast(20)
@@ -768,18 +767,23 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 val data = doc.data ?: continue
                 if (!passesFilters(data)) continue
 
-                try {
-                    results.add(parseCampsite(Id(Uuid.parse(doc.id)), data))
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    Log.e("DatabaseInner", "Skipping malformed campsite ${doc.id}", e)
-                    continue
-                }
+                // Only parsing is guarded, so network errors still propagate
+                val campsite =
+                    try {
+                        parseCampsite(Id(Uuid.parse(doc.id)), data)
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Log.e("DatabaseInner", "Skipping malformed campsite ${doc.id}", e)
+                        continue
+                    }
 
+                if (!isAvailable(campsite.id, campsite.ownerId)) continue
+
+                results.add(campsite)
                 if (results.size >= limit) return CampsitePage(results, SearchCursor(doc))
             }
 
-            if (docs.size < batchSize) return CampsitePage(results, null) // ran out of data
+            if (docs.size < batchSize) return CampsitePage(results, null)
             lastDoc = docs.last()
         }
     }
@@ -1456,9 +1460,10 @@ object Database {
     suspend fun searchCampsite(
         location: String? = null,
         maxOccupancy: Int? = null,
+        dates: DatePeriod? = null,
         titleText: String? = null,
         limit: Int = 7,
-    ): CampsitePage = db.searchCampsites(location, maxOccupancy, titleText, limit)
+    ): CampsitePage = db.searchCampsites(location, maxOccupancy, dates, titleText, limit)
 
     suspend fun addLottery(lottery: Lottery) {
         db.addLottery(lottery)
