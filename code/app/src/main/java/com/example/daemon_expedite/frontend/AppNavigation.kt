@@ -44,6 +44,7 @@ object Routes {
     const val EDIT_PROFILE_PHOTO = "edit_profile_photo"
     const val CAMPSITE_ID_ARG = "campsiteId"
     const val CAMPSITE_DETAIL = "campsite/{$CAMPSITE_ID_ARG}"
+    const val RESERVATIONS = "reservations"
 
     // Opened from Campsite details only; it reads the campsite that screen already loaded.
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
@@ -88,7 +89,6 @@ object Routes {
 
     // Not built yet. When a screen is added, give it a route here and replace the
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
-    // const val RESERVATIONS = "reservations"
     // const val LOTTERIES = "lotteries"
     // const val MESSAGES = "messages"
     // const val NOTIFICATIONS = "notifications"
@@ -109,6 +109,7 @@ object Routes {
  * ```
  * Splash ─► Home ─┬─► Campsite details ─┬─► Map view
  *                 │                     └─► Campsite policies
+ *                 ├─► My reservations
  *                 └─► Entrant profile ─┬─► Edit profile ─► Edit photo
  *                                      ├─► Edit photo
  *                                      └─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
@@ -208,9 +209,35 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
                 onFilterClick = home::onFilterClick,
                 onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
-                onReservationsClick = { showComingSoon("Reservations") },
+                onReservationsClick = { navController.navigate(Routes.RESERVATIONS) },
                 onLotteriesClick = { showComingSoon("Lotteries") },
                 onMessagesClick = { showComingSoon("Messages") },
+            )
+        }
+
+        composable(Routes.RESERVATIONS) {
+            val reservations: EntrantReservationsViewModel = viewModel()
+            // Waits for the user to load, since the reservation ids are stored on the user.
+            LaunchedEffect(user) { user?.let(reservations::load) }
+            val state by reservations.reservations.collectAsState()
+            val cancellingId by reservations.cancellingId.collectAsState()
+            EntrantReservationsScreen(
+                state = state,
+                cancellingId = cancellingId,
+                onBackClick = { navController.popBackStack() },
+                onRetry = reservations::retry,
+                onCancelConfirmed = { id ->
+                    reservations.cancel(id) { saved ->
+                        toast(
+                            if (saved) {
+                                "Reservation cancelled"
+                            } else {
+                                "Couldn't cancel the reservation. Check your connection and try again."
+                            },
+                        )
+                    }
+                },
+                onRateStayClick = { showComingSoon("Rating") },
             )
         }
 
