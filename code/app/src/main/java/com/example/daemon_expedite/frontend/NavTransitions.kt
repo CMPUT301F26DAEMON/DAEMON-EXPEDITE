@@ -18,7 +18,7 @@ import androidx.navigation.NavBackStackEntry
  * Three kinds, so each kind of move feels different:
  * - **Push / pop** (opening a screen, going back): the new screen slides in from the right and
  *   the old one drifts a little to the left and fades, like turning a page. Back is the reverse.
- * - **Role switch** (entrant ⇄ owner from a profile toggle): a short zoom, so changing "mode"
+ * - **Role switch** (entrant / owner / admin from a profile toggle): a short zoom, so changing "mode"
  *   reads differently from opening a page.
  * - **From the splash screen**: a plain fade.
  */
@@ -32,18 +32,27 @@ private const val FADE_MS = 250
 private const val PARALLAX = 4
 
 private fun NavScope.from(route: String) = initialState.destination.route == route
-private fun NavScope.to(route: String) = targetState.destination.route == route
+
+/** Each role's profile page, mapped to that role's home. */
+private val roleHomeByProfile =
+    mapOf(
+        Routes.ENTRANT_PROFILE to Routes.HOME,
+        Routes.OWNER_PROFILE to Routes.OWNER_HOME,
+        Routes.ADMIN_PROFILE to Routes.ADMIN_HOME,
+    )
 
 /**
  * True when this navigation is a role switch made with the profile toggle.
  *
- * Role switches are the only way to get from one role's profile to the *other* role's home:
- * entrant profile → owner home, or owner profile → entrant home. (Going back from a profile
- * returns to the same role's home, which is a normal pop.)
+ * Role switches are the only way to get from one role's profile to *another* role's home,
+ * e.g. entrant profile → owner home, or admin profile → entrant home. (Going back from a
+ * profile returns to the same role's home, which is a normal pop.)
  */
-private fun NavScope.isRoleSwitch() =
-    (from(Routes.ENTRANT_PROFILE) && to(Routes.OWNER_HOME)) ||
-        (from(Routes.OWNER_PROFILE) && to(Routes.HOME))
+private fun NavScope.isRoleSwitch(): Boolean {
+    val ownHome = roleHomeByProfile[initialState.destination.route] ?: return false
+    val target = targetState.destination.route
+    return target != ownHome && target in roleHomeByProfile.values
+}
 
 private fun NavScope.isFromSplash() = from(Routes.SPLASH)
 

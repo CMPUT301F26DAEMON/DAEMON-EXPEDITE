@@ -28,7 +28,8 @@ data class FilterState(
 )
 
 /**
- * Data for the entrant home screen: the search text and the campsites to show.
+ * Data for the entrant and admin home screens: the search text and the campsites to show.
+ * Each home screen gets its own instance.
  *
  * Loads suggested campsites on start, and searches again whenever search text or filter options change.
  * Also reloads quietly each time the screen is shown again (see [onScreenShown]), because this

@@ -10,6 +10,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.ui.unit.sp
 
 
 /**
@@ -55,7 +56,8 @@ fun BottomNavBar(
                     }
                     Text(
                         text = labels[i],
-                        fontFamily = AppFonts.Inter
+                        fontFamily = AppFonts.Inter,
+                        fontSize = 13.sp
                     )
                 }
             }
