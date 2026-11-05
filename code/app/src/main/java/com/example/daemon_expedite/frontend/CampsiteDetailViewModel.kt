@@ -1,5 +1,7 @@
 package com.example.daemon_expedite.frontend
 
+import java.time.LocalDate
+import com.example.daemon_expedite.backend.BookingRules
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -44,7 +46,11 @@ import kotlin.uuid.Uuid
  * @property lotteryBookByText Winners' booking deadline (the first stay night), for example "16 Oct".
  * @property lotteryBookingText What the viewer booked in this lottery, for example
  *   "Pine Creek · 16 Oct → 18 Oct · 2 nights", or null if they haven't.
- * @property stayPeriods The lottery's bookable nights, shown on the calendar.
+ * @property stayPeriods The lottery's bookable nights.
+ * @property availableNights Nights of [stayPeriods] nobody has booked yet, shown on the entrant's
+ *   calendar. Each range runs from a first night to a last night.
+ * @property bookedNights Nights booked at this campsite in any of its lotteries, shown on the
+ *   owner's calendar. Only filled on the owner's page.
  */
 data class CampsiteDetails(
     val id: Id,
@@ -67,6 +73,8 @@ data class CampsiteDetails(
     val lotteryBookByText: String? = null,
     val lotteryBookingText: String? = null,
     val stayPeriods: List<DatePeriod> = emptyList(),
+    val availableNights: List<ClosedRange<LocalDate>> = emptyList(),
+    val bookedNights: List<ClosedRange<LocalDate>> = emptyList(),
 )
 
 /**
@@ -210,6 +218,7 @@ internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: Lotter
             lotteryBookByText = lottery?.firstStayNight?.format(OPENS_FORMAT),
             lotteryBookingText = booking.await(),
             stayPeriods = lottery?.stayPeriods.orEmpty(),
+            availableNights = lottery?.let { BookingRules.freeNightRanges(it, id) }.orEmpty(),
         )
     }
 

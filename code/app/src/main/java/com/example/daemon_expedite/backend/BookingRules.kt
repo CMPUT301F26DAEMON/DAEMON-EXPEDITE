@@ -18,6 +18,36 @@ object BookingRules {
             .flatMap { it.period.nightsList() }
             .toSet()
 
+    /**
+     * Nights of [lottery] still free on [campsite], as runs of back-to-back nights. Each run goes
+     * from its first night to its last night (not the check-out day), ready for a calendar.
+     */
+    fun freeNightRanges(lottery: Lottery, campsite: Id): List<ClosedRange<LocalDate>> {
+        val booked = bookedNights(lottery, campsite)
+        return nightRuns(lottery.stayPeriods.flatMap { it.nightsList() }.filter { it !in booked })
+    }
+
+    /**
+     * Nights of [campsite] booked in any of [lotteries], as runs of back-to-back nights (see
+     * [freeNightRanges]). Cancelled lotteries are left out, since their bookings no longer stand.
+     */
+    fun bookedNightRanges(lotteries: List<Lottery>, campsite: Id): List<ClosedRange<LocalDate>> =
+        nightRuns(lotteries.filter { it.phase() != LotteryPhase.CANCELLED }.flatMap { bookedNights(it, campsite) })
+
+    /** Groups [nights] into runs of back-to-back days, earliest first. Duplicates are ignored. */
+    fun nightRuns(nights: Iterable<LocalDate>): List<ClosedRange<LocalDate>> {
+        val runs = mutableListOf<ClosedRange<LocalDate>>()
+        for (night in nights.toSortedSet()) {
+            val last = runs.lastOrNull()
+            if (last != null && last.endInclusive.plusDays(1) == night) {
+                runs[runs.lastIndex] = last.start..night
+            } else {
+                runs += night..night
+            }
+        }
+        return runs
+    }
+
     /** True if [night] is a bookable night of [lottery] that nobody has taken on [campsite]. */
     fun isFreeNight(lottery: Lottery, campsite: Id, night: LocalDate, booked: Set<LocalDate> = bookedNights(lottery, campsite)): Boolean =
         night !in booked && lottery.stayPeriods.any { !night.isBefore(it.start) && night.isBefore(it.end) }
@@ -56,6 +86,33 @@ object BookingRules {
             else -> null
         }
     }
+
+    /**
+     * Checks whether [user] may cancel [reservation] on [today]. Returns a message saying why
+     * not, or null if they can. A stay can be cancelled any time before its first night.
+     */
+    fun cancelProblem(reservation: Reservation, user: Id, today: LocalDate): String? = when {
+        reservation.reservedBy != user -> "Only the person who booked can cancel"
+        reservation.isCancelled -> "This reservation is already cancelled"
+        !today.isBefore(reservation.period.start) -> "Your stay has started, so it can't be cancelled"
+        else -> null
+    }
+
+    /**
+     * The lottery's bookings once [reservation] is cancelled, which frees its nights. Bookings
+     * saved before they had a reservation id are matched by who booked (one booking per winner).
+     */
+    fun bookingsAfterCancel(lottery: Lottery, reservation: Reservation): List<Booking> =
+        lottery.bookings.filterNot { booking ->
+            booking.reservation == reservation.id ||
+                (booking.reservation == null && booking.user == reservation.reservedBy && booking.campsite == reservation.campsite)
+        }
+
+    /**
+     * True if cancelling during [phase] also gives up the win. During the booking window the
+     * winner may book again; after it, cancelling is final.
+     */
+    fun cancelGivesUpWin(phase: LotteryPhase): Boolean = phase != LotteryPhase.BOOKING
 }
 
 /** Every night in this period: from [DatePeriod.start] up to the day before [DatePeriod.end]. */

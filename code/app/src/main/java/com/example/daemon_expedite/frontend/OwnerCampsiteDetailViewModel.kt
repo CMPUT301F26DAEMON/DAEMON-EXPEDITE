@@ -1,5 +1,6 @@
 package com.example.daemon_expedite.frontend
 
+import com.example.daemon_expedite.backend.BookingRules
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -61,10 +62,14 @@ class OwnerCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
             val fresh = loadAsUiState("Couldn't load this campsite") {
                 val loaded = Database.fetchCampsite(id)
                 campsite = loaded
-                // Only drives the badge, so a failed lookup shouldn't fail the page.
-                val lottery = quietly("Couldn't look up lottery for ${loaded.id}") { loaded.currentLottery() }
+                // Only drives the badge and the booked dates, so a failed lookup shouldn't fail the page.
+                val lotteries = quietly("Couldn't look up lotteries for ${loaded.id}") {
+                    Database.fetchLotteriesForCampsite(loaded.id)
+                }.orEmpty()
+                val lottery = lotteries.firstOrNull { !it.phase().isPast }
                 // OPEN only drives the "Lottery · Active" badge; owners don't see the lottery card.
                 loaded.toDetails(lottery, if (lottery != null) LotteryStatus.OPEN else LotteryStatus.NONE)
+                    .copy(bookedNights = BookingRules.bookedNightRanges(lotteries, loaded.id))
             }
             if (fresh is UiState.Content || _details.value !is UiState.Content) _details.value = fresh
         }

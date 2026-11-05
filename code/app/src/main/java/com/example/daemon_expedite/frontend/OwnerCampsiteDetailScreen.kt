@@ -61,8 +61,7 @@ fun OwnerCampsiteDetailScreen(
             pill = { LotteryPill(details.lotteryStatus) },
         )
 
-        // TODO: highlight booked dates once reservations can be looked up by campsite.
-        CalendarSection(title = "Booked Dates", ranges = emptyList())
+        CalendarSection(title = "Booked Dates", ranges = details.bookedNights)
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val width = maxWidth.value.toInt()

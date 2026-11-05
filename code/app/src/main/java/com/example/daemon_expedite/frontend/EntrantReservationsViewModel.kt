@@ -3,6 +3,7 @@ package com.example.daemon_expedite.frontend
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.daemon_expedite.backend.BookingRejectedException
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Reservation
@@ -87,39 +88,37 @@ class EntrantReservationsViewModel : ViewModel() {
     }
 
     /**
-     * Cancels an active reservation: saves it with `isCancelled = true` and moves its card to
-     * the Cancelled tab. [onResult] gets true if it was saved. Ignored while another
-     * cancellation is still saving.
+     * Cancels an active reservation through [Database.cancelReservation], which also frees its
+     * lottery booking, then moves its card to the Cancelled tab. [onResult] gets null if it
+     * worked, or a message to show. Ignored while another cancellation is still saving.
      */
-    fun cancel(reservationId: Id, onResult: (Boolean) -> Unit) {
+    fun cancel(reservationId: Id, onResult: (String?) -> Unit) {
         if (_cancellingId.value != null) return
-        val current = loaded.find { it.id == reservationId } ?: return onResult(false)
+        val viewer = user ?: return onResult(CANCEL_FAILED)
+        if (loaded.none { it.id == reservationId }) return onResult(CANCEL_FAILED)
         _cancellingId.value = reservationId
         viewModelScope.launch {
-            // Saves a cancelled copy rather than calling cancel() on the one on screen, so if the
-            // save fails nothing here has changed and the card stays under Active.
-            val cancelled = Reservation(
-                id = current.id,
-                campsite = current.campsite,
-                period = current.period,
-                reservedBy = current.reservedBy,
-                lotteryId = current.lotteryId,
-            ).apply { cancel() }
-            val saved = try {
-                Database.updateReservation(cancelled)
-                true
+            // Only the saved copy replaces the card, so if the save fails nothing here has
+            // changed and the card stays under Active.
+            val result = try {
+                Result.success(Database.cancelReservation(reservationId, viewer.id))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Cancelling reservation $reservationId failed", e)
-                false
+                Result.failure(e)
             }
-            if (saved) {
+            result.getOrNull()?.let { cancelled ->
                 loaded = loaded.map { if (it.id == reservationId) cancelled else it }
                 _reservations.value = UiState.Content(groupReservations(loaded, campsites))
             }
             _cancellingId.value = null
-            onResult(saved)
+            onResult(
+                result.exceptionOrNull()?.let { e ->
+                    generateSequence(e) { it.cause }.filterIsInstance<BookingRejectedException>().firstOrNull()?.message
+                        ?: CANCEL_FAILED
+                },
+            )
         }
     }
 
@@ -143,6 +142,7 @@ class EntrantReservationsViewModel : ViewModel() {
 
     private companion object {
         const val TAG = "EntrantReservations"
+        const val CANCEL_FAILED = "Couldn't cancel the reservation. Check your connection and try again."
     }
 }
 
