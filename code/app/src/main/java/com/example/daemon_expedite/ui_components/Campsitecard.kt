@@ -45,6 +45,8 @@ enum class PillVariant {
     Muted,
     /** Dark pill with a thin sage outline. For status labels such as "Confirmed". */
     Outlined,
+    /** Dark pill with a red outline. For bad outcomes such as a lost lottery. */
+    Danger,
 }
 
 /**
@@ -93,6 +95,12 @@ fun CampsitePill(
             borderColor = AppColors.OutlineAccent
             borderWidth = 1f
             iconTint = AppColors.TextPrimary
+        }
+        PillVariant.Danger -> {
+            background = AppColors.SurfaceDeep.copy(alpha = 0.7f)
+            borderColor = AppColors.Danger
+            borderWidth = 1f
+            iconTint = AppColors.Danger
         }
     }
 

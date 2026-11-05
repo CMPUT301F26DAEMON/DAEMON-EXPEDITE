@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,9 +43,10 @@ import androidx.compose.ui.unit.dp
  * @param entriesText When entries open or close.
  * @param staysText The stay dates and number of nights.
  * @param countsText How many joined and how many winners.
- * @param onClick Called when the card is tapped.
+ * @param onClick Called when the card is tapped. Null makes the card not tappable and hides the arrow.
  * @param modifier [Modifier] applied to the card.
  * @param statusVariant Look of the status pill. See [PillVariant].
+ * @param footer Optional content under the text, for example a button. Null shows nothing.
  */
 @Composable
 fun LotteryCard(
@@ -53,9 +55,10 @@ fun LotteryCard(
     entriesText: String,
     staysText: String,
     countsText: String,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     statusVariant: PillVariant = PillVariant.Outlined,
+    footer: (@Composable () -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(16.dp)
     Column(
@@ -64,7 +67,7 @@ fun LotteryCard(
             .clip(shape)
             .background(AppColors.Surface)
             .border(BorderStroke(1.dp, AppColors.OutlineAccent), shape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -92,7 +95,12 @@ fun LotteryCard(
                 color = AppColors.Secondary,
                 modifier = Modifier.weight(1f),
             )
-            Icon(AppIcons.ArrowForward, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(18.dp))
+            if (onClick != null) {
+                Icon(AppIcons.ArrowForward, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(18.dp))
+            }
+        }
+        if (footer != null) {
+            Box(Modifier.padding(top = 6.dp)) { footer() }
         }
     }
 }

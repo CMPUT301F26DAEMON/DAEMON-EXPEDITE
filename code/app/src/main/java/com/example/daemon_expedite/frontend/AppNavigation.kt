@@ -46,6 +46,7 @@ object Routes {
     const val CAMPSITE_ID_ARG = "campsiteId"
     const val CAMPSITE_DETAIL = "campsite/{$CAMPSITE_ID_ARG}"
     const val RESERVATIONS = "reservations"
+    const val ENTRANT_LOTTERIES = "entrant_lotteries"
 
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
 
@@ -122,6 +123,7 @@ object Routes {
  * Splash ─► Home ─┬─► Campsite details ─┬─► Map view
  *                 │                     └─► Campsite policies
  *                 ├─► My reservations
+ *                 ├─► My lotteries
  *                 └─► Entrant profile ─┬─► Edit profile ─► Edit photo
  *                                      ├─► Edit photo
  *                                      ├─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
@@ -228,8 +230,42 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onFilterClick = home::onFilterClick,
                 onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
                 onReservationsClick = { navController.navigate(Routes.RESERVATIONS) },
-                onLotteriesClick = { showComingSoon("Lotteries") },
+                onLotteriesClick = { navController.navigate(Routes.ENTRANT_LOTTERIES) },
                 onMessagesClick = { showComingSoon("Messages") },
+            )
+        }
+
+        composable(Routes.ENTRANT_LOTTERIES) {
+            val lotteries: EntrantLotteriesViewModel = viewModel()
+            // Runs each time this screen comes back, so a lottery joined meanwhile shows up.
+            LaunchedEffect(user) { user?.let(lotteries::load) }
+            val state by lotteries.lotteries.collectAsState()
+            var leavingId by remember { mutableStateOf<Id?>(null) }
+            EntrantLotteriesScreen(
+                state = state,
+                leavingId = leavingId,
+                onBackClick = { navController.popBackStack() },
+                onRetry = lotteries::retry,
+                onLeaveConfirmed = { lotteryId ->
+                    leavingId = lotteryId
+                    session.leaveLottery(lotteryId) { result ->
+                        leavingId = null
+                        when (result) {
+                            LotteryActionResult.DONE -> {
+                                toast("You left the waiting list")
+                                lotteries.removeFromInProgress(lotteryId)
+                            }
+
+                            LotteryActionResult.CLOSED -> {
+                                toast("Entries for this lottery are closed, so you can't leave now.")
+                            }
+
+                            LotteryActionResult.FULL, LotteryActionResult.FAILED -> {
+                                toast("Something went wrong. Check your connection and try again.")
+                            }
+                        }
+                    }
+                },
             )
         }
 
