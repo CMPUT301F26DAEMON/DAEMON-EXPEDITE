@@ -95,6 +95,9 @@ object Routes {
     // Admin (only reachable for users in the "admins" collection)
     const val ADMIN_HOME = "admin_home"
     const val ADMIN_PROFILE = "admin_profile"
+    const val ADMIN_CAMPSITE_DETAIL = "admin_campsite/{$CAMPSITE_ID_ARG}"
+
+    fun adminCampsiteDetail(id: Id) = "admin_campsite/${id.value}"
 
     // Not built yet. When a screen is added, give it a route here and replace the
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
@@ -129,7 +132,8 @@ object Routes {
  *                                      │               │                 └─► Create lottery
  *                                      │               └─► Register campsite ─► Select location (map)
  *                                      └─► Admin home* ─┬─► Admin profile (role toggle)
- *                                                       └─► Campsite details
+ *                                                       └─► Admin campsite details ─┬─► Map view
+ *                                                                                   └─► Campsite policies
  * ```
  * All three profile pages have the role toggle: Entrant / Owner, plus Admin for users found in
  * the "admins" collection at start-up (see [SessionState.Ready.isAdmin]). The toggle on any of
@@ -714,9 +718,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         composable(Routes.ADMIN_HOME) {
             // Same campsite list and search as Entrant home, with its own HomeViewModel
             // (scoped to this screen, so the admin's search doesn't change Entrant home's).
+            // No setViewer here: admins see every campsite, their own included.
             val home: HomeViewModel = viewModel()
+            // Runs every time Admin home comes back, so deleted campsites disappear.
             LaunchedEffect(Unit) { home.onScreenShown() }
-            LaunchedEffect(user) { home.setViewer(user?.id) }
             val query by home.query.collectAsState()
             val campsites by home.campsites.collectAsState()
             AdminHomeScreen(
@@ -725,7 +730,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onSearchQueryChange = home::onQueryChange,
                 campsites = campsites,
                 onRetry = home::retry,
-                onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
+                onCampsiteClick = { id -> navController.navigate(Routes.adminCampsiteDetail(id)) },
                 onFilterClick = home::onFilterClick,
                 onProfileClick = { navController.navigate(Routes.ADMIN_PROFILE) },
                 onMessagesClick = { showComingSoon("Messages") },
@@ -747,6 +752,48 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onBackClick = { navController.popBackStack() },
                 onRoleSelected = { switchRole(it) },
                 onDeleteProfile = null,
+            )
+        }
+
+        composable(Routes.ADMIN_CAMPSITE_DETAIL) {
+            // Reads the campsite id from the route through its SavedStateHandle.
+            val detail: AdminCampsiteDetailViewModel = viewModel()
+            LaunchedEffect(Unit) { detail.load() }
+            val state by detail.details.collectAsState()
+            val deleting by detail.isDeleting.collectAsState()
+
+            /** Shows [message] and goes back to Admin home, which reloads when shown. */
+            fun onDeleted(message: String) {
+                toast(message)
+                // The admin may have deleted their own campsite or owner profile. Reload the
+                // shared owner data so the owner screens don't keep showing it.
+                user?.takeIf { it.id == detail.ownerId }?.let { ownerViewModel.load(it, force = true) }
+                navController.popBackStack()
+            }
+
+            AdminCampsiteDetailScreen(
+                state = state,
+                isDeleting = deleting,
+                onBackClick = { navController.popBackStack() },
+                onRetry = detail::load,
+                onViewMapClick = {
+                    (state as? UiState.Content)?.let {
+                        navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
+                    }
+                },
+                onPoliciesClick = {
+                    (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
+                },
+                onDeleteCampsiteConfirmed = {
+                    detail.deleteCampsite { ok ->
+                        if (ok) onDeleted("Campsite deleted") else toast("Couldn't delete campsite. Check your connection and try again.")
+                    }
+                },
+                onDeleteOwnerConfirmed = {
+                    detail.deleteOwner { ok ->
+                        if (ok) onDeleted("Owner deleted") else toast("Couldn't delete owner. Check your connection and try again.")
+                    }
+                },
             )
         }
 
