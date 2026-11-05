@@ -106,7 +106,7 @@ fun CampsiteDetailScreen(
             onLeaveClick = { askLeave = true },
         )
 
-        CalendarSection(title = "Available Dates", ranges = details.stayPeriods.map { it.start..it.end })
+        CalendarSection(title = "Available Dates", ranges = details.availableNights)
 
         OwnerCard(
             name = details.ownerName ?: "Campsite owner",

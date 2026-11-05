@@ -6,6 +6,7 @@ import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.LotteryPhase
+import com.example.daemon_expedite.backend.Reservation
 import com.example.daemon_expedite.backend.nightsList
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -98,4 +99,92 @@ class BookingRulesTest {
         // Everything in a period is open on Maple.
         assertTrue(BookingRules.isSelectable(l, maple, day(16)))
     }
+
+    // region Cancelling
+
+    private fun myReservation(period: DatePeriod = nights(18, 20), cancelled: Boolean = false) =
+        Reservation(campsite = pine, period = period, reservedBy = me, isCancelled = cancelled)
+
+    @Test
+    fun cancel_allowedUntilTheDayBeforeTheStay() {
+        assertNull(BookingRules.cancelProblem(myReservation(), me, day(17)))
+        assertNotNull(BookingRules.cancelProblem(myReservation(), me, day(18))) // first night
+        assertNotNull(BookingRules.cancelProblem(myReservation(), me, day(19))) // under way
+    }
+
+    @Test
+    fun cancel_onlyByWhoBookedAndOnlyOnce() {
+        assertNotNull(BookingRules.cancelProblem(myReservation(), rival, day(10)))
+        assertNotNull(BookingRules.cancelProblem(myReservation(cancelled = true), me, day(10)))
+    }
+
+    @Test
+    fun cancel_freesTheNightsSoTheWinnerCanBookAgain() {
+        val reservation = myReservation()
+        val mine = Booking(me, pine, reservation.period, reservation.id)
+        val l = lottery(extraBookings = listOf(mine))
+        assertNotNull(check(l = l)) // already booked
+
+        val left = BookingRules.bookingsAfterCancel(l, reservation)
+        assertEquals(listOf(rival), left.map { it.user }) // the rival's booking stays
+        assertNull(check(l = lottery(extraBookings = left - lottery().bookings.toSet()))) // free again, and I may rebook
+    }
+
+    @Test
+    fun cancel_matchesOldBookingsWithoutAReservationId() {
+        val l = lottery(extraBookings = listOf(Booking(me, pine, nights(18, 20))))
+        assertEquals(listOf(rival), BookingRules.bookingsAfterCancel(l, myReservation()).map { it.user })
+    }
+
+    @Test
+    fun cancel_isFinalOnlyAfterTheBookingWindow() {
+        assertFalse(BookingRules.cancelGivesUpWin(LotteryPhase.BOOKING))
+        assertTrue(BookingRules.cancelGivesUpWin(LotteryPhase.STAYS))
+    }
+
+    // endregion
+
+    // region Calendars
+
+    @Test
+    fun freeNightRanges_leaveOutBookedNights() {
+        // Pine: stays 16–20 and 23–25, rival has the nights of 16 and 17.
+        assertEquals(listOf(day(18)..day(19), day(23)..day(24)), BookingRules.freeNightRanges(lottery(), pine))
+        // Nothing booked on Maple: every night of both stays.
+        assertEquals(listOf(day(16)..day(19), day(23)..day(24)), BookingRules.freeNightRanges(lottery(), maple))
+    }
+
+    @Test
+    fun bookedNightRanges_mergeBackToBackBookingsAndSkipOtherCampsites() {
+        val l = lottery(extraBookings = listOf(Booking(me, pine, nights(18, 20)), Booking(Id(), maple, nights(23, 25))))
+        assertEquals(listOf(day(16)..day(19)), BookingRules.bookedNightRanges(listOf(l), pine))
+        assertEquals(listOf(day(23)..day(24)), BookingRules.bookedNightRanges(listOf(l), maple))
+    }
+
+    @Test
+    fun bookedNightRanges_ignoreCancelledLotteries() {
+        val cancelled = Lottery(
+            ownerId = Id(),
+            campsites = listOf(pine),
+            entryStart = day(1).atStartOfDay(zone).toInstant().toKotlinInstant(),
+            entryEnd = day(6).atStartOfDay(zone).toInstant().toKotlinInstant(),
+            stayPeriods = listOf(nights(16, 20)),
+            winnerCount = 1,
+            winners = listOf(me),
+            bookings = listOf(Booking(me, pine, nights(16, 18))),
+            drawn = true,
+            cancelled = true,
+        )
+        assertTrue(BookingRules.bookedNightRanges(listOf(cancelled), pine).isEmpty())
+    }
+
+    @Test
+    fun nightRuns_sortsAndSplitsOnGaps() {
+        assertEquals(
+            listOf(day(1)..day(2), day(5)..day(5)),
+            BookingRules.nightRuns(listOf(day(5), day(2), day(1), day(2))),
+        )
+    }
+
+    // endregion
 }

@@ -89,6 +89,8 @@ interface DatabaseInterface {
 
     suspend fun declineLottery(lotteryId: Id, userId: Id)
 
+    suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation
+
     suspend fun fetchLottery(id: Id): Lottery
 
     suspend fun updateLottery(lottery: Lottery)
@@ -1070,7 +1072,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     /** The reservation with [id], or null if there isn't one or it can't be read. */
     override suspend fun fetchReservation(id: Id): Reservation? {
         val data = reservationRef(id).get().await().data ?: return null
-        return try {
+        return parseReservation(id, data)
+    }
+
+    /** A reservation from its Firestore [data], or null if it can't be read. */
+    private fun parseReservation(id: Id, data: Map<String, Any?>): Reservation? =
+        try {
             Reservation(
                 id = id,
                 campsite = Id(Uuid.parse(data["campsite"] as String)),
@@ -1085,7 +1092,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             Log.e("DatabaseInner", "Unreadable reservation ${id.value}", e)
             null
         }
-    }
 
     /**
      * Adds [userId] to the lottery's waiting list and the lottery to the user's `lotteries`.
@@ -1197,6 +1203,51 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 problem?.let { throw BookingRejectedException(it) }
                 tx.update(ref, "declined", FieldValue.arrayUnion(userId.value.toString()))
                 null
+            }.await()
+    }
+
+    /**
+     * Cancels [userId]'s reservation [reservationId], allowed any time before the stay starts
+     * (see [BookingRules.cancelProblem]).
+     *
+     * If it was won in a lottery, the same transaction takes the booking out of the lottery's
+     * `bookings`, so the nights are free again and every screen stops showing it as booked.
+     * During the booking window the winner may then book again; after it the cancel is final,
+     * so they're added to `declined` too.
+     *
+     * @return The cancelled reservation.
+     * @throws BookingRejectedException if it can't be cancelled; its message says why.
+     */
+    override suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation {
+        val ref = reservationRef(reservationId)
+        return db
+            .runTransaction { tx ->
+                // Firestore needs every read before the first write.
+                val data = tx.get(ref).data ?: throw NotFoundException("Reservation ${reservationId.value} not found")
+                val reservation = parseReservation(reservationId, data)
+                    ?: throw NotFoundException("Reservation ${reservationId.value} can't be read")
+                BookingRules.cancelProblem(reservation, userId, LocalDate.now())
+                    ?.let { throw BookingRejectedException(it) }
+                val lottery = reservation.lotteryId?.let { id ->
+                    tx.get(lotteryRef(id)).data?.let { parseLottery(id, it) }
+                }
+
+                if (lottery != null) {
+                    val lotteryDoc = lotteryRef(lottery.id)
+                    tx.update(lotteryDoc, "bookings", BookingRules.bookingsAfterCancel(lottery, reservation).map { it.toMap() })
+                    if (BookingRules.cancelGivesUpWin(lottery.phase())) {
+                        tx.update(lotteryDoc, "declined", FieldValue.arrayUnion(userId.value.toString()))
+                    }
+                }
+                tx.update(ref, "isCancelled", true)
+                Reservation(
+                    id = reservation.id,
+                    campsite = reservation.campsite,
+                    period = reservation.period,
+                    reservedBy = reservation.reservedBy,
+                    lotteryId = reservation.lotteryId,
+                    isCancelled = true,
+                )
             }.await()
     }
 
@@ -1546,6 +1597,9 @@ object Database {
 
     /** Turns down a lottery win. See [DatabaseInner.declineLottery]. */
     suspend fun declineLottery(lotteryId: Id, userId: Id) = db.declineLottery(lotteryId, userId)
+
+    /** Cancels a reservation and frees its lottery booking. See [DatabaseInner.cancelReservation]. */
+    suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation = db.cancelReservation(reservationId, userId)
 
     /** Saves edited lottery settings without touching its waitlist. See [DatabaseInner.updateLotterySettings]. */
     suspend fun updateLotterySettings(edited: Lottery) = db.updateLotterySettings(edited)

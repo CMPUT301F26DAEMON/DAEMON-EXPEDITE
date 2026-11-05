@@ -10,4 +10,4 @@ $(GS_JSON):
 	@printf '%s' "$$GOOGLE_SERVICES_B64" | base64 -d > $@
 
 build: $(GS_JSON)
-	$(GRADLE) build --configuration-cache
+	$(GRADLE) assembleDebug testDebugUnitTest --configuration-cache

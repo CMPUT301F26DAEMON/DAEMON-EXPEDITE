@@ -241,15 +241,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onBackClick = { navController.popBackStack() },
                 onRetry = reservations::retry,
                 onCancelConfirmed = { id ->
-                    reservations.cancel(id) { saved ->
-                        toast(
-                            if (saved) {
-                                "Reservation cancelled"
-                            } else {
-                                "Couldn't cancel the reservation. Check your connection and try again."
-                            },
-                        )
-                    }
+                    reservations.cancel(id) { problem -> toast(problem ?: "Reservation cancelled") }
                 },
                 onRateStayClick = { showComingSoon("Rating") },
             )
