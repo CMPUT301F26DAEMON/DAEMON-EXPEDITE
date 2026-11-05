@@ -3,20 +3,34 @@ package com.example.daemon_expedite.frontend
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
+import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+
+/**
+ * Filter parameters combined from the search bar and filter bottom sheet.
+ */
+data class FilterState(
+    val query: String = "",
+    val location: String = "",
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
+    val guestCount: Int = 1,
+)
 
 /**
  * Data for the entrant home screen: the search text and the campsites to show.
  *
- * Loads suggested campsites on start, and searches again whenever the search text changes.
+ * Loads suggested campsites on start, and searches again whenever search text or filter options change.
  * Also reloads quietly each time the screen is shown again (see [onScreenShown]), because this
  * ViewModel lives as long as the Home screen, which stays at the bottom of the back stack.
  *
@@ -30,12 +44,25 @@ class HomeViewModel : ViewModel() {
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
+    private val _location = MutableStateFlow("")
+    private val _startdate = MutableStateFlow<LocalDate?>(null)
+    private val _enddate = MutableStateFlow<LocalDate?>(null)
+    private val _guestCount = MutableStateFlow(1)
+
     private val _campsites = MutableStateFlow<UiState<List<CampsiteSummary>>>(UiState.Loading)
     val campsites: StateFlow<UiState<List<CampsiteSummary>>> = _campsites.asStateFlow()
 
     init {
         viewModelScope.launch {
-            _query
+            combine(
+                _query,
+                _location,
+                _startdate,
+                _enddate,
+                _guestCount,
+            ) { query, location, startDate, endDate, guestCount ->
+                FilterState(query, location, startDate, endDate, guestCount)
+            }
                 .debounce(SEARCH_DELAY_MS)
                 .distinctUntilChanged()
                 // collectLatest cancels an older search if a newer one starts.
@@ -45,6 +72,18 @@ class HomeViewModel : ViewModel() {
 
     fun onQueryChange(text: String) {
         _query.value = text
+    }
+
+    fun onFilterClick(
+        location: String,
+        startDate: LocalDate?,
+        endDate: LocalDate?,
+        guestCount: Int,
+    ) {
+        _location.value = location
+        _startdate.value = startDate
+        _enddate.value = endDate
+        _guestCount.value = guestCount
     }
 
     private var shownBefore = false
@@ -77,27 +116,45 @@ class HomeViewModel : ViewModel() {
             return
         }
         viewModelScope.launch {
-            val fresh = loadAsUiState("Couldn't refresh campsites") { fetch(_query.value) }
+            val fresh = loadAsUiState("Couldn't refresh campsites") { fetch(currentFilterState()) }
             if (fresh is UiState.Content || _campsites.value !is UiState.Content) _campsites.value = fresh
         }
     }
 
     /** Runs the current search again, for example from a "try again" button. */
     fun retry() {
-        viewModelScope.launch { search(_query.value) }
+        viewModelScope.launch { search(currentFilterState()) }
     }
 
-    private suspend fun search(text: String) {
+    private fun currentFilterState() = FilterState(
+        query = _query.value,
+        location = _location.value,
+        startDate = _startdate.value,
+        endDate = _enddate.value,
+        guestCount = _guestCount.value,
+    )
+
+    private suspend fun search(filter: FilterState) {
         _campsites.value = UiState.Loading
-        _campsites.value = loadAsUiState("Couldn't load campsites") { fetch(text) }
+        _campsites.value = loadAsUiState("Couldn't load campsites") { fetch(filter) }
     }
 
-    // Matches the start of the address, case-sensitive (see Database.searchCampsite).
+    // Matches title text, location, dates, and max guest occupancy.
     // Asks for extra results so hiding the user's own campsites still leaves a full list.
-    private suspend fun fetch(text: String): List<CampsiteSummary> {
+    private suspend fun fetch(filter: FilterState): List<CampsiteSummary> {
         val viewer = viewerId
+        val datesPeriod = if (filter.startDate != null && filter.endDate != null) {
+            DatePeriod(filter.startDate, filter.endDate)
+        } else null
+
         return Database
-            .searchCampsite(location = text.trim().ifBlank { null }, limit = RESULT_LIMIT + OWN_CAMPSITE_ALLOWANCE)
+            .searchCampsite(
+                location = filter.location.trim().ifBlank { null },
+                maxOccupancy = filter.guestCount.takeIf { it > 1 },
+                dates = datesPeriod,
+                titleText = filter.query.trim().ifBlank { null },
+                limit = RESULT_LIMIT + OWN_CAMPSITE_ALLOWANCE,
+            )
             .campsites
             .filterNot { viewer != null && it.ownerId == viewer }
             .take(RESULT_LIMIT)

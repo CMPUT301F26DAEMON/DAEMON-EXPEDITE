@@ -206,6 +206,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 campsites = campsites,
                 onRetry = home::retry,
                 onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
+                onFilterClick = home::onFilterClick,
                 onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
                 onReservationsClick = { showComingSoon("Reservations") },
                 onLotteriesClick = { showComingSoon("Lotteries") },
