@@ -46,6 +46,7 @@ object Routes {
     const val CAMPSITE_ID_ARG = "campsiteId"
     const val CAMPSITE_DETAIL = "campsite/{$CAMPSITE_ID_ARG}"
     const val RESERVATIONS = "reservations"
+    const val ENTRANT_LOTTERIES = "entrant_lotteries"
 
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
 
@@ -78,9 +79,13 @@ object Routes {
 
     const val EDIT_LOTTERY = "owner_lottery/{$LOTTERY_ID_ARG}/edit"
 
+    const val OWNER_LOTTERY_WAITLIST = "owner_lottery/{$LOTTERY_ID_ARG}/waitlist"
+
     fun ownerLotteryDetail(id: Id) = "owner_lottery/${id.value}"
 
     fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
+
+    fun ownerLotteryWaitlist(id: Id) = "owner_lottery/${id.value}/waitlist"
 
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
@@ -122,6 +127,7 @@ object Routes {
  * Splash ─► Home ─┬─► Campsite details ─┬─► Map view
  *                 │                     └─► Campsite policies
  *                 ├─► My reservations
+ *                 ├─► My lotteries
  *                 └─► Entrant profile ─┬─► Edit profile ─► Edit photo
  *                                      ├─► Edit photo
  *                                      ├─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
@@ -228,8 +234,42 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onFilterClick = home::onFilterClick,
                 onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
                 onReservationsClick = { navController.navigate(Routes.RESERVATIONS) },
-                onLotteriesClick = { showComingSoon("Lotteries") },
+                onLotteriesClick = { navController.navigate(Routes.ENTRANT_LOTTERIES) },
                 onMessagesClick = { showComingSoon("Messages") },
+            )
+        }
+
+        composable(Routes.ENTRANT_LOTTERIES) {
+            val lotteries: EntrantLotteriesViewModel = viewModel()
+            // Runs each time this screen comes back, so a lottery joined meanwhile shows up.
+            LaunchedEffect(user) { user?.let(lotteries::load) }
+            val state by lotteries.lotteries.collectAsState()
+            var leavingId by remember { mutableStateOf<Id?>(null) }
+            EntrantLotteriesScreen(
+                state = state,
+                leavingId = leavingId,
+                onBackClick = { navController.popBackStack() },
+                onRetry = lotteries::retry,
+                onLeaveConfirmed = { lotteryId ->
+                    leavingId = lotteryId
+                    session.leaveLottery(lotteryId) { result ->
+                        leavingId = null
+                        when (result) {
+                            LotteryActionResult.DONE -> {
+                                toast("You left the waiting list")
+                                lotteries.removeFromInProgress(lotteryId)
+                            }
+
+                            LotteryActionResult.CLOSED -> {
+                                toast("Entries for this lottery are closed, so you can't leave now.")
+                            }
+
+                            LotteryActionResult.FULL, LotteryActionResult.FAILED -> {
+                                toast("Something went wrong. Check your connection and try again.")
+                            }
+                        }
+                    }
+                },
             )
         }
 
@@ -541,6 +581,19 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             )
         }
 
+        composable(Routes.OWNER_LOTTERY_WAITLIST) {
+            val waitlist: LotteryWaitingListViewModel = viewModel()
+            // Runs each time the page comes back, so new entrants show up.
+            LaunchedEffect(Unit) { waitlist.load() }
+            val state by waitlist.entrants.collectAsState()
+            LotteryWaitingList(
+                state = state,
+                onBackClick = { navController.popBackStack() },
+                onRetry = waitlist::load,
+                onMessageClick = { showComingSoon("Messages") },
+            )
+        }
+
         composable(Routes.OWNER_LOTTERY_DETAIL) {
             val detail: OwnerLotteryDetailViewModel = viewModel()
             // Runs each time the page comes back, so edits show up.
@@ -553,7 +606,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 onBackClick = { navController.popBackStack() },
                 onRetry = detail::load,
                 onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
-                onViewWaitlistClick = { showComingSoon("Waitlist") },
+                onViewWaitlistClick = {
+                    (state as? UiState.Content)?.let { navController.navigate(Routes.ownerLotteryWaitlist(it.data.id)) }
+                },
                 onEditClick = {
                     (state as? UiState.Content)?.let { navController.navigate(Routes.editLottery(it.data.id)) }
                 },
@@ -621,7 +676,15 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                         navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
                     }
                 },
-                onViewWaitlistClick = { showComingSoon("Waitlist") },
+                onViewWaitlistClick = {
+                    // The campsite's current lottery, if it's in one that isn't finished or cancelled.
+                    val lotteryId = (state as? UiState.Content)?.data?.lotteryId
+                    if (lotteryId != null) {
+                        navController.navigate(Routes.ownerLotteryWaitlist(lotteryId))
+                    } else {
+                        toast("This campsite isn't in a lottery right now")
+                    }
+                },
                 onEditClick = {
                     (state as? UiState.Content)?.let { navController.navigate(Routes.editCampsite(it.data.id)) }
                 },
