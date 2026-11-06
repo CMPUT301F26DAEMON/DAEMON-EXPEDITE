@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * One entrant on a lottery's waiting list, as shown on [LotteryWaitingList].
+ *
+ * @property id The entrant's user id.
+ * @property name The entrant's name, or "Unnamed entrant" if it is blank or couldn't be loaded.
+ */
 data class EntrantInWaitingList(val id: Id, val name: String)
 
 /**

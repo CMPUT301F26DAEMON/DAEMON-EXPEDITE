@@ -27,10 +27,16 @@ import com.example.daemon_expedite.ui_components.EntrantCard
 import com.example.daemon_expedite.ui_components.ScreenHeader
 
 /**
- * The owner's view of a lottery's waiting list.
+ * The owner's view of a lottery's waiting list. Opened by tapping "View Waitlist" on the
+ * owner's lottery details page.
  *
- * @param state The entrants, in join order, while loading, or why they couldn't load.
+ * Shows a spinner while loading, a tappable error message if loading fails, a placeholder
+ * if no one has joined yet, and otherwise one [EntrantCard] per entrant.
+ *
+ * @param state The entrants, in join order, or loading / error.
+ * @param onBackClick Called when the header's back button is tapped.
  * @param onRetry Called when the error message is tapped.
+ * @param onMessageClick Called when the message button on any entrant's card is tapped.
  */
 @Composable
 fun LotteryWaitingList(
@@ -86,11 +92,13 @@ fun LotteryWaitingList(
 
 }
 
+/** Centers [content] in the space below the header, for the loading, error and empty states. */
 @Composable
 private fun Centered(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { content() }
 }
 
+/** Preview of the waiting list with two entrants. */
 @Preview
 @Composable
 fun PreviewLotteryWaitingList(){
