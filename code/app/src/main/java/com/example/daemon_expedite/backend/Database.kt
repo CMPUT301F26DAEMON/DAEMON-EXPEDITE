@@ -1,3 +1,7 @@
+// AI use: some functions in this file were written with help from Anthropic, Claude Code,
+// "Add lottery and booking database functions to our schema", 2026-11-02 to 2026-11-05.
+// The design came from our team; we reviewed, edited and tested the code.
+
 package com.example.daemon_expedite.backend
 
 import android.location.Location

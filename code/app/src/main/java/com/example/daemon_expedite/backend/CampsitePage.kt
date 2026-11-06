@@ -1,3 +1,7 @@
+// AI use: some functions in this file were written with help from Anthropic, Claude Code,
+// "Implement our lottery model and rules", 2026-11-02.
+// The design came from our team; we reviewed, edited and tested the code.
+
 package com.example.daemon_expedite.backend
 
 import com.google.firebase.firestore.DocumentSnapshot

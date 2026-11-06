@@ -1,3 +1,7 @@
+// AI use: some functions in this file were written with help from Anthropic, Claude Code,
+// "Implement the My Lotteries, Create/Edit Lottery and lottery details screens from our design", 2026-11-02.
+// The design came from our team; we reviewed, edited and tested the code.
+
 package com.example.daemon_expedite.frontend
 
 import android.util.Log

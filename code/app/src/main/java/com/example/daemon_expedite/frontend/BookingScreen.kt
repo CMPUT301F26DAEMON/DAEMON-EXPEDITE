@@ -1,3 +1,7 @@
+// AI use: some functions in this file were written with help from Anthropic, Claude Code,
+// "Implement the lottery booking and decline flow from our rules", 2026-11-05.
+// The design came from our team; we reviewed, edited and tested the code.
+
 package com.example.daemon_expedite.frontend
 
 import androidx.compose.foundation.clickable
