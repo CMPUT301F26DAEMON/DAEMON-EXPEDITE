@@ -1,3 +1,7 @@
+// AI use: parts of this file were written with help from Anthropic, Claude Code,
+// "Write unit tests for the model classes with a mocked database", 2026-11-06.
+// The design came from our team; we reviewed, edited and tested the code.
+
 package com.example.daemon_expedite.backend_tests
 
 import com.example.daemon_expedite.backend.BookingRejectedException

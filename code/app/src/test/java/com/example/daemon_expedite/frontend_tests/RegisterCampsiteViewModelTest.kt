@@ -1,3 +1,7 @@
+// AI use: parts of this file were written with help from Anthropic, Claude Code,
+// "Implement the Register Campsite and Select Location screens from our Figma design", 2026-11-01.
+// The design came from our team; we reviewed, edited and tested the code.
+
 package com.example.daemon_expedite.frontend_tests
 
 import com.example.daemon_expedite.frontend.RegisterCampsiteViewModel
