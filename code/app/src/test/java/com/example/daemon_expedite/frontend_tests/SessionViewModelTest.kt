@@ -99,6 +99,17 @@ class SessionViewModelTest {
     }
 
     @Test
+    fun runCatchingAll_falseWhenBlockThrowsException() {
+        assertEquals(false, runBlocking { runCatchingAll("unused") { error("offline") } })
+    }
+
+    @Test
+    fun runCatchingAll_falseWhenBackendIsUnfinished() {
+        // TODO() throws NotImplementedError, an Error: reported as a failure, not a crash.
+        assertEquals(false, runBlocking { runCatchingAll("unused") { TODO() } })
+    }
+
+    @Test
     fun runCatchingAll_rethrowsCancellation() {
         // Cancellation must not be reported as a failure, or a closed screen would show an error.
         assertThrows(CancellationException::class.java) {

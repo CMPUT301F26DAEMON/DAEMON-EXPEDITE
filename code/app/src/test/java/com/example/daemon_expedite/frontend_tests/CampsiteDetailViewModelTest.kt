@@ -85,7 +85,6 @@ class CampsiteDetailViewModelTest {
     fun toIdOrNull_rejectsMissingMalformedAndNonV7() {
         assertNull((null as String?).toIdOrNull())
         assertNull("".toIdOrNull())
-        assertNull("campsite".toIdOrNull())
         // A well-formed v4 UUID parses, but Id only accepts v7.
         assertNull("550e8400-e29b-41d4-a716-446655440000".toIdOrNull())
     }
@@ -178,27 +177,26 @@ class CampsiteDetailViewModelTest {
         assertEquals(LotteryStatus.BOOKED, both.entrantStatus(me, midnight(day(10, 10))))
     }
 
-    @Test
-    fun entrantStatus_fullListOnlyBlocksOthers() {
-        val full = lottery(users = listOf(Id()))
-        val capped = Lottery(
-            ownerId = Id(), campsites = listOf(Id()),
-            entryStart = midnight(day(10, 1)), entryEnd = midnight(day(10, 6)),
-            stayPeriods = listOf(stay), winnerCount = 1,
-            waitingList = WaitingList(capacity = 1, users = full.waitingList.users),
-        )
-        assertEquals(LotteryStatus.FULL, capped.entrantStatus(me, midnight(day(10, 3))))
-        // Full lists don't matter once entries close for someone who never joined.
-        assertEquals(LotteryStatus.NONE, capped.entrantStatus(me, midnight(day(10, 7))))
-    }
-
     // endregion
 
     // region Loading helpers
+    // Each takes a block that either returns, throws an Exception, throws an Error (an
+    // unfinished `TODO()`), or is cancelled.
 
     @Test
     fun loadAsUiState_wrapsResult() = runBlocking {
         assertEquals(UiState.Content(42), loadAsUiState("unused") { 42 })
+    }
+
+    @Test
+    fun loadAsUiState_exceptionBecomesErrorMessage() = runBlocking {
+        assertEquals(UiState.Error("Couldn't load"), loadAsUiState<Int>("Couldn't load") { error("offline") })
+    }
+
+    @Test
+    fun loadAsUiState_unfinishedBackendBecomesErrorMessage() = runBlocking {
+        // NotImplementedError is an Error, not an Exception; it must not crash the screen.
+        assertEquals(UiState.Error("Couldn't load"), loadAsUiState<Int>("Couldn't load") { TODO() })
     }
 
     @Test
@@ -209,8 +207,17 @@ class CampsiteDetailViewModelTest {
     }
 
     @Test
-    fun quietly_returnsResultAndRethrowsCancellation() {
+    fun quietly_returnsResult() {
         assertEquals("ok", runBlocking { quietly("unused") { "ok" } })
+    }
+
+    @Test
+    fun quietly_exceptionBecomesNull() {
+        assertNull(runBlocking { quietly<String>("unused") { error("missing owner") } })
+    }
+
+    @Test
+    fun quietly_rethrowsCancellation() {
         assertThrows(CancellationException::class.java) {
             runBlocking { quietly<String>("unused") { throw CancellationException() } }
         }

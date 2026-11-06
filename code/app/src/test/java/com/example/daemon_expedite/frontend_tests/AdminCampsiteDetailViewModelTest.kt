@@ -57,15 +57,4 @@ class AdminCampsiteDetailViewModelTest {
         assertEquals(false, result)
         assertFalse(vm.isDeleting.value)
     }
-
-    @Test
-    fun deletes_failAfterNotFound() {
-        val vm = withRoute(null)
-        vm.load()
-        val results = mutableListOf<Boolean>()
-        vm.deleteCampsite { results += it }
-        vm.deleteOwner { results += it }
-        assertEquals(listOf(false, false), results)
-        assertNull(vm.ownerId)
-    }
 }

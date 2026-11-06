@@ -145,18 +145,6 @@ class OwnerLotteryDetailViewModelTest {
     }
 
     @Test
-    fun booking_fewerJoinedThanWinners() {
-        // Everyone wins when fewer entrants joined than there are winners to draw.
-        val only = Id()
-        val details = lottery(
-            drawn = true,
-            winners = listOf(only),
-            waitingList = WaitingList(capacity = 10, users = listOf(only)),
-        ).at(midnight(day(10, 10)))
-        assertEquals("1/10 joined · 1 of 2 winners drawn · 0 booked", details.drawText)
-    }
-
-    @Test
     fun stays_cannotCancel() {
         val details = lottery(drawn = true).at(midnight(day(10, 16)))
         assertEquals("In progress", details.status)

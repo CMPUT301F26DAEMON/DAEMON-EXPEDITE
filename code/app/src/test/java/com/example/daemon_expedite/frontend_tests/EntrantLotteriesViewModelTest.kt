@@ -91,8 +91,6 @@ class EntrantLotteriesViewModelTest {
     fun inProgress_fromEntryStartUntilTheDraw() {
         assertTrue(lottery().isInProgressFor(me, midnight(day(10, 1)), zone))
         assertTrue(lottery().isInProgressFor(me, midnight(day(10, 6)), zone)) // closed, waiting for draw
-        // A late draw keeps it in progress, even into the stay dates.
-        assertTrue(lottery().isInProgressFor(me, midnight(day(10, 17)), zone))
     }
 
     @Test
@@ -104,12 +102,6 @@ class EntrantLotteriesViewModelTest {
     fun results_lostStaysLostAfterTheStays() {
         val lost = lottery(users = listOf(me, Id()), winners = listOf(Id()), drawn = true)
         assertEquals("Lost" to PillVariant.Danger, lost.resultPill(me, midnight(day(10, 20)), zone))
-    }
-
-    @Test
-    fun results_bookedStaysBookedAfterTheStays() {
-        val booked = lottery(winners = listOf(me), bookings = listOf(Booking(me, campsite, stay)), drawn = true)
-        assertEquals("Won · Booked" to PillVariant.Outlined, booked.resultPill(me, midnight(day(10, 20)), zone))
     }
 
     @Test

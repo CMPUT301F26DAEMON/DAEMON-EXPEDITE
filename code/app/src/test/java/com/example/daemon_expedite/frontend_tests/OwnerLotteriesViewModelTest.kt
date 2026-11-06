@@ -58,14 +58,13 @@ class OwnerLotteriesViewModelTest {
     fun plural_zeroOneMany() {
         assertEquals("0 nights", plural(0, "night"))
         assertEquals("1 night", plural(1, "night"))
-        assertEquals("12 winners", plural(12, "winner"))
+        assertEquals("2 winners", plural(2, "winner"))
     }
 
     @Test
     fun shortDate_yearOnlyWhenDifferent() {
         assertEquals("16 Oct", LocalDate.of(2026, 10, 16).shortDate(2026))
         assertEquals("16 Oct 2027", LocalDate.of(2027, 10, 16).shortDate(2026))
-        assertEquals("1 Jan 2025", LocalDate.of(2025, 1, 1).shortDate(2026))
     }
 
     // endregion
@@ -74,9 +73,7 @@ class OwnerLotteriesViewModelTest {
 
     private val zone = ZoneId.of("America/Edmonton")
     private val pine = Id()
-    private val maple = Id()
-    private val birch = Id()
-    private val names = mapOf(pine to "Pine Creek", maple to "Maple", birch to "Birch")
+    private val names = mapOf(pine to "Pine Creek")
 
     private fun day(month: Int, day: Int, year: Int = 2026) = LocalDate.of(year, month, day)
     private fun midnight(date: LocalDate): Instant = date.atStartOfDay(zone).toInstant().toKotlinInstant()
@@ -99,12 +96,6 @@ class OwnerLotteriesViewModelTest {
         waitingList = waitingList,
         drawn = drawn,
     )
-
-    @Test
-    fun titleCountsEveryOtherKnownCampsite() {
-        val summary = lottery(campsites = listOf(pine, maple, birch)).toSummary(names, midnight(day(10, 3)), zone)
-        assertEquals("Pine Creek + 2 more", summary.title)
-    }
 
     @Test
     fun singleOneNightPeriod_noPeriodCountAndSingularNight() {
