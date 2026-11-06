@@ -19,12 +19,23 @@ class Rating(
     var count: Int = count
         private set
 
+    /**
+     * Adds one rating of 1 to [MAX_RATING] stars.
+     *
+     * @throws IllegalArgumentException if [rating] is outside 1..[MAX_RATING].
+     */
     fun addRating(rating: Int) {
+        require(rating in 1..MAX_RATING) { "Rating must be 1 to $MAX_RATING stars, was $rating" }
         totalScore += rating
         count++
     }
 
     fun average(): Double {
         return if (count == 0) 0.0 else totalScore.toDouble() / count
+    }
+
+    companion object {
+        /** Highest rating allowed; matches the 5 stars in RatingPopup. */
+        const val MAX_RATING = 5
     }
 }

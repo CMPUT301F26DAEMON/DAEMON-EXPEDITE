@@ -75,16 +75,22 @@ open class Owner(
     /**
      * Registers a new campsite for this owner.
      *
-     * Saves the campsite to the database, records its id on this owner, then saves the
-     * updated owner. Does nothing if the campsite is already registered to this owner.
+     * Records the campsite's id on this owner, then saves the updated owner. The campsite itself
+     * must already be saved with [Database.addCampsite] (see RegisterCampsiteViewModel).
+     * Does nothing if the campsite is already registered to this owner. If saving the owner
+     * fails, the id is taken off again.
      *
      * @param campsite Campsite. The campsite to register.
      */
     suspend fun addCampsite(campsite: Campsite) {
         if (campsite.id in _ownerCampsites) return
-        // Database.addCampsite(campsite)
         _ownerCampsites.add(campsite.id)
-        Database.addOwner(this)
+        try {
+            Database.addOwner(this)
+        } catch (e: Exception) {
+            _ownerCampsites.remove(campsite.id)
+            throw e
+        }
     }
 
     /**
@@ -106,7 +112,8 @@ open class Owner(
      * Records a reservation made at one of this owner's campsites.
      *
      * Saves the reservation to the database, records its id on this owner, then saves
-     * the updated owner. Does nothing if the reservation is already recorded.
+     * the updated owner. Does nothing if the reservation is already recorded. If saving the
+     * owner fails, the id is taken off again.
      *
      * @param reservation Reservation. The reservation to add.
      */
@@ -114,7 +121,12 @@ open class Owner(
         if (reservation.id in _ownerReservations) return
         Database.addReservation(reservation)
         _ownerReservations.add(reservation.id)
-        Database.addOwner(this)
+        try {
+            Database.addOwner(this)
+        } catch (e: Exception) {
+            _ownerReservations.remove(reservation.id)
+            throw e
+        }
     }
 
     /**
