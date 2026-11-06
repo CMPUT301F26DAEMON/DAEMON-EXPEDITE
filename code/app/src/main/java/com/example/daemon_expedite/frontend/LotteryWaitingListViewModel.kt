@@ -12,14 +12,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.uuid.Uuid
 
 /**
  * One entrant on a lottery's waiting list, as shown on [LotteryWaitingList].
  *
  * @property id The entrant's user id.
  * @property name The entrant's name, or "Unnamed entrant" if it is blank or couldn't be loaded.
+ * @property imageUrl Download URL of the entrant's profile picture, or null to show the default.
  */
-data class EntrantInWaitingList(val id: Id, val name: String)
+data class EntrantInWaitingList(val id: Id, val name: String, val imageUrl: String? = null)
 
 /**
  * Data for the owner's waiting list page: the entrants who joined a lottery, in join order.
@@ -51,9 +53,19 @@ class LotteryWaitingListViewModel(savedState: SavedStateHandle) : ViewModel() {
         val lottery = Database.fetchLottery(id)
         lottery.waitingList.users.map { entrantId ->
             async {
-                val name = quietly("Couldn't load entrant $entrantId") { Database.fetchUser(entrantId)["name"] }
-                EntrantInWaitingList(entrantId, name?.takeIf { it.isNotBlank() } ?: "Unnamed entrant")
+                val user = quietly("Couldn't load entrant $entrantId") { Database.fetchUser(entrantId) }
+                val name = user?.get("name")?.takeIf { it.isNotBlank() } ?: "Unnamed entrant"
+                val imageUrl = user?.get("profileImage")?.takeIf { it.isNotBlank() }?.let { imageId ->
+                    quietly("Couldn't load profile picture for entrant $entrantId") { profileImageUrl(imageId) }
+                }
+                EntrantInWaitingList(entrantId, name, imageUrl)
             }
         }.awaitAll()
+    }
+
+    /** Turns a user's profile image record id into a download URL an image loader can show. */
+    private suspend fun profileImageUrl(imageId: String): String {
+        val image = Database.fetchImage(Id(Uuid.parse(imageId)))
+        return Database.getImage(image.path)
     }
 }
