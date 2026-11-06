@@ -82,8 +82,11 @@ fun LotteryWaitingList(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     items(state.data, key = { it.id.value.toString() }) { entrant ->
-                        EntrantCard(name = entrant.name,
-                            onMessageClick = onMessageClick)
+                        EntrantCard(
+                            name = entrant.name,
+                            imageUrl = entrant.imageUrl,
+                            onMessageClick = onMessageClick,
+                        )
                     }
                 }
             }
