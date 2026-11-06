@@ -36,6 +36,11 @@ android {
     buildFeatures {
         compose = true
     }
+    // android.util.Log (and other framework stubs) return defaults instead of throwing in JVM
+    // unit tests, so error-handling paths that log can be tested.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
