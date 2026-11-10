@@ -44,8 +44,13 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # The Google Services plugin fails the build without this file, and it isn't in git.
       - name: Generate Dokka HTML
-        run: ./gradlew dokkaHtml
+        run: |
+          printf '%s' "$GOOGLE_SERVICES_B64" | base64 -d > app/google-services.json
+          ./gradlew :app:dokkaGeneratePublicationHtml
+        env:
+          GOOGLE_SERVICES_B64: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -53,4 +58,15 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: code/build/dokka/html
+          path: code/app/build/dokka/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
