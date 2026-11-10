@@ -1,0 +1,9 @@
+com.example.daemon_expedite.app-pngs-0 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/build/generated/res/pngs/debug
+com.example.daemon_expedite.app-res-1 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/build/generated/res/processDebugGoogleServices
+com.example.daemon_expedite.app-updated_navigation_xml-2 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/build/generated/updated_navigation_xml/debug
+com.example.daemon_expedite.app-packageDebugResources-3 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.example.daemon_expedite.app-packageDebugResources-4 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.example.daemon_expedite.app-debug-5 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/build/intermediates/merged_res/debug/mergeDebugResources
+com.example.daemon_expedite.app-debug-6 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/debug/res
+com.example.daemon_expedite.app-main-7 /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/res
+gradleHome-0 /home/Uday/.gradle

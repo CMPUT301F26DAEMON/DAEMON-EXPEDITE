@@ -1,0 +1,915 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:2:1-35:12
+INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:2:1-35:12
+INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:2:1-35:12
+INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:2:1-35:12
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/235ae3ace60da0895dbe352796828750/transformed/navigation-runtime-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-common-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/b62a7977ecc08c2b52b263e31d1d87a7/transformed/navigation-common-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-compose-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/7653291206ed65bc7863209b46065c77/transformed/navigation-compose-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/b2894452d765982367786ec6af7e5643/transformed/material-ripple/AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt.coil3:coil-compose-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/379d8af6000c7d22b990e0965acee9cb/transformed/coil-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt.coil3:coil-compose-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/0620cc34b357dc7f99418333f4ebd8c3/transformed/coil-compose-core/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.animation:animation-core-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/f22a427711843cb221c926289dfc325f/transformed/animation-core/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.animation:animation-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/4dc02111b682064f4caf942ccfb771e6/transformed/animation/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.foundation:foundation-layout-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/199bfbbcb60b5a4a683feacf9863e9b0/transformed/foundation-layout/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.foundation:foundation-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/94d71ed948c7fb3e8a3ac578926506da/transformed/foundation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/06b13ebe761dd4f7a3c613f77e123252/transformed/foundation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/1cdcc58eed4e15b26fe94f2fff0eb32e/transformed/animation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/085ace28de0a056979f1076182f98747/transformed/foundation-layout/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/70c9b422798c5326a9dd61cd16c84391/transformed/animation-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/c06c70cd72ff92a53fd3078e8bf2124c/transformed/ui-tooling-data/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.ui:ui-graphics-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/ff2e6e2cf668d090116f6da5c46e6682/transformed/ui-graphics/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.ui:ui-geometry-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/9464070b98c0343a1682038a6a466262/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.ui:ui-util-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/9ca4b57a6b2d79801c8aeb3b657d3b87/transformed/ui-util/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.ui:ui-text-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/df84faca85fb61604bd663148a030a45/transformed/ui-text/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.ui:ui-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/44a3ad0b3b2504e5e5515fdce644500a/transformed/ui/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.ui:ui-unit-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/b09fbcf53846129522e5e8b3988c35be/transformed/ui-unit/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/a2acce9afb62efac59cba95c0d2452f1/transformed/ui-unit/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/6c8c15fb2295ba5ec3d448083ad135ed/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/ecbc50e7b9ae1ed0ffaa90d027ac7b97/transformed/ui-util/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/4646d10ea1fc9e01a97fb1db2ccc9905/transformed/ui-text/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/214e26267d5330d70d1218483a5d8181/transformed/ui-tooling-preview/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/584bf881903e4afbe37d1d61293f3b93/transformed/ui-graphics/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/110ab6b13d59913ff8b945c492a517aa/transformed/material3/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity-ktx:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/2e48a4b01b901b25586034d178022c7e/transformed/activity-ktx-1.13.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/5353f7d84da940f3981c5c7143519050/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.test:core-ktx:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/936ff6ad25b2ea2fe791ac6fe3eea1fd/transformed/core-ktx-1.7.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.test.ext:junit-ktx:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/1eefeab6d95a121fbd93ea49bea671de/transformed/junit-ktx-1.3.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.test.ext:junit:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/ae73e2e9afb2e62abe29a976bdbcd14e/transformed/junit-1.3.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:17:1-53:12
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/6f3823a7187d51b047c874b63924d25c/transformed/navigationevent/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/9c31ab6cc0eb75641309d59a59847b4e/transformed/navigationevent-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/950c3a8222a7788a02d5944446e2e30c/transformed/runtime-annotation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/ad030dd9968c8dd92ca89a22611e7e11/transformed/runtime-retain/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2738073110931fc66a0a9df59d3a811a/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.runtime:runtime-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/844adebe72dc202b8fc23148b20ccd07/transformed/runtime/AndroidManifest.xml:2:1-7:12
+MERGED from [org.jetbrains.compose.runtime:runtime-saveable-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/ffcab41938f1ca162043999350bf5ff4/transformed/runtime-saveable/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/da45d32f8bba23e1cab1dd0c869b6d1d/transformed/savedstate/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/c01d6a32e5e79bc7dcb192a5ad27369c/transformed/savedstate-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/f87fbe6b97ff3c4685ebefbb93e8cdf3/transformed/runtime/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/a9d51e9aad8b8469e92ff48f4513302d/transformed/runtime-saveable/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:17:1-72:12
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:2:1-26:12
+MERGED from [androidx.credentials:credentials:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/e8f1bab56786d106e813e95c1a23ac55/transformed/credentials-1.2.0-rc01/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:17:1-44:12
+MERGED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:17:1-40:12
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /home/Uday/.gradle/caches/9.8.2/transforms/b1214b39cdac90726db5c5a8bfbdc62c/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:2:1-11:12
+MERGED from [com.google.android.play:integrity:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/eaf3eea236504adce695f7a45cea2d6d/transformed/integrity-1.3.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:15:1-39:12
+MERGED from [com.google.firebase:firebase-auth-interop:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/a3ce398e14946ab9d823533689016ece/transformed/firebase-auth-interop-20.0.0/AndroidManifest.xml:2:1-10:12
+MERGED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:15:1-41:12
+MERGED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:15:1-34:12
+MERGED from [com.google.firebase:firebase-appcheck-interop:18.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/075dc2c1d75ec38135ea4ced24858a07/transformed/firebase-appcheck-interop-18.0.0/AndroidManifest.xml:15:1-23:12
+MERGED from [com.google.firebase:firebase-database-collection:19.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/5fe2c0e7548c0b5157144575556f033f/transformed/firebase-database-collection-19.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/091459940bafbe6fab22aea87e70d2ac/transformed/play-services-fido-20.1.0/AndroidManifest.xml:2:1-10:12
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.4] /home/Uday/.gradle/caches/9.8.2/transforms/de9137a49ad0cd31687b156be1d849f8/transformed/play-services-auth-base-18.0.4/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:16:1-24:12
+MERGED from [androidx.browser:browser:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/4fd904f637c545af1f784c8740048c63/transformed/browser-1.4.0/AndroidManifest.xml:17:1-24:12
+MERGED from [io.coil-kt.coil3:coil-network-okhttp-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/3f41c940c5fc28c55a86014cef0b7b72/transformed/coil-network-okhttp/AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt.coil3:coil-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/82ef82caba407611cff9d30e8415b997/transformed/coil/AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt.coil3:coil-network-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/1ea2de3b0228584a3a0070e7f704cb09/transformed/coil-network-core/AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt.coil3:coil-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/bb450058d84eabfa6fecc5472e8c1dcf/transformed/coil-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.loader:loader:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/1abaddd70ff16e741f444c34e07238c2/transformed/loader-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/803cc94c1f49b7785a02cc1c2cea37a6/transformed/lifecycle-livedata-core-ktx-2.11.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/c16a7c957bcfadd731689068472551df/transformed/lifecycle-livedata-core-2.11.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/33d0a7cabda5a8a080e9613a0b82e37a/transformed/lifecycle-livedata-2.11.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.datastore:datastore-core-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/4735d6a0729b3688bc3e1cc9e77e553f/transformed/datastore-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.datastore:datastore-preferences-core-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/db1e144276242ce77732a5a21c9a8893/transformed/datastore-preferences-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.datastore:datastore-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/0431f1313692329d7a85f497c0478ea8/transformed/datastore-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/de649cfe228b38c6ec169e4b1f68b997/transformed/datastore-preferences-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.window:window-core-android:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/c0ab00bc56f49457a38fe4ac78f48a5c/transformed/window-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:17:1-31:12
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.37.3] /home/Uday/.gradle/caches/9.8.2/transforms/b62e8b567f85758a719d2190608e4db5/transformed/accompanist-drawablepainter-0.37.3/AndroidManifest.xml:17:1-23:12
+MERGED from [com.google.android.gms:play-services-tasks:18.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2aaa6ff640770dddfb8bcd93b4215fa0/transformed/play-services-tasks-18.4.0/AndroidManifest.xml:2:1-6:12
+MERGED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:16:1-26:12
+MERGED from [androidx.fragment:fragment:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/3bb91ddf1fc85f6d6f08d4836b63774b/transformed/fragment-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/f1372d10859efc5b99cba1ffd379587d/transformed/lifecycle-viewmodel-2.11.0/AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/82abea2e5e05b5c2612fdd9c5665b841/transformed/lifecycle-viewmodel/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/367aed6ea07aa58290c7c5e1c7d59bb5/transformed/lifecycle-runtime-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/673af0a97e95afd5b4dd7cfe4ae707f3/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core-ktx:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/00173050b393bdc2e1ab9e8bb238a37c/transformed/core-ktx-1.19.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.autofill:autofill:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/269b79b914947d4e0a7ee8617c5afbf2/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/Uday/.gradle/caches/9.8.2/transforms/115c5d1a478bda730a0abaf9261af0a2/transformed/graphics-path-1.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/b21e2e8702a0a29062671254eb73c8c0/transformed/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/b2ca53d468831a2f2b16b834bb52220d/transformed/customview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.appcompat:appcompat-resources:1.7.1] /home/Uday/.gradle/caches/9.8.2/transforms/6cd2838aa0307d76d31d24d77e49fb0b/transformed/appcompat-resources-1.7.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/4f3a92e4453e3c413c417718d3381ea0/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8886ed55000809ee4932d052db07d9c/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/6146ab668fd7aac0c65b7248d7697ce2/transformed/lifecycle-runtime/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/8d2e4637785efb248932b6acd81bcbca/transformed/lifecycle-viewmodel-ktx-2.11.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/803055ff0369d745efc46bc8eb21a18c/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/78300f3123679b8f235da0116222225a/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /home/Uday/.gradle/caches/9.8.2/transforms/acaaa8f6284e1c1318264dea2c73e73a/transformed/material-icons-extended-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /home/Uday/.gradle/caches/9.8.2/transforms/03bd36cec4217cb10aefc85c473172af/transformed/material-icons-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/40a996335d5737c27668c2967b3a0ebd/transformed/ui/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:17:1-29:12
+MERGED from [androidx.activity:activity:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/5bb055076eaf91bf3ad75257416dbc4c/transformed/activity-1.13.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity-compose:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/9ea7268ad750e846802b1c732cee4825/transformed/activity-compose-1.13.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core-viewtree:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/ea3bf1efdf7e7e341865e3d6c201c38f/transformed/core-viewtree-1.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/54073682c009ea1b2fb0d374111f2175/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.test.services:storage:1.6.0] /home/Uday/.gradle/caches/9.8.2/transforms/5ea0b762d519cb550ca6d9e0f35bb6fa/transformed/storage-1.6.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.test:monitor:1.8.0] /home/Uday/.gradle/caches/9.8.2/transforms/af81e6f472692a594a954128517759b2/transformed/monitor-1.8.0/AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.firebase:firebase-components:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/7f4719e12a58cac877355e007cb3d18b/transformed/firebase-components-20.0.0/AndroidManifest.xml:15:1-20:12
+MERGED from [com.firebase:geofire-android-common:3.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/36c993a6b30c707c2e2fddec2fafd8f0/transformed/geofire-android-common-3.2.0/AndroidManifest.xml:2:1-9:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/901f4de2106215fde0d5b9695cc665f9/transformed/startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/3fad199f50564641d2fbab91e1bc7696/transformed/tracing-1.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f10d9cfc6c3c0229ff2262beddd39f70/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/2548b5c35c70418a91b9add61acd60c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/c90c426fa9f0dcf7c23d9d91bc4304db/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/aa8cab1427b6daaa7d9e589cc29ebeba/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.exifinterface:exifinterface:1.4.2] /home/Uday/.gradle/caches/9.8.2/transforms/956c575bd5ead178faabfb12b47a4930/transformed/exifinterface-1.4.2/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/158581d887546ea9f6fce59de8743cd5/transformed/googleid-1.1.0/AndroidManifest.xml:2:1-7:12
+MERGED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:2:1-27:12
+MERGED from [io.grpc:grpc-android:1.84.0] /home/Uday/.gradle/caches/9.8.2/transforms/bf26ce79748c5616dfc4c25ac011bffa/transformed/grpc-android-1.84.0/AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.firebase:protolite-well-known-types:19.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/3ebfcc9e8214e2b837e927306b8ae3de/transformed/protolite-well-known-types-19.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:2:1-21:12
+	package
+		INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+	xmlns:tools
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:3:5-51
+	android:versionCode
+		INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.INTERNET
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:6:5-67
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:22:5-67
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:22:5-67
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:11:5-67
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:11:5-67
+MERGED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:7:5-67
+MERGED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:7:5-67
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:24:5-67
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:24:5-67
+	android:name
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:6:22-64
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:7:5-79
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:23:5-79
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:23:5-79
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:10:5-79
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:10:5-79
+MERGED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:8:5-79
+MERGED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:8:5-79
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:23:5-79
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:23:5-79
+MERGED from [io.grpc:grpc-android:1.84.0] /home/Uday/.gradle/caches/9.8.2/transforms/bf26ce79748c5616dfc4c25ac011bffa/transformed/grpc-android-1.84.0/AndroidManifest.xml:7:5-79
+MERGED from [io.grpc:grpc-android:1.84.0] /home/Uday/.gradle/caches/9.8.2/transforms/bf26ce79748c5616dfc4c25ac011bffa/transformed/grpc-android-1.84.0/AndroidManifest.xml:7:5-79
+	android:name
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:7:22-76
+uses-permission#android.permission.ACCESS_COARSE_LOCATION
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:9:5-81
+	android:name
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:9:22-78
+uses-permission#android.permission.ACCESS_FINE_LOCATION
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:10:5-79
+	android:name
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:10:22-76
+application
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:12:5-33:19
+INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:12:5-33:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:26:5-51:19
+MERGED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:26:5-51:19
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:25:5-70:19
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:25:5-70:19
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:13:5-24:19
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:13:5-24:19
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:23:5-42:19
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:23:5-42:19
+MERGED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:22:5-38:19
+MERGED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:22:5-38:19
+MERGED from [com.google.android.play:integrity:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/eaf3eea236504adce695f7a45cea2d6d/transformed/integrity-1.3.0/AndroidManifest.xml:5:5-6:19
+MERGED from [com.google.android.play:integrity:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/eaf3eea236504adce695f7a45cea2d6d/transformed/integrity-1.3.0/AndroidManifest.xml:5:5-6:19
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:26:5-37:19
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:26:5-37:19
+MERGED from [com.google.firebase:firebase-auth-interop:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/a3ce398e14946ab9d823533689016ece/transformed/firebase-auth-interop-20.0.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.firebase:firebase-auth-interop:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/a3ce398e14946ab9d823533689016ece/transformed/firebase-auth-interop-20.0.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:22:5-39:19
+MERGED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:22:5-39:19
+MERGED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:21:5-32:19
+MERGED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:21:5-32:19
+MERGED from [com.google.firebase:firebase-appcheck-interop:18.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/075dc2c1d75ec38135ea4ced24858a07/transformed/firebase-appcheck-interop-18.0.0/AndroidManifest.xml:21:5-20
+MERGED from [com.google.firebase:firebase-appcheck-interop:18.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/075dc2c1d75ec38135ea4ced24858a07/transformed/firebase-appcheck-interop-18.0.0/AndroidManifest.xml:21:5-20
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/091459940bafbe6fab22aea87e70d2ac/transformed/play-services-fido-20.1.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/091459940bafbe6fab22aea87e70d2ac/transformed/play-services-fido-20.1.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:19:5-23:19
+MERGED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:19:5-23:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [com.google.android.gms:play-services-tasks:18.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2aaa6ff640770dddfb8bcd93b4215fa0/transformed/play-services-tasks-18.4.0/AndroidManifest.xml:5:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2aaa6ff640770dddfb8bcd93b4215fa0/transformed/play-services-tasks-18.4.0/AndroidManifest.xml:5:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:20:5-24:19
+MERGED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:20:5-24:19
+MERGED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:28:5-89
+MERGED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:22:5-27:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:22:5-27:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/901f4de2106215fde0d5b9695cc665f9/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/901f4de2106215fde0d5b9695cc665f9/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/2548b5c35c70418a91b9add61acd60c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/2548b5c35c70418a91b9add61acd60c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:11:5-19:19
+MERGED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:11:5-19:19
+	android:extractNativeLibs
+		INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:19:9-35
+	android:label
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:17:9-41
+	android:fullBackupContent
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:15:9-54
+	android:roundIcon
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:18:9-54
+	android:icon
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:16:9-43
+	android:allowBackup
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:13:9-35
+	android:theme
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:20:9-52
+	android:dataExtractionRules
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:14:9-65
+activity#com.example.daemon_expedite.MainActivity
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:21:9-32:20
+	android:label
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:24:13-45
+	android:windowSoftInputMode
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:26:13-55
+	android:exported
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:23:13-36
+	android:theme
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:25:13-56
+	android:name
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:22:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:27:13-31:29
+action#android.intent.action.MAIN
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:28:17-69
+	android:name
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:28:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:30:17-77
+	android:name
+		ADDED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml:30:27-74
+uses-sdk
+INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/235ae3ace60da0895dbe352796828750/transformed/navigation-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/235ae3ace60da0895dbe352796828750/transformed/navigation-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/b62a7977ecc08c2b52b263e31d1d87a7/transformed/navigation-common-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/b62a7977ecc08c2b52b263e31d1d87a7/transformed/navigation-common-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-compose-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/7653291206ed65bc7863209b46065c77/transformed/navigation-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose-android:2.9.5] /home/Uday/.gradle/caches/9.8.2/transforms/7653291206ed65bc7863209b46065c77/transformed/navigation-compose-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/b2894452d765982367786ec6af7e5643/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/b2894452d765982367786ec6af7e5643/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-compose-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/379d8af6000c7d22b990e0965acee9cb/transformed/coil-compose/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-compose-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/379d8af6000c7d22b990e0965acee9cb/transformed/coil-compose/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-compose-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/0620cc34b357dc7f99418333f4ebd8c3/transformed/coil-compose-core/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-compose-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/0620cc34b357dc7f99418333f4ebd8c3/transformed/coil-compose-core/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.animation:animation-core-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/f22a427711843cb221c926289dfc325f/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.animation:animation-core-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/f22a427711843cb221c926289dfc325f/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.animation:animation-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/4dc02111b682064f4caf942ccfb771e6/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.animation:animation-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/4dc02111b682064f4caf942ccfb771e6/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.foundation:foundation-layout-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/199bfbbcb60b5a4a683feacf9863e9b0/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.foundation:foundation-layout-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/199bfbbcb60b5a4a683feacf9863e9b0/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.foundation:foundation-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/94d71ed948c7fb3e8a3ac578926506da/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.foundation:foundation-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/94d71ed948c7fb3e8a3ac578926506da/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/06b13ebe761dd4f7a3c613f77e123252/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/06b13ebe761dd4f7a3c613f77e123252/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/1cdcc58eed4e15b26fe94f2fff0eb32e/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/1cdcc58eed4e15b26fe94f2fff0eb32e/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/085ace28de0a056979f1076182f98747/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/085ace28de0a056979f1076182f98747/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/70c9b422798c5326a9dd61cd16c84391/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/70c9b422798c5326a9dd61cd16c84391/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/c06c70cd72ff92a53fd3078e8bf2124c/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/c06c70cd72ff92a53fd3078e8bf2124c/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-graphics-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/ff2e6e2cf668d090116f6da5c46e6682/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-graphics-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/ff2e6e2cf668d090116f6da5c46e6682/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-geometry-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/9464070b98c0343a1682038a6a466262/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-geometry-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/9464070b98c0343a1682038a6a466262/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-util-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/9ca4b57a6b2d79801c8aeb3b657d3b87/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-util-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/9ca4b57a6b2d79801c8aeb3b657d3b87/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-text-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/df84faca85fb61604bd663148a030a45/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-text-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/df84faca85fb61604bd663148a030a45/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/44a3ad0b3b2504e5e5515fdce644500a/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/44a3ad0b3b2504e5e5515fdce644500a/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-unit-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/b09fbcf53846129522e5e8b3988c35be/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.ui:ui-unit-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/b09fbcf53846129522e5e8b3988c35be/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/a2acce9afb62efac59cba95c0d2452f1/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/a2acce9afb62efac59cba95c0d2452f1/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/6c8c15fb2295ba5ec3d448083ad135ed/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/6c8c15fb2295ba5ec3d448083ad135ed/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/ecbc50e7b9ae1ed0ffaa90d027ac7b97/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/ecbc50e7b9ae1ed0ffaa90d027ac7b97/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/4646d10ea1fc9e01a97fb1db2ccc9905/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/4646d10ea1fc9e01a97fb1db2ccc9905/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/214e26267d5330d70d1218483a5d8181/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/214e26267d5330d70d1218483a5d8181/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/584bf881903e4afbe37d1d61293f3b93/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/584bf881903e4afbe37d1d61293f3b93/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/110ab6b13d59913ff8b945c492a517aa/transformed/material3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/110ab6b13d59913ff8b945c492a517aa/transformed/material3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-ktx:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/2e48a4b01b901b25586034d178022c7e/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/2e48a4b01b901b25586034d178022c7e/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/5353f7d84da940f3981c5c7143519050/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/5353f7d84da940f3981c5c7143519050/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.test:core-ktx:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/936ff6ad25b2ea2fe791ac6fe3eea1fd/transformed/core-ktx-1.7.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test:core-ktx:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/936ff6ad25b2ea2fe791ac6fe3eea1fd/transformed/core-ktx-1.7.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test.ext:junit-ktx:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/1eefeab6d95a121fbd93ea49bea671de/transformed/junit-ktx-1.3.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test.ext:junit-ktx:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/1eefeab6d95a121fbd93ea49bea671de/transformed/junit-ktx-1.3.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test.ext:junit:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/ae73e2e9afb2e62abe29a976bdbcd14e/transformed/junit-1.3.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test.ext:junit:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/ae73e2e9afb2e62abe29a976bdbcd14e/transformed/junit-1.3.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/6f3823a7187d51b047c874b63924d25c/transformed/navigationevent/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/6f3823a7187d51b047c874b63924d25c/transformed/navigationevent/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/9c31ab6cc0eb75641309d59a59847b4e/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/9c31ab6cc0eb75641309d59a59847b4e/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/950c3a8222a7788a02d5944446e2e30c/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/950c3a8222a7788a02d5944446e2e30c/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/ad030dd9968c8dd92ca89a22611e7e11/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/ad030dd9968c8dd92ca89a22611e7e11/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2738073110931fc66a0a9df59d3a811a/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2738073110931fc66a0a9df59d3a811a/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.runtime:runtime-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/844adebe72dc202b8fc23148b20ccd07/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.runtime:runtime-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/844adebe72dc202b8fc23148b20ccd07/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.runtime:runtime-saveable-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/ffcab41938f1ca162043999350bf5ff4/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [org.jetbrains.compose.runtime:runtime-saveable-android:1.12.0] /home/Uday/.gradle/caches/9.8.2/transforms/ffcab41938f1ca162043999350bf5ff4/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/da45d32f8bba23e1cab1dd0c869b6d1d/transformed/savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/da45d32f8bba23e1cab1dd0c869b6d1d/transformed/savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/c01d6a32e5e79bc7dcb192a5ad27369c/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/c01d6a32e5e79bc7dcb192a5ad27369c/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/f87fbe6b97ff3c4685ebefbb93e8cdf3/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/f87fbe6b97ff3c4685ebefbb93e8cdf3/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/a9d51e9aad8b8469e92ff48f4513302d/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/a9d51e9aad8b8469e92ff48f4513302d/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:6:5-44
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:6:5-44
+MERGED from [androidx.credentials:credentials:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/e8f1bab56786d106e813e95c1a23ac55/transformed/credentials-1.2.0-rc01/AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/e8f1bab56786d106e813e95c1a23ac55/transformed/credentials-1.2.0-rc01/AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:21:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:21:5-44
+MERGED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /home/Uday/.gradle/caches/9.8.2/transforms/b1214b39cdac90726db5c5a8bfbdc62c/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /home/Uday/.gradle/caches/9.8.2/transforms/b1214b39cdac90726db5c5a8bfbdc62c/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.play:integrity:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/eaf3eea236504adce695f7a45cea2d6d/transformed/integrity-1.3.0/AndroidManifest.xml:4:5-44
+MERGED from [com.google.android.play:integrity:1.3.0] /home/Uday/.gradle/caches/9.8.2/transforms/eaf3eea236504adce695f7a45cea2d6d/transformed/integrity-1.3.0/AndroidManifest.xml:4:5-44
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:19:5-44
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:19:5-44
+MERGED from [com.google.firebase:firebase-auth-interop:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/a3ce398e14946ab9d823533689016ece/transformed/firebase-auth-interop-20.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-auth-interop:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/a3ce398e14946ab9d823533689016ece/transformed/firebase-auth-interop-20.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:19:5-44
+MERGED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:19:5-44
+MERGED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-appcheck-interop:18.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/075dc2c1d75ec38135ea4ced24858a07/transformed/firebase-appcheck-interop-18.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-appcheck-interop:18.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/075dc2c1d75ec38135ea4ced24858a07/transformed/firebase-appcheck-interop-18.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-database-collection:19.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/5fe2c0e7548c0b5157144575556f033f/transformed/firebase-database-collection-19.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:firebase-database-collection:19.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/5fe2c0e7548c0b5157144575556f033f/transformed/firebase-database-collection-19.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/091459940bafbe6fab22aea87e70d2ac/transformed/play-services-fido-20.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-fido:20.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/091459940bafbe6fab22aea87e70d2ac/transformed/play-services-fido-20.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.4] /home/Uday/.gradle/caches/9.8.2/transforms/de9137a49ad0cd31687b156be1d849f8/transformed/play-services-auth-base-18.0.4/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.4] /home/Uday/.gradle/caches/9.8.2/transforms/de9137a49ad0cd31687b156be1d849f8/transformed/play-services-auth-base-18.0.4/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:18:5-43
+MERGED from [androidx.browser:browser:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/4fd904f637c545af1f784c8740048c63/transformed/browser-1.4.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.browser:browser:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/4fd904f637c545af1f784c8740048c63/transformed/browser-1.4.0/AndroidManifest.xml:20:5-22:41
+MERGED from [io.coil-kt.coil3:coil-network-okhttp-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/3f41c940c5fc28c55a86014cef0b7b72/transformed/coil-network-okhttp/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-network-okhttp-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/3f41c940c5fc28c55a86014cef0b7b72/transformed/coil-network-okhttp/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/82ef82caba407611cff9d30e8415b997/transformed/coil/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/82ef82caba407611cff9d30e8415b997/transformed/coil/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-network-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/1ea2de3b0228584a3a0070e7f704cb09/transformed/coil-network-core/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-network-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/1ea2de3b0228584a3a0070e7f704cb09/transformed/coil-network-core/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/bb450058d84eabfa6fecc5472e8c1dcf/transformed/coil-core/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt.coil3:coil-core-android:3.6.3] /home/Uday/.gradle/caches/9.8.2/transforms/bb450058d84eabfa6fecc5472e8c1dcf/transformed/coil-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:21:5-44
+MERGED from [androidx.loader:loader:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/1abaddd70ff16e741f444c34e07238c2/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/1abaddd70ff16e741f444c34e07238c2/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/803cc94c1f49b7785a02cc1c2cea37a6/transformed/lifecycle-livedata-core-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/803cc94c1f49b7785a02cc1c2cea37a6/transformed/lifecycle-livedata-core-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/c16a7c957bcfadd731689068472551df/transformed/lifecycle-livedata-core-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/c16a7c957bcfadd731689068472551df/transformed/lifecycle-livedata-core-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/33d0a7cabda5a8a080e9613a0b82e37a/transformed/lifecycle-livedata-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/33d0a7cabda5a8a080e9613a0b82e37a/transformed/lifecycle-livedata-2.11.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-core-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/4735d6a0729b3688bc3e1cc9e77e553f/transformed/datastore-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-core-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/4735d6a0729b3688bc3e1cc9e77e553f/transformed/datastore-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-preferences-core-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/db1e144276242ce77732a5a21c9a8893/transformed/datastore-preferences-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-preferences-core-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/db1e144276242ce77732a5a21c9a8893/transformed/datastore-preferences-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/0431f1313692329d7a85f497c0478ea8/transformed/datastore-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/0431f1313692329d7a85f497c0478ea8/transformed/datastore-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/de649cfe228b38c6ec169e4b1f68b997/transformed/datastore-preferences-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.7] /home/Uday/.gradle/caches/9.8.2/transforms/de649cfe228b38c6ec169e4b1f68b997/transformed/datastore-preferences-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.window:window-core-android:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/c0ab00bc56f49457a38fe4ac78f48a5c/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window-core-android:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/c0ab00bc56f49457a38fe4ac78f48a5c/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.37.3] /home/Uday/.gradle/caches/9.8.2/transforms/b62e8b567f85758a719d2190608e4db5/transformed/accompanist-drawablepainter-0.37.3/AndroidManifest.xml:21:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.37.3] /home/Uday/.gradle/caches/9.8.2/transforms/b62e8b567f85758a719d2190608e4db5/transformed/accompanist-drawablepainter-0.37.3/AndroidManifest.xml:21:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2aaa6ff640770dddfb8bcd93b4215fa0/transformed/play-services-tasks-18.4.0/AndroidManifest.xml:4:5-43
+MERGED from [com.google.android.gms:play-services-tasks:18.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/2aaa6ff640770dddfb8bcd93b4215fa0/transformed/play-services-tasks-18.4.0/AndroidManifest.xml:4:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:18:5-43
+MERGED from [androidx.fragment:fragment:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/3bb91ddf1fc85f6d6f08d4836b63774b/transformed/fragment-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/3bb91ddf1fc85f6d6f08d4836b63774b/transformed/fragment-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/f1372d10859efc5b99cba1ffd379587d/transformed/lifecycle-viewmodel-2.11.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/f1372d10859efc5b99cba1ffd379587d/transformed/lifecycle-viewmodel-2.11.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/82abea2e5e05b5c2612fdd9c5665b841/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/82abea2e5e05b5c2612fdd9c5665b841/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/367aed6ea07aa58290c7c5e1c7d59bb5/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/367aed6ea07aa58290c7c5e1c7d59bb5/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/673af0a97e95afd5b4dd7cfe4ae707f3/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/673af0a97e95afd5b4dd7cfe4ae707f3/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core-ktx:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/00173050b393bdc2e1ab9e8bb238a37c/transformed/core-ktx-1.19.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/00173050b393bdc2e1ab9e8bb238a37c/transformed/core-ktx-1.19.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/269b79b914947d4e0a7ee8617c5afbf2/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/269b79b914947d4e0a7ee8617c5afbf2/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/Uday/.gradle/caches/9.8.2/transforms/115c5d1a478bda730a0abaf9261af0a2/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /home/Uday/.gradle/caches/9.8.2/transforms/115c5d1a478bda730a0abaf9261af0a2/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/b21e2e8702a0a29062671254eb73c8c0/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/b21e2e8702a0a29062671254eb73c8c0/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/b2ca53d468831a2f2b16b834bb52220d/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/b2ca53d468831a2f2b16b834bb52220d/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.1] /home/Uday/.gradle/caches/9.8.2/transforms/6cd2838aa0307d76d31d24d77e49fb0b/transformed/appcompat-resources-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.1] /home/Uday/.gradle/caches/9.8.2/transforms/6cd2838aa0307d76d31d24d77e49fb0b/transformed/appcompat-resources-1.7.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/4f3a92e4453e3c413c417718d3381ea0/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/4f3a92e4453e3c413c417718d3381ea0/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8886ed55000809ee4932d052db07d9c/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8886ed55000809ee4932d052db07d9c/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/6146ab668fd7aac0c65b7248d7697ce2/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/6146ab668fd7aac0c65b7248d7697ce2/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/8d2e4637785efb248932b6acd81bcbca/transformed/lifecycle-viewmodel-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/8d2e4637785efb248932b6acd81bcbca/transformed/lifecycle-viewmodel-ktx-2.11.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/803055ff0369d745efc46bc8eb21a18c/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/803055ff0369d745efc46bc8eb21a18c/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/78300f3123679b8f235da0116222225a/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/78300f3123679b8f235da0116222225a/transformed/lifecycle-viewmodel-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /home/Uday/.gradle/caches/9.8.2/transforms/acaaa8f6284e1c1318264dea2c73e73a/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.7.8] /home/Uday/.gradle/caches/9.8.2/transforms/acaaa8f6284e1c1318264dea2c73e73a/transformed/material-icons-extended-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /home/Uday/.gradle/caches/9.8.2/transforms/03bd36cec4217cb10aefc85c473172af/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.7.8] /home/Uday/.gradle/caches/9.8.2/transforms/03bd36cec4217cb10aefc85c473172af/transformed/material-icons-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/40a996335d5737c27668c2967b3a0ebd/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/40a996335d5737c27668c2967b3a0ebd/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/5bb055076eaf91bf3ad75257416dbc4c/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/5bb055076eaf91bf3ad75257416dbc4c/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-compose:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/9ea7268ad750e846802b1c732cee4825/transformed/activity-compose-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.13.0] /home/Uday/.gradle/caches/9.8.2/transforms/9ea7268ad750e846802b1c732cee4825/transformed/activity-compose-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/ea3bf1efdf7e7e341865e3d6c201c38f/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/ea3bf1efdf7e7e341865e3d6c201c38f/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/54073682c009ea1b2fb0d374111f2175/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/54073682c009ea1b2fb0d374111f2175/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.test.services:storage:1.6.0] /home/Uday/.gradle/caches/9.8.2/transforms/5ea0b762d519cb550ca6d9e0f35bb6fa/transformed/storage-1.6.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test.services:storage:1.6.0] /home/Uday/.gradle/caches/9.8.2/transforms/5ea0b762d519cb550ca6d9e0f35bb6fa/transformed/storage-1.6.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test:monitor:1.8.0] /home/Uday/.gradle/caches/9.8.2/transforms/af81e6f472692a594a954128517759b2/transformed/monitor-1.8.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.test:monitor:1.8.0] /home/Uday/.gradle/caches/9.8.2/transforms/af81e6f472692a594a954128517759b2/transformed/monitor-1.8.0/AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.firebase:firebase-components:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/7f4719e12a58cac877355e007cb3d18b/transformed/firebase-components-20.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.google.firebase:firebase-components:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/7f4719e12a58cac877355e007cb3d18b/transformed/firebase-components-20.0.0/AndroidManifest.xml:18:5-44
+MERGED from [com.firebase:geofire-android-common:3.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/36c993a6b30c707c2e2fddec2fafd8f0/transformed/geofire-android-common-3.2.0/AndroidManifest.xml:5:5-7:41
+MERGED from [com.firebase:geofire-android-common:3.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/36c993a6b30c707c2e2fddec2fafd8f0/transformed/geofire-android-common-3.2.0/AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/901f4de2106215fde0d5b9695cc665f9/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/901f4de2106215fde0d5b9695cc665f9/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/3fad199f50564641d2fbab91e1bc7696/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/3fad199f50564641d2fbab91e1bc7696/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f10d9cfc6c3c0229ff2262beddd39f70/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f10d9cfc6c3c0229ff2262beddd39f70/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/2548b5c35c70418a91b9add61acd60c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/2548b5c35c70418a91b9add61acd60c4/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/c90c426fa9f0dcf7c23d9d91bc4304db/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/c90c426fa9f0dcf7c23d9d91bc4304db/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/aa8cab1427b6daaa7d9e589cc29ebeba/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/Uday/.gradle/caches/9.8.2/transforms/aa8cab1427b6daaa7d9e589cc29ebeba/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.exifinterface:exifinterface:1.4.2] /home/Uday/.gradle/caches/9.8.2/transforms/956c575bd5ead178faabfb12b47a4930/transformed/exifinterface-1.4.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.exifinterface:exifinterface:1.4.2] /home/Uday/.gradle/caches/9.8.2/transforms/956c575bd5ead178faabfb12b47a4930/transformed/exifinterface-1.4.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/158581d887546ea9f6fce59de8743cd5/transformed/googleid-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/158581d887546ea9f6fce59de8743cd5/transformed/googleid-1.1.0/AndroidManifest.xml:5:5-44
+MERGED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:5:5-7:41
+MERGED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:5:5-7:41
+MERGED from [io.grpc:grpc-android:1.84.0] /home/Uday/.gradle/caches/9.8.2/transforms/bf26ce79748c5616dfc4c25ac011bffa/transformed/grpc-android-1.84.0/AndroidManifest.xml:5:5-44
+MERGED from [io.grpc:grpc-android:1.84.0] /home/Uday/.gradle/caches/9.8.2/transforms/bf26ce79748c5616dfc4c25ac011bffa/transformed/grpc-android-1.84.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:protolite-well-known-types:19.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/3ebfcc9e8214e2b837e927306b8ae3de/transformed/protolite-well-known-types-19.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.firebase:protolite-well-known-types:19.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/3ebfcc9e8214e2b837e927306b8ae3de/transformed/protolite-well-known-types-19.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:7:5-9:41
+MERGED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:7:5-9:41
+	android:targetSdkVersion
+		INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/AndroidManifest.xml
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/0b6470e9dc12985c4bf20079fdb5e444/transformed/ui-tooling/AndroidManifest.xml:24:13-71
+uses-permission#android.permission.REORDER_TASKS
+ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:24:5-72
+	android:name
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:24:22-69
+activity#androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity
+ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:27:9-34:20
+	android:exported
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:29:13-36
+	android:theme
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:30:13-56
+	android:name
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:28:13-99
+intent-filter#category:name:android.intent.category.LAUNCHER
+ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:31:13-33:29
+	android:priority
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:31:28-51
+activity#androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity
+ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:35:9-42:20
+	android:exported
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:37:13-36
+	android:theme
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:38:13-56
+	android:name
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:36:13-95
+activity#androidx.test.core.app.InstrumentationActivityInvoker$EmptyFloatingActivity
+ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:43:9-50:20
+	android:exported
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:45:13-36
+	android:theme
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:46:13-62
+	android:name
+		ADDED from [androidx.test:core:1.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/74f27eb01eb9ca63c3956cd043068ecd/transformed/core-1.7.0/AndroidManifest.xml:44:13-103
+activity#com.google.firebase.auth.internal.GenericIdpActivity
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:26:9-43:20
+	android:excludeFromRecents
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:28:13-46
+	android:launchMode
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:30:13-44
+	android:exported
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:29:13-36
+	android:theme
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:31:13-72
+	android:name
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:27:13-80
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:firebase.auth+data:path:/+data:scheme:genericidp
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:32:13-42:29
+action#android.intent.action.VIEW
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:33:17-69
+	android:name
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:33:25-66
+category#android.intent.category.DEFAULT
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:35:17-76
+	android:name
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:35:27-73
+category#android.intent.category.BROWSABLE
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:36:17-78
+	android:name
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:36:27-75
+data
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:38:17-41:51
+	android:path
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:40:21-37
+	android:host
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:39:21-49
+	android:scheme
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:41:21-48
+activity#com.google.firebase.auth.internal.RecaptchaActivity
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:44:9-61:20
+	android:excludeFromRecents
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:46:13-46
+	android:launchMode
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:48:13-44
+	android:exported
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:47:13-36
+	android:theme
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:49:13-72
+	android:name
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:45:13-79
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:firebase.auth+data:path:/+data:scheme:recaptcha
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:50:13-60:29
+service#com.google.firebase.components.ComponentDiscoveryService
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:63:9-69:19
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:14:9-23:19
+MERGED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:14:9-23:19
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:27:9-36:19
+MERGED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:27:9-36:19
+MERGED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:30:9-38:19
+MERGED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:30:9-38:19
+MERGED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:22:9-31:19
+MERGED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:22:9-31:19
+	android:exported
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:65:13-37
+	tools:targetApi
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:34:13-32
+	android:directBootAware
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:32:13-43
+	android:name
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:64:13-84
+meta-data#com.google.firebase.components:com.google.firebase.auth.FirebaseAuthRegistrar
+ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:66:13-68:85
+	android:value
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:68:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-auth:25.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/4e3ed87cac8e26556681aaa956c2ed35/transformed/firebase-auth-25.0.0/AndroidManifest.xml:67:17-109
+meta-data#com.google.firebase.components:com.google.firebase.firestore.FirebaseFirestoreKtxRegistrar
+ADDED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:17:13-19:85
+	android:value
+		ADDED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:19:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:18:17-122
+meta-data#com.google.firebase.components:com.google.firebase.firestore.FirestoreRegistrar
+ADDED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:20:13-22:85
+	android:value
+		ADDED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:22:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-firestore:27.1.0] /home/Uday/.gradle/caches/9.8.2/transforms/70c3b5c40319711a4494ab94ca212a0f/transformed/firebase-firestore-27.1.0/AndroidManifest.xml:21:17-111
+service#androidx.credentials.playservices.CredentialProviderMetadataHolder
+ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:24:9-32:19
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:26:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:28:13-60
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:25:13-94
+meta-data#androidx.credentials.CREDENTIAL_PROVIDER_KEY
+ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:29:13-31:104
+	android:value
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:31:17-101
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:30:17-76
+activity#androidx.credentials.playservices.HiddenActivity
+ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:34:9-41:20
+	android:fitsSystemWindows
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:39:13-45
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:38:13-37
+	android:configChanges
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:36:13-87
+	android:theme
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:40:13-48
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.2.0-rc01] /home/Uday/.gradle/caches/9.8.2/transforms/b683bdb741c30834a657270c9e6da496/transformed/credentials-play-services-auth-1.2.0-rc01/AndroidManifest.xml:35:13-76
+activity#com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:23:9-27:75
+	android:excludeFromRecents
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:25:13-46
+	android:exported
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:26:13-37
+	android:theme
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:27:13-72
+	android:name
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:24:13-93
+service#com.google.android.gms.auth.api.signin.RevocationBoundService
+ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:33:9-37:51
+	android:exported
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:35:13-36
+	android:visibleToInstantApps
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:37:13-48
+	android:permission
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:36:13-107
+	android:name
+		ADDED from [com.google.android.gms:play-services-auth:20.7.0] /home/Uday/.gradle/caches/9.8.2/transforms/7c138a1cc04ddaebc2de06fe513e7d4d/transformed/play-services-auth-20.7.0/AndroidManifest.xml:34:13-89
+uses-permission#com.google.android.providers.gsf.permission.READ_GSERVICES
+ADDED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:9:5-98
+	android:name
+		ADDED from [com.google.android.recaptcha:recaptcha:18.6.1] /home/Uday/.gradle/caches/9.8.2/transforms/1104211fa71a5863381a30ea4bcf14c1/transformed/recaptcha-18.6.1/AndroidManifest.xml:9:22-95
+meta-data#com.google.firebase.components:com.google.firebase.storage.FirebaseStorageKtxRegistrar
+ADDED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:30:13-32:85
+	android:value
+		ADDED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:32:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:31:17-118
+meta-data#com.google.firebase.components:com.google.firebase.storage.StorageRegistrar
+ADDED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:33:13-35:85
+	android:value
+		ADDED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:35:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-storage:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/43eb52186e9fea151803135418c73959/transformed/firebase-storage-23.0.0/AndroidManifest.xml:34:17-107
+provider#com.google.firebase.provider.FirebaseInitProvider
+ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:23:9-28:39
+	android:authorities
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:25:13-72
+	android:exported
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:27:13-37
+	android:directBootAware
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:26:13-43
+	android:initOrder
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:28:13-36
+	android:name
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:24:13-77
+meta-data#com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar
+ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:35:13-37:85
+	android:value
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:37:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-common:23.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/f8742673643373bea401e1d28cd7f87e/transformed/firebase-common-23.0.0/AndroidManifest.xml:36:17-109
+meta-data#com.google.firebase.components:com.google.firebase.appcheck.FirebaseAppCheckKtxRegistrar
+ADDED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:25:13-27:85
+	android:value
+		ADDED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:27:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:26:17-120
+meta-data#com.google.firebase.components:com.google.firebase.appcheck.FirebaseAppCheckRegistrar
+ADDED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:28:13-30:85
+	android:value
+		ADDED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:30:17-82
+	android:name
+		ADDED from [com.google.firebase:firebase-appcheck:20.0.0] /home/Uday/.gradle/caches/9.8.2/transforms/86d8b8592d96a0ba43b4bbfec055c25c/transformed/firebase-appcheck-20.0.0/AndroidManifest.xml:29:17-117
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:20:9-22:45
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:22:19-43
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:21:19-78
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/53f6fd51729e82d7859bd8fde930978e/transformed/play-services-base-18.9.0/AndroidManifest.xml:20:19-85
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/901f4de2106215fde0d5b9695cc665f9/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] /home/Uday/.gradle/caches/9.8.2/transforms/901f4de2106215fde0d5b9695cc665f9/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:25:13-67
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.1] /home/Uday/.gradle/caches/9.8.2/transforms/7644898d1e06ef739e044c9b58309b53/transformed/profileinstaller-1.4.1/AndroidManifest.xml:50:25-92
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /home/Uday/.gradle/caches/9.8.2/transforms/b94ade7fcae3665042caafc95b2015b7/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.11.0] /home/Uday/.gradle/caches/9.8.2/transforms/20c8862f125ac6eba0cedd8ce5cbfc8b/transformed/lifecycle-process-2.11.0/AndroidManifest.xml:30:17-78
+uses-library#androidx.window.extensions
+ADDED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+uses-library#androidx.window.sidecar
+ADDED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /home/Uday/.gradle/caches/9.8.2/transforms/999dee9602f4dccac56e555a3e9a675f/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:21:9-23:69
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:23:13-66
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.9.0] /home/Uday/.gradle/caches/9.8.2/transforms/c9e145bf83d736daa6e7484a155a4ff1/transformed/play-services-basement-18.9.0/AndroidManifest.xml:22:13-58
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:23:9-81
+permission#com.example.daemon_expedite.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:26:22-94
+uses-permission#com.example.daemon_expedite.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.19.1] /home/Uday/.gradle/caches/9.8.2/transforms/840c8cd81daaef772fba6f6902ae921e/transformed/core-1.19.1/AndroidManifest.xml:26:22-94
+activity#androidx.activity.ComponentActivity
+ADDED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:23:9-26:79
+	android:exported
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:25:13-36
+	android:theme
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:26:13-76
+	android:name
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.12.1] /home/Uday/.gradle/caches/9.8.2/transforms/27e0d359c9db2b5cc28e9e53cdf204ce/transformed/ui-test-manifest-1.12.1/AndroidManifest.xml:24:13-63
+supports-screens
+ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:9:5-12:40
+	android:largeScreens
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:11:9-36
+	android:normalScreens
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:12:9-37
+	android:anyDensity
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:10:9-34
+uses-feature#android.hardware.location.network
+ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:14:5-16:36
+	android:required
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:16:9-33
+	android:name
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:15:9-57
+uses-feature#android.hardware.location.gps
+ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:17:5-19:36
+	android:required
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:19:9-33
+	android:name
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:18:9-53
+uses-feature#android.hardware.telephony
+ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:20:5-22:36
+	android:required
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:22:9-33
+	android:name
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:21:9-50
+uses-feature#android.hardware.wifi
+ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:23:5-25:36
+	android:required
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:25:9-33
+	android:name
+		ADDED from [org.osmdroid:osmdroid-android:6.1.20] /home/Uday/.gradle/caches/9.8.2/transforms/5a1a469e743e86b246750decfad5d1a7/transformed/osmdroid-android-6.1.20/AndroidManifest.xml:24:9-45
+activity#com.google.android.play.core.common.PlayCoreDialogWrapperActivity
+ADDED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:14:9-18:65
+	android:stateNotNeeded
+		ADDED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:17:13-42
+	android:exported
+		ADDED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:16:13-37
+	android:theme
+		ADDED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:18:13-62
+	android:name
+		ADDED from [com.google.android.play:core-common:2.0.3] /home/Uday/.gradle/caches/9.8.2/transforms/e1d0127e8688976beb3d2f569208e5a1/transformed/core-common-2.0.3/AndroidManifest.xml:15:13-93
