@@ -101,10 +101,10 @@ class CampsiteDetailViewModel(
 
     /** Loads the campsite for [viewer]. Only loads once per user unless [force] is true. */
     fun load(
-        viewer: User?,
+        viewer: User,
         force: Boolean = false,
     ) {
-        if (!force && loadedFor === viewer && _details.value is UiState.Content) return
+        if (!force && loadedFor === viewer) return
         loadedFor = viewer
         val id =
             campsiteId ?: run {
@@ -117,11 +117,11 @@ class CampsiteDetailViewModel(
                 loadAsUiState("Couldn't load this campsite") {
                     val campsite = Database.fetchCampsite(id)
                     val lottery = campsite.currentLottery()
-                    val status = viewer?.let { lottery?.entrantStatus(it.id) } ?: LotteryStatus.NONE
+                    val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
                     campsite.toDetails(
                         lottery = lottery.takeIf { status != LotteryStatus.NONE },
                         lotteryStatus = status,
-                        viewer = viewer?.id,
+                        viewer = viewer.id,
                     )
                 }
         }
@@ -129,30 +129,26 @@ class CampsiteDetailViewModel(
 
     /** Loads again after an error, for example from a "try again" link. */
     fun retry() {
-        load(loadedFor, force = true)
+        loadedFor?.let { load(it, force = true) }
     }
 
     /**
      * Reloads after joining or leaving, keeping the page on screen meanwhile so it doesn't
      * flash a spinner. [viewer] is the signed-in user, already updated.
      */
-    fun refresh(viewer: User? = null) {
-        val id =
-            campsiteId ?: run {
-                _details.value = UiState.Error(CAMPSITE_NOT_FOUND)
-                return
-            }
+    fun refresh(viewer: User) {
+        val id = campsiteId ?: return
         loadedFor = viewer
         viewModelScope.launch {
             val fresh =
                 loadAsUiState("Couldn't load this campsite") {
                     val campsite = Database.fetchCampsite(id)
                     val lottery = campsite.currentLottery()
-                    val status = viewer?.let { lottery?.entrantStatus(it.id) } ?: LotteryStatus.NONE
+                    val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
                     campsite.toDetails(
                         lottery = lottery.takeIf { status != LotteryStatus.NONE },
                         lotteryStatus = status,
-                        viewer = viewer?.id,
+                        viewer = viewer.id,
                     )
                 }
             if (fresh is UiState.Content || _details.value !is UiState.Content) _details.value = fresh
