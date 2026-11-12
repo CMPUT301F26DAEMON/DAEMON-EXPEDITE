@@ -1,0 +1,217 @@
+package com.example.daemon_expedite.frontend
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.daemon_expedite.ui_components.AppColors
+import com.example.daemon_expedite.ui_components.AppTextStyles
+
+/**
+ * Confirmation screen shown after a successful reservation.
+ *
+ * Navigation and reservation data are supplied by the caller.
+ */
+@Composable
+fun ReservationConfirmedScreen(
+    campsiteName: String,
+    stayDates: String,
+    nights: Int,
+    totalPrice: String,
+    onViewReservationsClick: () -> Unit,
+    onBackToExploreClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(AppColors.Background)
+            .padding(horizontal = 29.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.weight(1.2f))
+
+            // Confirmation checkmark
+            Box(
+                modifier = Modifier
+                    .size(68.dp)
+                    .border(
+                        width = 1.dp,
+                        color = AppColors.Primary,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = "Reservation confirmed",
+                    tint = AppColors.Primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "Reservation confirmed",
+                style = AppTextStyles.PageTitle,
+                color = AppColors.TextPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(7.dp))
+
+            Text(
+                text = "You're booked at $campsiteName.",
+                fontSize = 14.sp,
+                color = AppColors.TextSecondary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            // Reservation summary
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(89.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(Color(0xFF171E17))
+                    .padding(horizontal = 15.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "YOUR STAY",
+                        fontSize = 11.sp,
+                        color = AppColors.TextSecondary
+                    )
+
+                    Text(
+                        text = campsiteName,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = AppColors.TextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "$stayDates · $nights nights",
+                        fontSize = 12.sp,
+                        color = AppColors.TextSecondary
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = totalPrice,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.TextPrimary
+                    )
+
+                    Text(
+                        text = "total",
+                        fontSize = 12.sp,
+                        color = AppColors.TextSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(0.8f))
+
+            // Primary action
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(57.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(AppColors.Primary)
+                    .clickable(onClick = onViewReservationsClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "View my reservations",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Secondary action
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(57.dp)
+                    .border(
+                        BorderStroke(1.dp, Color(0xFF303431)),
+                        RoundedCornerShape(15.dp)
+                    )
+                    .clip(RoundedCornerShape(15.dp))
+                    .clickable(onClick = onBackToExploreClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Back to explore",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = AppColors.TextPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(54.dp))
+        }
+    }
+}
+
+/**
+ * Preview using the sample reservation from Figma.
+ */
+@Preview(
+    name = "Reservation Confirmed",
+    showBackground = true,
+    widthDp = 412,
+    heightDp = 917
+)
+@Composable
+private fun ReservationConfirmedScreenPreview() {
+    ReservationConfirmedScreen(
+        campsiteName = "Pine Creek Hideaway",
+        stayDates = "16–18 Oct",
+        nights = 2,
+        totalPrice = "$70",
+        onViewReservationsClick = {},
+        onBackToExploreClick = {}
+    )
+}
