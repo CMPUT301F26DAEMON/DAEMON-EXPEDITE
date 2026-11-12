@@ -451,7 +451,7 @@ private fun AmenitiesEditor(
         Text(
             text = warning ?: "${text.length}/$MAX_AMENITY_LENGTH · Tap a chip to remove it",
             style = AppTextStyles.CaptionMultiline,
-            color = if (warning != null) AppColors.Accent else AppColors.TextSecondary,
+            color = if (warning != null) AppColors.Accent else AppColors.TextMuted,
         )
     }
 }

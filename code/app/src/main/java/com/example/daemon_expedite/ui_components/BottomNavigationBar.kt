@@ -13,7 +13,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,6 +41,11 @@ fun BottomNavBar(
     }
 
     Surface(
+        modifier = Modifier.drawBehind {
+            // Figma: 1px top-only border, drawn inside the bar.
+            val stroke = 1.dp.toPx()
+            drawLine(AppColors.OutlineNav, Offset(0f, stroke / 2), Offset(size.width, stroke / 2), stroke)
+        },
         color = AppColors.SurfaceDeep,
         contentColor = AppColors.TextPrimary
     ) {

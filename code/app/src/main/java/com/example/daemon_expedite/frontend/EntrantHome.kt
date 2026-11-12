@@ -113,7 +113,7 @@ fun EntrantHomeScreen(
                     Text(
                         text = "Good evening${if (userName.isNotBlank()) ", $userName" else ""} · X lotteries open near you", // TODO: Replace X with the actual number of open nearby lotteries from the backend.
                         style = AppTextStyles.BodySmall,
-                        color = AppColors.TextSecondary
+                        color = AppColors.TextMuted
                     )
                 }
             IconButton(onClick = onProfileClick, modifier = Modifier.size(40.dp)) {

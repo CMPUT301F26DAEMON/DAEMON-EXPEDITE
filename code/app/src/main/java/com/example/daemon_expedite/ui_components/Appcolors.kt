@@ -107,6 +107,9 @@ object AppColors {
     /** White at 8%. Back buttons, sheets and other hairline borders. */
     val OutlineSubtle = Color(0x14FFFFFF)
 
+    /** [TextPrimary] at 8%. Top edge of the bottom navigation bar. */
+    val OutlineNav = Color(0x14DCDCDC)
+
     /** White at 10%. Form fields, search fields, tab tracks and dialogs. */
     val OutlineField = Color(0x1AFFFFFF)
 

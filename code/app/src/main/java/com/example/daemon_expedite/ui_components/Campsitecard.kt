@@ -258,7 +258,7 @@ fun CampsiteCard(
             Text(
                 text = location,
                 style = AppTextStyles.BodyMedium,
-                color = AppColors.TextSecondary,
+                color = AppColors.TextPrimary,
             )
 
             Row(

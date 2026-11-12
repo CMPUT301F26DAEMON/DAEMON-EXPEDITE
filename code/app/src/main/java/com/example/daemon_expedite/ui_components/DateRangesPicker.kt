@@ -104,7 +104,7 @@ fun DateRangesPicker(
                 else -> "${start!!.short()} → ${end!!.short()} · ${nightsText(nights)}"
             },
             style = AppTextStyles.CaptionMultiline,
-            color = if (overlaps) AppColors.Accent else AppColors.TextSecondary,
+            color = if (overlaps) AppColors.Accent else AppColors.TextMuted,
         )
 
         OutlinedButton(
