@@ -1,16 +1,23 @@
+
 package com.example.daemon_expedite.frontend
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,13 +29,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.BoxWithConstraints
 import com.example.daemon_expedite.ui_components.AppColors
+import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.GreenButton
 
 /**
- * Confirmation screen shown after a successful reservation.
+ * Displays a confirmation after a campsite reservation succeeds.
  *
- * Navigation and reservation data are supplied by the caller.
+ * Reservation data and navigation callbacks are provided by the caller.
+ *
+ * @param campsiteName Name of the reserved campsite.
+ * @param stayDates Formatted dates of the reservation.
+ * @param nights Number of nights reserved.
+ * @param totalPrice Formatted total reservation price.
+ * @param onViewReservationsClick Called when the user views their reservations.
+ * @param onBackToExploreClick Called when the user returns to Explore.
+ * @param modifier Optional modifier for the screen.
  */
 @Composable
 fun ReservationConfirmedScreen(
@@ -40,19 +58,21 @@ fun ReservationConfirmedScreen(
     onBackToExploreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(AppColors.Background)
             .padding(horizontal = 29.dp)
     ) {
+        val buttonWidth = maxWidth.coerceAtMost(356.dp)
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.weight(1.2f))
 
-            // Confirmation checkmark
+            // Confirmation icon
             Box(
                 modifier = Modifier
                     .size(68.dp)
@@ -64,7 +84,7 @@ fun ReservationConfirmedScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Check,
+                    imageVector = AppIcons.Tick,
                     contentDescription = "Reservation confirmed",
                     tint = AppColors.Primary,
                     modifier = Modifier.size(28.dp)
@@ -73,6 +93,7 @@ fun ReservationConfirmedScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            // Confirmation heading
             Text(
                 text = "Reservation confirmed",
                 style = AppTextStyles.PageTitle,
@@ -91,7 +112,7 @@ fun ReservationConfirmedScreen(
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Reservation summary
+            // Reservation summary card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -149,27 +170,16 @@ fun ReservationConfirmedScreen(
 
             Spacer(modifier = Modifier.weight(0.8f))
 
-            // Primary action
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(57.dp)
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(AppColors.Primary)
-                    .clickable(onClick = onViewReservationsClick),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "View my reservations",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            }
+            GreenButton(
+                onClick = onViewReservationsClick,
+                buttonText = "View my reservations",
+                customHeight = 57,
+                customWidth = buttonWidth.value.toInt()
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Secondary action
+            // Secondary outlined button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -196,7 +206,7 @@ fun ReservationConfirmedScreen(
 }
 
 /**
- * Preview using the sample reservation from Figma.
+ * Preview of the reservation confirmation screen using sample data.
  */
 @Preview(
     name = "Reservation Confirmed",
