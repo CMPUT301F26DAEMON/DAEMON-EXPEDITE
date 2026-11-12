@@ -1,10 +1,10 @@
 package com.example.daemon_expedite.ui_components
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -12,22 +12,27 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-
+import androidx.compose.ui.window.DialogProperties
 /**
- * A popup dialog that lets the user rate something (e.g. a campsite) from 1 to [maxStars].
+ * A popup dialog that lets the user rate a campsite from 1 to [maxStars]
+ * and optionally write a review.
  *
- * @param title          The name shown at the top of the popup.
- * @param onDismiss      Called when the user taps outside the popup or presses back.
- * @param onSubmit       Called with the number of stars selected when "Submit Rating" is pressed.
- * @param maxStars       Total number of stars displayed. Defaults to 5.
- * @param initialRating  Number of stars selected when the popup first opens. Defaults to 0.
- * @param modifier       Optional [Modifier] applied to the popup card.
+ * @param title               The campsite name shown at the top of the popup.
+ * @param onDismiss           Called when the user taps outside the popup or presses back.
+ * @param onSubmit            Called with the number of stars selected.
+ * @param maxStars            Total number of stars displayed. Defaults to 5.
+ * @param initialRating       Number of stars selected when the popup opens. Defaults to 0.
+ * @param modifier            Optional [Modifier] applied to the popup card.
+ * @param stayDetails         The stay dates and description shown below the title.
+ * @param onSubmitWithReview  Optional callback returning the rating and written review.
  */
 @Composable
 fun RatingPopup(
@@ -36,29 +41,39 @@ fun RatingPopup(
     onSubmit: (Int) -> Unit,
     maxStars: Int = 5,
     initialRating: Int = 0,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    stayDetails: String = "16–18 Oct · 2 nights · How was your stay?",
+    onSubmitWithReview: ((Int, String) -> Unit)? = null
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        )
+    ) {
         RatingCard(
             title = title,
             onSubmit = onSubmit,
             maxStars = maxStars,
             initialRating = initialRating,
-            modifier = modifier
+            modifier = modifier.fillMaxWidth(0.86f),
+            stayDetails = stayDetails,
+            onSubmitWithReview = onSubmitWithReview
         )
     }
 }
-
 /**
- * The visual content of the rating popup (title, stars, submit button).
+ * The visual content of the rating popup (title, stay details, stars, review field, submit button).
  * Separate from [RatingPopup] so it can be previewed without a Dialog window.
  *
- * @param title          The name shown at the top.
- * @param onSubmit       Called with the number of stars selected (1..[maxStars]).
- *                       Not called if no star is selected.
- * @param maxStars       Total number of stars displayed. Defaults to 5.
- * @param initialRating  Number of stars selected initially. Defaults to 0.
- * @param modifier       Optional [Modifier] applied to the card.
+ * @param title               The campsite name shown at the top.
+ * @param onSubmit            Called with the number of stars selected (1..[maxStars]).
+ *                            Not called if no star is selected.
+ * @param maxStars            Total number of stars displayed. Defaults to 5.
+ * @param initialRating       Number of stars selected initially. Defaults to 0.
+ * @param modifier            Optional [Modifier] applied to the card.
+ * @param stayDetails         The stay dates and description shown below the title.
+ * @param onSubmitWithReview  Optional callback returning the rating and written review.
  */
 @Composable
 fun RatingCard(
@@ -66,33 +81,47 @@ fun RatingCard(
     onSubmit: (Int) -> Unit,
     maxStars: Int = 5,
     initialRating: Int = 0,
-    modifier: Modifier = Modifier
-) {
-    var rating by rememberSaveable { mutableIntStateOf(initialRating) }
+    modifier: Modifier = Modifier,
+    stayDetails: String = "16–18 Oct · 2 nights · How was your stay?",
+    onSubmitWithReview: ((Int, String) -> Unit)? = null
+) {var rating by rememberSaveable(title, maxStars) {mutableIntStateOf(initialRating.coerceIn(0, maxStars))}
 
+    var reviewText by rememberSaveable(title) {
+        mutableStateOf("")
+    }
     val selectedColor = AppColors.Accent
     val unselectedColor = AppColors.Secondary
-
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         color = AppColors.SurfaceDeep,
-        border = BorderStroke(1.dp, AppColors.OutlineField)
+        border = BorderStroke(
+            1.dp,
+            AppColors.OutlineSubtle
+        )
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             Text(
                 text = title,
                 color = AppColors.TextOnPrimary,
-                fontSize = 24.sp,
+                fontSize = 18.sp,
+                fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold
             )
-
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = stayDetails,
+                color = AppColors.TextSecondary,
+                fontSize = 11.sp,
+                lineHeight = 15.sp
+            )
+            Spacer(modifier = Modifier.height(14.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 repeat(maxStars) { index ->
@@ -101,30 +130,94 @@ fun RatingCard(
                         contentDescription = "Rate ${index + 1} star${if (index == 0) "" else "s"}",
                         tint = if (index < rating) selectedColor else unselectedColor,
                         modifier = Modifier
-                            .size(44.dp)
+                            .padding(horizontal = 5.dp)
+                            .size(26.dp)
                             .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
+                                interactionSource = remember {
+                                    MutableInteractionSource()
+                                },
                                 indication = null
-                            ) { rating = index + 1 } // this star + all before it
+                            ) {
+                                rating = index + 1
+                            }
                     )
                 }
             }
-
+            Spacer(modifier = Modifier.height(16.dp))
+            BasicTextField(
+                value = reviewText,
+                onValueChange = { reviewText = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
+                textStyle = TextStyle(
+                    color = AppColors.TextOnPrimary,
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp
+                ),
+                cursorBrush = SolidColor(AppColors.Primary),
+                decorationBox = { innerTextField ->
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RoundedCornerShape(11.dp),
+                        color = AppColors.FillField,
+                        border = BorderStroke(
+                            1.dp,
+                            AppColors.OutlineSubtle
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            contentAlignment = Alignment.TopStart
+                        ) {
+                            if (reviewText.isEmpty()) {
+                                Text(
+                                    text = "What was your stay like? (optional)",
+                                    color = AppColors.TextSecondary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
             GreenButton(
-                onClick = { if (rating > 0) onSubmit(rating) },
-                icon = AppIcons.Tick,
-                buttonText = "Submit Rating"
+                onClick = {
+                    if (rating > 0) {
+                        if (onSubmitWithReview != null) {
+                            onSubmitWithReview(rating, reviewText)
+                        } else {
+                            onSubmit(rating)
+                        }
+                    }
+                },
+                icon = null,
+                buttonText = "Submit review",
+                customHeight = 40,
+                customWidth = 356
             )
         }
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+/**
+ * Preview of the rating card with three stars selected.
+ * Uses the existing app theme colours and components.
+ */
+@Preview(showBackground = true)
 @Composable
 private fun RatingCardPreview() {
-    RatingCard(
-        title = "Pine Creek Hideaway",
-        onSubmit = {},
-        initialRating = 0
-    )
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = AppColors.Background
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            RatingCard(title = "Pine Creek Hideaway", onSubmit = {},initialRating = 3, modifier = Modifier.fillMaxWidth(0.86f)) } }
 }
