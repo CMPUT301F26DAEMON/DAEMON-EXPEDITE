@@ -20,6 +20,8 @@ import androidx.navigation.NavBackStackEntry
  *   the old one drifts a little to the left and fades, like turning a page. Back is the reverse.
  * - **Role switch** (entrant / owner / admin from a profile toggle): a short zoom, so changing "mode"
  *   reads differently from opening a page.
+ * - **Tab switch** (bottom bar): both screens slide the full width together, toward the
+ *   tab that was tapped, with no fade. The bar itself stays put.
  * - **From the splash screen**: a plain fade.
  */
 private typealias NavScope = AnimatedContentTransitionScope<NavBackStackEntry>
@@ -27,6 +29,13 @@ private typealias NavScope = AnimatedContentTransitionScope<NavBackStackEntry>
 private const val SLIDE_MS = 350
 private const val ROLE_SWITCH_MS = 400
 private const val FADE_MS = 250
+private const val TAB_MS = 350
+
+/** How long the entrant bottom bar takes to slide in or out, in step with the screens. */
+internal const val TAB_BAR_MS = SLIDE_MS
+
+/** Entrant tab routes in bottom bar order. Messages (the 4th tab) has no screen yet. */
+internal val EntrantTabRoutes = listOf(Routes.HOME, Routes.RESERVATIONS, Routes.ENTRANT_LOTTERIES)
 
 /** How far the screen underneath moves (a fraction of the width): a slight parallax. */
 private const val PARALLAX = 4
@@ -56,10 +65,27 @@ private fun NavScope.isRoleSwitch(): Boolean {
 
 private fun NavScope.isFromSplash() = from(Routes.SPLASH)
 
+/**
+ * For a move between two entrant tabs, the way the screens slide: toward the start when the
+ * new tab is to the right of the old one, toward the end otherwise. Null for any other move.
+ */
+private fun NavScope.tabSlide(): SlideDirection? {
+    val from = EntrantTabRoutes.indexOf(initialState.destination.route)
+    val to = EntrantTabRoutes.indexOf(targetState.destination.route)
+    if (from < 0 || to < 0 || from == to) return null
+    return if (to > from) SlideDirection.Start else SlideDirection.End
+}
+
+private fun NavScope.tabIn(direction: SlideDirection): EnterTransition =
+    slideIntoContainer(direction, tween(TAB_MS, easing = FastOutSlowInEasing))
+
+private fun NavScope.tabOut(direction: SlideDirection): ExitTransition =
+    slideOutOfContainer(direction, tween(TAB_MS, easing = FastOutSlowInEasing))
+
 // region Transitions handed to NavHost
 
 val enterTransition: NavScope.() -> EnterTransition = {
-    when {
+    tabSlide()?.let { tabIn(it) } ?: when {
         isFromSplash() -> fadeIn(tween(FADE_MS))
         isRoleSwitch() -> roleSwitchIn()
         else -> slideIntoContainer(SlideDirection.Start, tween(SLIDE_MS, easing = FastOutSlowInEasing)) +
@@ -68,7 +94,7 @@ val enterTransition: NavScope.() -> EnterTransition = {
 }
 
 val exitTransition: NavScope.() -> ExitTransition = {
-    when {
+    tabSlide()?.let { tabOut(it) } ?: when {
         isFromSplash() -> fadeOut(tween(FADE_MS))
         isRoleSwitch() -> roleSwitchOut()
         else -> slideOutOfContainer(
@@ -80,7 +106,7 @@ val exitTransition: NavScope.() -> ExitTransition = {
 }
 
 val popEnterTransition: NavScope.() -> EnterTransition = {
-    when {
+    tabSlide()?.let { tabIn(it) } ?: when {
         isRoleSwitch() -> roleSwitchIn()
         else -> slideIntoContainer(
             SlideDirection.End,
@@ -91,7 +117,7 @@ val popEnterTransition: NavScope.() -> EnterTransition = {
 }
 
 val popExitTransition: NavScope.() -> ExitTransition = {
-    when {
+    tabSlide()?.let { tabOut(it) } ?: when {
         isRoleSwitch() -> roleSwitchOut()
         else -> slideOutOfContainer(SlideDirection.End, tween(SLIDE_MS, easing = FastOutSlowInEasing)) +
             fadeOut(tween(SLIDE_MS))

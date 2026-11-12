@@ -30,7 +30,7 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.LotteryCard
 import com.example.daemon_expedite.ui_components.PillVariant
@@ -50,10 +50,6 @@ import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
  * @param leavingId ID of the lottery currently being left, or null.
  * @param onRetry Called when the user taps an error message to retry loading.
  * @param onLeaveConfirmed Called with the lottery ID after confirming departure.
- * @param onExploreClick Called when the Explore navigation tab is tapped.
- * @param onReservationsClick Called when the Reservations tab is tapped.
- * @param onLotteriesClick Called when the Lotteries tab is tapped.
- * @param onMessagesClick Called when the Messages tab is tapped.
  */
 @Composable
 fun EntrantLotteriesScreen(
@@ -61,10 +57,6 @@ fun EntrantLotteriesScreen(
     leavingId: Id?,
     onRetry: () -> Unit,
     onLeaveConfirmed: (lotteryId: Id) -> Unit,
-    onExploreClick: () -> Unit = {},
-    onReservationsClick: () -> Unit = {},
-    onLotteriesClick: () -> Unit = {},
-    onMessagesClick: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // Id of the lottery the confirm dialog is about, as a String so it survives rotation.
@@ -123,27 +115,9 @@ fun EntrantLotteriesScreen(
             }
         }
 
-        BottomNavBar(
-            labels = listOf(
-                "Explore",
-                "Reservations",
-                "Lotteries",
-                "Messages"
-            ),
-            icons = listOf(
-                AppIcons.Home,
-                AppIcons.Reservation,
-                AppIcons.LotteryTicket,
-                AppIcons.Chat
-            ),
-            onClicks = listOf(
-                onExploreClick,
-                onReservationsClick,
-                onLotteriesClick,
-                onMessagesClick
-            ),
-            selectedIndex = 2
-        )
+        // Room for the shared bottom bar AppNavigation draws on top.
+
+        BottomNavBarSpacer()
 
     }
 

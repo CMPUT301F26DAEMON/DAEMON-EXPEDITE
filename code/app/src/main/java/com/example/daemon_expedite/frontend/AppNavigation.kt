@@ -5,6 +5,15 @@
 package com.example.daemon_expedite.frontend
 
 import android.widget.Toast
+import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.AppIcons
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.SideEffect
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -195,703 +204,711 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             }
         }
 
-    NavHost(
-        navController = navController,
-        startDestination = Routes.SPLASH,
-        // Slide for opening/going back, zoom for role switches, fade from splash (NavTransitions.kt).
-        enterTransition = enterTransition,
-        exitTransition = exitTransition,
-        popEnterTransition = popEnterTransition,
-        popExitTransition = popExitTransition,
-    ) {
-        composable(Routes.SPLASH) {
-            SplashRoute(
-                state = sessionState,
-                onRetry = session::retry,
-                onReady = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
-                    }
-                },
-            )
+    /**
+     * Opens entrant tab [index] (see [EntrantTabRoutes]). Explore is always at the bottom of the
+     * back stack, so it pops back there; the other tabs sit directly above it, so moving between
+     * tabs never builds up a stack.
+     */
+    fun openEntrantTab(index: Int) {
+        val route = EntrantTabRoutes.getOrNull(index) ?: return showComingSoon("Messages")
+        // Already there. Navigating anyway would pop this tab and open a fresh copy (popUpTo
+        // runs before launchSingleTop checks the top), replaying the slide.
+        if (navController.currentDestination?.route == route) return
+        if (route == Routes.HOME) {
+            navController.popBackStack(Routes.HOME, inclusive = false)
+        } else {
+            navController.navigate(route) {
+                popUpTo(Routes.HOME)
+                launchSingleTop = true
+            }
         }
+    }
 
-        // region Entrant
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val entrantTab = EntrantTabRoutes.indexOf(currentRoute)
 
-        composable(Routes.HOME) {
-            val home: HomeViewModel = viewModel()
-            // Runs every time Home comes back on screen (for example after switching back from
-            // the owner view), so newly registered campsites appear without restarting the app.
-            LaunchedEffect(Unit) { home.onScreenShown() }
-            // Hides the signed-in user's own campsites. The splash screen waits for the user,
-            // so this is set before the first search finishes.
-            LaunchedEffect(user) { home.setViewer(user?.id) }
-            val query by home.query.collectAsState()
-            val campsites by home.campsites.collectAsState()
-            EntrantHomeScreen(
-                profileImageUrl = photoUrl,
-                userName = user?.name.orEmpty(),
-                searchQuery = query,
-                onSearchQueryChange = home::onQueryChange,
-                campsites = campsites,
-                onRetry = home::retry,
-                onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
-                onFilterClick = home::onFilterClick,
-                onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
-                onReservationsClick = { navController.navigate(Routes.RESERVATIONS) },
-                onLotteriesClick = { navController.navigate(Routes.ENTRANT_LOTTERIES) },
-                onMessagesClick = { showComingSoon("Messages") },
-            )
-        }
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.Background)) {
+        NavHost(
+            modifier = Modifier.fillMaxSize(),
+            navController = navController,
+            startDestination = Routes.SPLASH,
+            // Slide for opening/going back, zoom for role switches, fade from splash (NavTransitions.kt).
+            enterTransition = enterTransition,
+            exitTransition = exitTransition,
+            popEnterTransition = popEnterTransition,
+            popExitTransition = popExitTransition,
+        ) {
+            composable(Routes.SPLASH) {
+                SplashRoute(
+                    state = sessionState,
+                    onRetry = session::retry,
+                    onReady = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
+                    },
+                )
+            }
 
-        composable(Routes.ENTRANT_LOTTERIES) {
-            val lotteries: EntrantLotteriesViewModel = viewModel()
-            // Runs each time this screen comes back, so a lottery joined meanwhile shows up.
-            LaunchedEffect(user) { user?.let(lotteries::load) }
-            val state by lotteries.lotteries.collectAsState()
-            var leavingId by remember { mutableStateOf<Id?>(null) }
-            EntrantLotteriesScreen(
-                state = state,
-                leavingId = leavingId,
-                onRetry = lotteries::retry,
+            // region Entrant
 
-                onExploreClick = {
-                    navController.popBackStack(Routes.HOME, false)
-                },
-                onReservationsClick = {
-                    navController.navigate(Routes.RESERVATIONS) {
-                        popUpTo(Routes.HOME)
-                        launchSingleTop = true
-                    }
-                },
-                onLotteriesClick = {},
-                onMessagesClick = {
-                    showComingSoon("Messages")
-                },
-                onLeaveConfirmed = { lotteryId ->
-                    leavingId = lotteryId
-                    session.leaveLottery(lotteryId) { result ->
-                        leavingId = null
+            composable(Routes.HOME) {
+                val home: HomeViewModel = viewModel()
+                // Runs every time Home comes back on screen (for example after switching back from
+                // the owner view), so newly registered campsites appear without restarting the app.
+                LaunchedEffect(Unit) { home.onScreenShown() }
+                // Hides the signed-in user's own campsites. The splash screen waits for the user,
+                // so this is set before the first search finishes.
+                LaunchedEffect(user) { home.setViewer(user?.id) }
+                val query by home.query.collectAsState()
+                val campsites by home.campsites.collectAsState()
+                EntrantHomeScreen(
+                    profileImageUrl = photoUrl,
+                    userName = user?.name.orEmpty(),
+                    searchQuery = query,
+                    onSearchQueryChange = home::onQueryChange,
+                    campsites = campsites,
+                    onRetry = home::retry,
+                    onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
+                    onFilterClick = home::onFilterClick,
+                    onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
+                )
+            }
+
+            composable(Routes.ENTRANT_LOTTERIES) {
+                val lotteries: EntrantLotteriesViewModel = viewModel()
+                // Runs each time this screen comes back, so a lottery joined meanwhile shows up.
+                LaunchedEffect(user) { user?.let(lotteries::load) }
+                val state by lotteries.lotteries.collectAsState()
+                var leavingId by remember { mutableStateOf<Id?>(null) }
+                EntrantLotteriesScreen(
+                    state = state,
+                    leavingId = leavingId,
+                    onRetry = lotteries::retry,
+
+                    onLeaveConfirmed = { lotteryId ->
+                        leavingId = lotteryId
+                        session.leaveLottery(lotteryId) { result ->
+                            leavingId = null
+                            when (result) {
+                                LotteryActionResult.DONE -> {
+                                    toast("You left the waiting list")
+                                    lotteries.removeFromInProgress(lotteryId)
+                                }
+
+                                LotteryActionResult.CLOSED -> {
+                                    toast("Entries for this lottery are closed, so you can't leave now.")
+                                }
+
+                                LotteryActionResult.FULL, LotteryActionResult.FAILED -> {
+                                    toast("Something went wrong. Check your connection and try again.")
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.RESERVATIONS) {
+                val reservations: EntrantReservationsViewModel = viewModel()
+                // Waits for the user to load, since the reservation ids are stored on the user.
+                LaunchedEffect(user) { user?.let(reservations::load) }
+                val state by reservations.reservations.collectAsState()
+                val cancellingId by reservations.cancellingId.collectAsState()
+                EntrantReservationsScreen(
+                    state = state,
+                    cancellingId = cancellingId,
+                    onRetry = reservations::retry,
+
+                    onCancelConfirmed = { id ->
+                        reservations.cancel(id) { problem -> toast(problem ?: "Reservation cancelled") }
+                    },
+                    onRateStayClick = { showComingSoon("Rating") },
+                )
+            }
+
+            composable(Routes.CAMPSITE_DETAIL) {
+                // Reads the campsite id from the route through its SavedStateHandle.
+                val detail: CampsiteDetailViewModel = viewModel()
+                // Runs each time the page comes back (for example after booking), and keeps the old
+                // details on screen while it reloads.
+                LaunchedEffect(user) { user?.let(detail::refresh) }
+                val state by detail.details.collectAsState()
+                var lotteryBusy by remember { mutableStateOf(false) }
+
+                /** Joins or leaves, then reloads the page so the card shows the new state. */
+                fun lotteryAction(join: Boolean) {
+                    val lotteryId = (state as? UiState.Content)?.data?.lotteryId ?: return
+                    lotteryBusy = true
+                    val action = if (join) session::joinLottery else session::leaveLottery
+                    action(lotteryId) { result ->
+                        lotteryBusy = false
                         when (result) {
                             LotteryActionResult.DONE -> {
-                                toast("You left the waiting list")
-                                lotteries.removeFromInProgress(lotteryId)
+                                toast(if (join) "You're on the waiting list" else "You left the waiting list")
+                            }
+
+                            LotteryActionResult.FULL -> {
+                                toast("Sorry, the waiting list just filled up.")
                             }
 
                             LotteryActionResult.CLOSED -> {
-                                toast("Entries for this lottery are closed, so you can't leave now.")
+                                toast("Entries for this lottery are closed.")
                             }
 
-                            LotteryActionResult.FULL, LotteryActionResult.FAILED -> {
+                            LotteryActionResult.FAILED -> {
                                 toast("Something went wrong. Check your connection and try again.")
                             }
                         }
+                        session.user?.let(detail::refresh)
                     }
-                },
-            )
-        }
+                }
 
-        composable(Routes.RESERVATIONS) {
-            val reservations: EntrantReservationsViewModel = viewModel()
-            // Waits for the user to load, since the reservation ids are stored on the user.
-            LaunchedEffect(user) { user?.let(reservations::load) }
-            val state by reservations.reservations.collectAsState()
-            val cancellingId by reservations.cancellingId.collectAsState()
-            EntrantReservationsScreen(
-                state = state,
-                cancellingId = cancellingId,
-                onRetry = reservations::retry,
+                CampsiteDetailScreen(
+                    state = state,
+                    isLotteryBusy = lotteryBusy,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = detail::retry,
+                    onViewMapClick = {
+                        (state as? UiState.Content)?.let {
+                            navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
+                        }
+                    },
+                    onPoliciesClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
+                    },
+                    onJoinLotteryClick = { lotteryAction(join = true) },
+                    onLeaveLotteryClick = { lotteryAction(join = false) },
+                    onBookClick = {
+                        (state as? UiState.Content)?.data?.let { details ->
+                            details.lotteryId?.let { navController.navigate(Routes.bookLotteryStay(it, details.id)) }
+                        }
+                    },
+                    // TODO: open messages once they're built.
+                    onMessageOwnerClick = { showComingSoon("Messages") },
+                )
+            }
 
-                onExploreClick = {
-                    navController.popBackStack(Routes.HOME, false)
-                },
-                onReservationsClick = {},
-                onLotteriesClick = {
-                    navController.navigate(Routes.ENTRANT_LOTTERIES) {
-                        popUpTo(Routes.HOME)
-                        launchSingleTop = true
+            composable(Routes.CAMPSITE_MAP) { entry ->
+                val args = entry.arguments
+                CampsiteMapScreen(
+                    latitude = args?.getString(Routes.LATITUDE_ARG)?.toDoubleOrNull() ?: 0.0,
+                    longitude = args?.getString(Routes.LONGITUDE_ARG)?.toDoubleOrNull() ?: 0.0,
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.CAMPSITE_POLICIES) { entry ->
+                // Loads the campsite named in the route, so any screen can link to its policies.
+                val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toIdOrNull() }
+                val policies by produceState<String?>(null, campsiteId) {
+                    value = campsiteId?.let { id ->
+                        quietly("Couldn't load policies for $id") { Database.fetchCampsite(id).policies }
+                    }.orEmpty()
+                }
+                CampsitePoliciesScreen(
+                    policies = policies,
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.BOOK_LOTTERY_STAY) {
+                // Reads the lottery and first campsite from the route.
+                val booking: BookingViewModel = viewModel()
+                val options by booking.options.collectAsState()
+                val selection by booking.selection.collectAsState()
+                val declining by booking.isDeclining.collectAsState()
+                var isBooking by remember { mutableStateOf(false) }
+                val viewer = user?.id
+                BookingScreen(
+                    state = options,
+                    selection = selection,
+                    problem = viewer?.let { booking.problem(it) },
+                    isBooking = isBooking,
+                    isDeclining = declining,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = booking::load,
+                    onCampsiteClick = booking::selectCampsite,
+                    onDatesChange = booking::onDatesChange,
+                    onAgreeChange = booking::setAgreedToRules,
+                    onPoliciesClick = { id -> navController.navigate(Routes.campsitePolicies(id)) },
+                    onReserveClick = {
+                        val lotteryId = (options as? UiState.Content)?.data?.lottery?.id
+                        val campsite = selection.campsite
+                        val period = selection.period
+                        if (lotteryId != null && campsite != null && period != null) {
+                            isBooking = true
+                            session.bookLotteryStay(lotteryId, campsite, period) { problem ->
+                                isBooking = false
+                                if (problem == null) {
+                                    toast("Booked! See you at camp.")
+                                    navController.popBackStack() // the campsite page refreshes when shown
+                                } else {
+                                    toast(problem)
+                                    booking.load() // someone may have taken those nights
+                                }
+                            }
+                        }
+                    },
+                    onDeclineConfirmed = {
+                        if (viewer != null) {
+                            booking.decline(viewer) { problem ->
+                                if (problem == null) {
+                                    toast("You declined this lottery")
+                                    navController.popBackStack()
+                                } else {
+                                    toast(problem)
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.ENTRANT_PROFILE) {
+                EntrantProfileDetailsScreen(
+                    name = user?.name.orEmpty(),
+                    email = user?.email.orEmpty(),
+                    phone = user?.phoneNumber.orEmpty(),
+                    photoUrl = photoUrl,
+                    notificationsEnabled = user?.notificationsEnabled ?: true,
+                    onBackClick = { navController.popBackStack() },
+                    onEditPhotoClick = { navController.navigate(Routes.EDIT_PROFILE_PHOTO) },
+                    onUpdateProfileClick = { navController.navigate(Routes.EDIT_PROFILE) },
+                    isAdmin = isAdmin,
+                    onRoleSelected = { switchRole(it) },
+                    onPoliciesClick = { navController.navigate(Routes.POLICIES) },
+                    onNotificationsChanged = { enabled ->
+                        session.setNotificationsEnabled(enabled) { ok ->
+                            if (!ok) toast("Couldn't save notification setting")
+                        }
+                    },
+                    onDeleteProfileClick = {
+                        // The screen already asked "are you sure?" before calling this.
+                        session.deleteProfile { ok ->
+                            if (ok) navController.restartAtSplash() else toast("Couldn't delete profile")
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.POLICIES) {
+                val context = LocalContext.current
+                val mdText =
+                    remember(context) {
+                        loadMarkdownFromAsset(context, "app_policies.md")
                     }
-                },
-                onMessagesClick = {
-                    showComingSoon("Messages")
-                },
-                onCancelConfirmed = { id ->
-                    reservations.cancel(id) { problem -> toast(problem ?: "Reservation cancelled") }
-                },
-                onRateStayClick = { showComingSoon("Rating") },
-            )
-        }
+                AppPolicyScreen(
+                    markdownText = mdText,
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
 
-        composable(Routes.CAMPSITE_DETAIL) {
-            // Reads the campsite id from the route through its SavedStateHandle.
-            val detail: CampsiteDetailViewModel = viewModel()
-            // Runs each time the page comes back (for example after booking), and keeps the old
-            // details on screen while it reloads.
-            LaunchedEffect(user) { user?.let(detail::refresh) }
-            val state by detail.details.collectAsState()
-            var lotteryBusy by remember { mutableStateOf(false) }
-
-            /** Joins or leaves, then reloads the page so the card shows the new state. */
-            fun lotteryAction(join: Boolean) {
-                val lotteryId = (state as? UiState.Content)?.data?.lotteryId ?: return
-                lotteryBusy = true
-                val action = if (join) session::joinLottery else session::leaveLottery
-                action(lotteryId) { result ->
-                    lotteryBusy = false
-                    when (result) {
-                        LotteryActionResult.DONE -> {
-                            toast(if (join) "You're on the waiting list" else "You left the waiting list")
+            composable(Routes.EDIT_PROFILE) {
+                var saving by remember { mutableStateOf(false) }
+                EditProfileScreen(
+                    profileImageUrl = photoUrl,
+                    name = user?.name.orEmpty(),
+                    email = user?.email.orEmpty(),
+                    phoneNumber = user?.phoneNumber.orEmpty(),
+                    isSaving = saving,
+                    onBackClick = { navController.popBackStack() },
+                    onCancelClick = { navController.popBackStack() },
+                    onProfilePhotoClick = { navController.navigate(Routes.EDIT_PROFILE_PHOTO) },
+                    onSaveClick = { name, email, phone ->
+                        saving = true
+                        session.updateProfile(name, email, phone) { ok ->
+                            saving = false
+                            if (ok) navController.popBackStack() else toast("Couldn't save your profile")
                         }
+                    },
+                )
+            }
 
-                        LotteryActionResult.FULL -> {
-                            toast("Sorry, the waiting list just filled up.")
-                        }
-
-                        LotteryActionResult.CLOSED -> {
-                            toast("Entries for this lottery are closed.")
-                        }
-
-                        LotteryActionResult.FAILED -> {
-                            toast("Something went wrong. Check your connection and try again.")
+            composable(Routes.EDIT_PROFILE_PHOTO) {
+                // Opens the system photo picker. No storage permission is needed for this.
+                val pickPhoto =
+                    rememberLauncherForActivityResult(
+                        ActivityResultContracts.PickVisualMedia(),
+                    ) { uri ->
+                        if (uri == null) return@rememberLauncherForActivityResult // user cancelled
+                        session.uploadProfilePhoto(uri) { ok ->
+                            if (ok) navController.popBackStack() else toast("Couldn't upload photo")
                         }
                     }
-                    session.user?.let(detail::refresh)
+                EditProfilePhotoScreen(
+                    profileImageUrl = photoUrl,
+                    onBackClick = { navController.popBackStack() },
+                    onChoosePhotoClick = {
+                        pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    // TODO: taking a photo needs the camera permission and a file to save into.
+                    onTakePhotoClick = { showComingSoon("Taking a photo") },
+                    onDeletePhotoClick = {
+                        session.removeProfilePhoto { ok ->
+                            if (ok) navController.popBackStack() else toast("Couldn't remove photo")
+                        }
+                    },
+                )
+            }
+
+            // endregion
+
+            // region Owner
+
+            composable(Routes.OWNER_HOME) {
+                // Load (or create) the owner once the user is available.
+                LaunchedEffect(user) { user?.let(ownerViewModel::load) }
+                val query by ownerViewModel.query.collectAsState()
+                val campsites by ownerViewModel.campsites.collectAsState()
+                CampsiteOwnerMainPage(
+                    profileImageUrl = photoUrl,
+                    searchQuery = query,
+                    onSearchQueryChange = ownerViewModel::onQueryChange,
+                    campsites = campsites,
+                    onRetry = { user?.let { ownerViewModel.load(it, force = true) } },
+                    onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
+                    onProfileClick = { navController.navigate(Routes.OWNER_PROFILE) },
+                    onRegisterCampsiteClick = { navController.navigate(Routes.REGISTER_CAMPSITE) },
+                    onReservationsClick = { showComingSoon("Reservations") },
+                    onMessagesClick = { showComingSoon("Messages") },
+                    onNotificationsClick = { showComingSoon("Notifications") },
+                    onLotteriesClick = { navController.navigate(Routes.OWNER_LOTTERIES) },
+                )
+            }
+
+            composable(Routes.OWNER_PROFILE) {
+                ProfileDetailsScreen(
+                    profileImageUrl = photoUrl,
+                    name = user?.name.orEmpty(),
+                    email = user?.email.orEmpty(),
+                    phoneNumber = user?.phoneNumber.orEmpty(),
+                    isAdmin = isAdmin,
+                    // Read-only page: photo and details are changed from the entrant profile.
+                    onBackClick = { navController.popBackStack() },
+                    onRoleSelected = { switchRole(it) },
+                    onDeleteProfile = {
+                        // Owner page: delete only the owner side, then go back to being an entrant.
+                        ownerViewModel.deleteOwnerProfile { ok ->
+                            if (ok) {
+                                toast("Owner profile deleted")
+                                switchRole(ProfileRole.ENTRANT)
+                            } else {
+                                toast("Couldn't delete owner profile")
+                            }
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.OWNER_LOTTERIES) {
+                val lotteries: OwnerLotteriesViewModel = viewModel()
+                val owner by ownerViewModel.owner.collectAsState()
+                val loadedOwner = (owner as? UiState.Content)?.data
+                // Runs each time this screen comes back, so a newly created lottery shows up.
+                LaunchedEffect(loadedOwner) { loadedOwner?.let(lotteries::load) }
+                val state by lotteries.lotteries.collectAsState()
+                OwnerLotteriesScreen(
+                    state = state,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = lotteries::retry,
+                    onLotteryClick = { id -> navController.navigate(Routes.ownerLotteryDetail(id)) },
+                    onCreateClick = { navController.navigate(Routes.CREATE_LOTTERY) },
+                )
+            }
+
+            composable(Routes.OWNER_LOTTERY_WAITLIST) {
+                val waitlist: LotteryWaitingListViewModel = viewModel()
+                // Runs each time the page comes back, so new entrants show up.
+                LaunchedEffect(Unit) { waitlist.load() }
+                val state by waitlist.entrants.collectAsState()
+                LotteryWaitingList(
+                    state = state,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = waitlist::load,
+                    onMessageClick = { showComingSoon("Messages") },
+                )
+            }
+
+            composable(Routes.OWNER_LOTTERY_DETAIL) {
+                val detail: OwnerLotteryDetailViewModel = viewModel()
+                // Runs each time the page comes back, so edits show up.
+                LaunchedEffect(Unit) { detail.load() }
+                val state by detail.details.collectAsState()
+                val cancelling by detail.isCancelling.collectAsState()
+                OwnerLotteryDetailScreen(
+                    state = state,
+                    isCancelling = cancelling,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = detail::load,
+                    onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
+                    onViewWaitlistClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.ownerLotteryWaitlist(it.data.id)) }
+                    },
+                    onEditClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.editLottery(it.data.id)) }
+                    },
+                    onCancelConfirmed = {
+                        detail.cancel { result ->
+                            when (result) {
+                                CancelResult.DELETED -> {
+                                    toast("Lottery deleted")
+                                    navController.popBackStack() // My Lotteries reloads when shown
+                                }
+
+                                CancelResult.CANCELLED -> {
+                                    toast("Lottery cancelled")
+                                    detail.load() // now shows as Cancelled
+                                }
+
+                                CancelResult.TOO_LATE -> {
+                                    toast("Stays have started, so this lottery can't be cancelled any more.")
+                                    detail.load()
+                                }
+
+                                CancelResult.FAILED -> {
+                                    toast("Couldn't cancel the lottery. Check your connection and try again.")
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.CREATE_LOTTERY) {
+                // Scoped to this screen, so leaving it throws the form away.
+                val form: CreateLotteryViewModel = viewModel()
+                LotteryFormRoute(navController, form, ownerViewModel, toast = ::toast)
+            }
+
+            composable(Routes.EDIT_LOTTERY) {
+                // Reads the lottery id from the route, so it knows which lottery to edit.
+                val form: CreateLotteryViewModel = viewModel()
+                LaunchedEffect(Unit) { form.startEditing() }
+                val load by form.editLoad.collectAsState()
+                when (val loaded = load) {
+                    UiState.Loading -> CenteredSpinner()
+                    is UiState.Error -> CenteredMessage("${loaded.message}. Tap to try again.", onClick = form::startEditing)
+                    is UiState.Content -> LotteryFormRoute(navController, form, ownerViewModel, toast = ::toast)
                 }
             }
 
-            CampsiteDetailScreen(
-                state = state,
-                isLotteryBusy = lotteryBusy,
-                onBackClick = { navController.popBackStack() },
-                onRetry = detail::retry,
-                onViewMapClick = {
-                    (state as? UiState.Content)?.let {
-                        navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
-                    }
-                },
-                onPoliciesClick = {
-                    (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
-                },
-                onJoinLotteryClick = { lotteryAction(join = true) },
-                onLeaveLotteryClick = { lotteryAction(join = false) },
-                onBookClick = {
-                    (state as? UiState.Content)?.data?.let { details ->
-                        details.lotteryId?.let { navController.navigate(Routes.bookLotteryStay(it, details.id)) }
-                    }
-                },
-                // TODO: open messages once they're built.
-                onMessageOwnerClick = { showComingSoon("Messages") },
-            )
-        }
-
-        composable(Routes.CAMPSITE_MAP) { entry ->
-            val args = entry.arguments
-            CampsiteMapScreen(
-                latitude = args?.getString(Routes.LATITUDE_ARG)?.toDoubleOrNull() ?: 0.0,
-                longitude = args?.getString(Routes.LONGITUDE_ARG)?.toDoubleOrNull() ?: 0.0,
-                onBackClick = { navController.popBackStack() },
-            )
-        }
-
-        composable(Routes.CAMPSITE_POLICIES) { entry ->
-            // Loads the campsite named in the route, so any screen can link to its policies.
-            val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toIdOrNull() }
-            val policies by produceState<String?>(null, campsiteId) {
-                value = campsiteId?.let { id ->
-                    quietly("Couldn't load policies for $id") { Database.fetchCampsite(id).policies }
-                }.orEmpty()
-            }
-            CampsitePoliciesScreen(
-                policies = policies,
-                onBackClick = { navController.popBackStack() },
-            )
-        }
-
-        composable(Routes.BOOK_LOTTERY_STAY) {
-            // Reads the lottery and first campsite from the route.
-            val booking: BookingViewModel = viewModel()
-            val options by booking.options.collectAsState()
-            val selection by booking.selection.collectAsState()
-            val declining by booking.isDeclining.collectAsState()
-            var isBooking by remember { mutableStateOf(false) }
-            val viewer = user?.id
-            BookingScreen(
-                state = options,
-                selection = selection,
-                problem = viewer?.let { booking.problem(it) },
-                isBooking = isBooking,
-                isDeclining = declining,
-                onBackClick = { navController.popBackStack() },
-                onRetry = booking::load,
-                onCampsiteClick = booking::selectCampsite,
-                onDatesChange = booking::onDatesChange,
-                onAgreeChange = booking::setAgreedToRules,
-                onPoliciesClick = { id -> navController.navigate(Routes.campsitePolicies(id)) },
-                onReserveClick = {
-                    val lotteryId = (options as? UiState.Content)?.data?.lottery?.id
-                    val campsite = selection.campsite
-                    val period = selection.period
-                    if (lotteryId != null && campsite != null && period != null) {
-                        isBooking = true
-                        session.bookLotteryStay(lotteryId, campsite, period) { problem ->
-                            isBooking = false
-                            if (problem == null) {
-                                toast("Booked! See you at camp.")
-                                navController.popBackStack() // the campsite page refreshes when shown
-                            } else {
-                                toast(problem)
-                                booking.load() // someone may have taken those nights
-                            }
+            composable(Routes.OWNER_CAMPSITE_DETAIL) {
+                val detail: OwnerCampsiteDetailViewModel = viewModel()
+                val owner by ownerViewModel.owner.collectAsState()
+                val loadedOwner = (owner as? UiState.Content)?.data
+                // Runs each time this screen comes back (for example after Edit campsite), so saved
+                // changes show up. The old details stay on screen while it reloads.
+                LaunchedEffect(loadedOwner) { loadedOwner?.let(detail::load) }
+                val state by detail.details.collectAsState()
+                val deleting by detail.isDeleting.collectAsState()
+                OwnerCampsiteDetailScreen(
+                    state = state,
+                    isDeleting = deleting,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = detail::retry,
+                    onViewMapClick = {
+                        (state as? UiState.Content)?.let {
+                            navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
                         }
-                    }
-                },
-                onDeclineConfirmed = {
-                    if (viewer != null) {
-                        booking.decline(viewer) { problem ->
-                            if (problem == null) {
-                                toast("You declined this lottery")
-                                navController.popBackStack()
-                            } else {
-                                toast(problem)
-                            }
-                        }
-                    }
-                },
-            )
-        }
-
-        composable(Routes.ENTRANT_PROFILE) {
-            EntrantProfileDetailsScreen(
-                name = user?.name.orEmpty(),
-                email = user?.email.orEmpty(),
-                phone = user?.phoneNumber.orEmpty(),
-                photoUrl = photoUrl,
-                notificationsEnabled = user?.notificationsEnabled ?: true,
-                onBackClick = { navController.popBackStack() },
-                onEditPhotoClick = { navController.navigate(Routes.EDIT_PROFILE_PHOTO) },
-                onUpdateProfileClick = { navController.navigate(Routes.EDIT_PROFILE) },
-                isAdmin = isAdmin,
-                onRoleSelected = { switchRole(it) },
-                onPoliciesClick = { navController.navigate(Routes.POLICIES) },
-                onNotificationsChanged = { enabled ->
-                    session.setNotificationsEnabled(enabled) { ok ->
-                        if (!ok) toast("Couldn't save notification setting")
-                    }
-                },
-                onDeleteProfileClick = {
-                    // The screen already asked "are you sure?" before calling this.
-                    session.deleteProfile { ok ->
-                        if (ok) navController.restartAtSplash() else toast("Couldn't delete profile")
-                    }
-                },
-            )
-        }
-
-        composable(Routes.POLICIES) {
-            val context = LocalContext.current
-            val mdText =
-                remember(context) {
-                    loadMarkdownFromAsset(context, "app_policies.md")
-                }
-            AppPolicyScreen(
-                markdownText = mdText,
-                onBackClick = { navController.popBackStack() },
-            )
-        }
-
-        composable(Routes.EDIT_PROFILE) {
-            var saving by remember { mutableStateOf(false) }
-            EditProfileScreen(
-                profileImageUrl = photoUrl,
-                name = user?.name.orEmpty(),
-                email = user?.email.orEmpty(),
-                phoneNumber = user?.phoneNumber.orEmpty(),
-                isSaving = saving,
-                onBackClick = { navController.popBackStack() },
-                onCancelClick = { navController.popBackStack() },
-                onProfilePhotoClick = { navController.navigate(Routes.EDIT_PROFILE_PHOTO) },
-                onSaveClick = { name, email, phone ->
-                    saving = true
-                    session.updateProfile(name, email, phone) { ok ->
-                        saving = false
-                        if (ok) navController.popBackStack() else toast("Couldn't save your profile")
-                    }
-                },
-            )
-        }
-
-        composable(Routes.EDIT_PROFILE_PHOTO) {
-            // Opens the system photo picker. No storage permission is needed for this.
-            val pickPhoto =
-                rememberLauncherForActivityResult(
-                    ActivityResultContracts.PickVisualMedia(),
-                ) { uri ->
-                    if (uri == null) return@rememberLauncherForActivityResult // user cancelled
-                    session.uploadProfilePhoto(uri) { ok ->
-                        if (ok) navController.popBackStack() else toast("Couldn't upload photo")
-                    }
-                }
-            EditProfilePhotoScreen(
-                profileImageUrl = photoUrl,
-                onBackClick = { navController.popBackStack() },
-                onChoosePhotoClick = {
-                    pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                },
-                // TODO: taking a photo needs the camera permission and a file to save into.
-                onTakePhotoClick = { showComingSoon("Taking a photo") },
-                onDeletePhotoClick = {
-                    session.removeProfilePhoto { ok ->
-                        if (ok) navController.popBackStack() else toast("Couldn't remove photo")
-                    }
-                },
-            )
-        }
-
-        // endregion
-
-        // region Owner
-
-        composable(Routes.OWNER_HOME) {
-            // Load (or create) the owner once the user is available.
-            LaunchedEffect(user) { user?.let(ownerViewModel::load) }
-            val query by ownerViewModel.query.collectAsState()
-            val campsites by ownerViewModel.campsites.collectAsState()
-            CampsiteOwnerMainPage(
-                profileImageUrl = photoUrl,
-                searchQuery = query,
-                onSearchQueryChange = ownerViewModel::onQueryChange,
-                campsites = campsites,
-                onRetry = { user?.let { ownerViewModel.load(it, force = true) } },
-                onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
-                onProfileClick = { navController.navigate(Routes.OWNER_PROFILE) },
-                onRegisterCampsiteClick = { navController.navigate(Routes.REGISTER_CAMPSITE) },
-                onReservationsClick = { showComingSoon("Reservations") },
-                onMessagesClick = { showComingSoon("Messages") },
-                onNotificationsClick = { showComingSoon("Notifications") },
-                onLotteriesClick = { navController.navigate(Routes.OWNER_LOTTERIES) },
-            )
-        }
-
-        composable(Routes.OWNER_PROFILE) {
-            ProfileDetailsScreen(
-                profileImageUrl = photoUrl,
-                name = user?.name.orEmpty(),
-                email = user?.email.orEmpty(),
-                phoneNumber = user?.phoneNumber.orEmpty(),
-                isAdmin = isAdmin,
-                // Read-only page: photo and details are changed from the entrant profile.
-                onBackClick = { navController.popBackStack() },
-                onRoleSelected = { switchRole(it) },
-                onDeleteProfile = {
-                    // Owner page: delete only the owner side, then go back to being an entrant.
-                    ownerViewModel.deleteOwnerProfile { ok ->
-                        if (ok) {
-                            toast("Owner profile deleted")
-                            switchRole(ProfileRole.ENTRANT)
+                    },
+                    onViewWaitlistClick = {
+                        // The campsite's current lottery, if it's in one that isn't finished or cancelled.
+                        val lotteryId = (state as? UiState.Content)?.data?.lotteryId
+                        if (lotteryId != null) {
+                            navController.navigate(Routes.ownerLotteryWaitlist(lotteryId))
                         } else {
-                            toast("Couldn't delete owner profile")
+                            toast("This campsite isn't in a lottery right now")
                         }
-                    }
-                },
-            )
-        }
+                    },
+                    onEditClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.editCampsite(it.data.id)) }
+                    },
+                    onDeleteConfirmed = {
+                        detail.delete { result ->
+                            when (result) {
+                                DeleteResult.DELETED -> {
+                                    toast("Campsite deleted")
+                                    // Reload the owner so their campsite list no longer has it.
+                                    user?.let { ownerViewModel.load(it, force = true) }
+                                    navController.popBackStack()
+                                }
 
-        composable(Routes.OWNER_LOTTERIES) {
-            val lotteries: OwnerLotteriesViewModel = viewModel()
-            val owner by ownerViewModel.owner.collectAsState()
-            val loadedOwner = (owner as? UiState.Content)?.data
-            // Runs each time this screen comes back, so a newly created lottery shows up.
-            LaunchedEffect(loadedOwner) { loadedOwner?.let(lotteries::load) }
-            val state by lotteries.lotteries.collectAsState()
-            OwnerLotteriesScreen(
-                state = state,
-                onBackClick = { navController.popBackStack() },
-                onRetry = lotteries::retry,
-                onLotteryClick = { id -> navController.navigate(Routes.ownerLotteryDetail(id)) },
-                onCreateClick = { navController.navigate(Routes.CREATE_LOTTERY) },
-            )
-        }
+                                DeleteResult.LOTTERY_RUNNING -> {
+                                    toast("This campsite has a lottery running. Delete it after the lottery ends.")
+                                }
 
-        composable(Routes.OWNER_LOTTERY_WAITLIST) {
-            val waitlist: LotteryWaitingListViewModel = viewModel()
-            // Runs each time the page comes back, so new entrants show up.
-            LaunchedEffect(Unit) { waitlist.load() }
-            val state by waitlist.entrants.collectAsState()
-            LotteryWaitingList(
-                state = state,
-                onBackClick = { navController.popBackStack() },
-                onRetry = waitlist::load,
-                onMessageClick = { showComingSoon("Messages") },
-            )
-        }
-
-        composable(Routes.OWNER_LOTTERY_DETAIL) {
-            val detail: OwnerLotteryDetailViewModel = viewModel()
-            // Runs each time the page comes back, so edits show up.
-            LaunchedEffect(Unit) { detail.load() }
-            val state by detail.details.collectAsState()
-            val cancelling by detail.isCancelling.collectAsState()
-            OwnerLotteryDetailScreen(
-                state = state,
-                isCancelling = cancelling,
-                onBackClick = { navController.popBackStack() },
-                onRetry = detail::load,
-                onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
-                onViewWaitlistClick = {
-                    (state as? UiState.Content)?.let { navController.navigate(Routes.ownerLotteryWaitlist(it.data.id)) }
-                },
-                onEditClick = {
-                    (state as? UiState.Content)?.let { navController.navigate(Routes.editLottery(it.data.id)) }
-                },
-                onCancelConfirmed = {
-                    detail.cancel { result ->
-                        when (result) {
-                            CancelResult.DELETED -> {
-                                toast("Lottery deleted")
-                                navController.popBackStack() // My Lotteries reloads when shown
-                            }
-
-                            CancelResult.CANCELLED -> {
-                                toast("Lottery cancelled")
-                                detail.load() // now shows as Cancelled
-                            }
-
-                            CancelResult.TOO_LATE -> {
-                                toast("Stays have started, so this lottery can't be cancelled any more.")
-                                detail.load()
-                            }
-
-                            CancelResult.FAILED -> {
-                                toast("Couldn't cancel the lottery. Check your connection and try again.")
+                                DeleteResult.FAILED -> {
+                                    toast("Couldn't delete campsite. Check your connection and try again.")
+                                }
                             }
                         }
-                    }
-                },
-            )
-        }
-
-        composable(Routes.CREATE_LOTTERY) {
-            // Scoped to this screen, so leaving it throws the form away.
-            val form: CreateLotteryViewModel = viewModel()
-            LotteryFormRoute(navController, form, ownerViewModel, toast = ::toast)
-        }
-
-        composable(Routes.EDIT_LOTTERY) {
-            // Reads the lottery id from the route, so it knows which lottery to edit.
-            val form: CreateLotteryViewModel = viewModel()
-            LaunchedEffect(Unit) { form.startEditing() }
-            val load by form.editLoad.collectAsState()
-            when (val loaded = load) {
-                UiState.Loading -> CenteredSpinner()
-                is UiState.Error -> CenteredMessage("${loaded.message}. Tap to try again.", onClick = form::startEditing)
-                is UiState.Content -> LotteryFormRoute(navController, form, ownerViewModel, toast = ::toast)
+                    },
+                )
             }
-        }
 
-        composable(Routes.OWNER_CAMPSITE_DETAIL) {
-            val detail: OwnerCampsiteDetailViewModel = viewModel()
-            val owner by ownerViewModel.owner.collectAsState()
-            val loadedOwner = (owner as? UiState.Content)?.data
-            // Runs each time this screen comes back (for example after Edit campsite), so saved
-            // changes show up. The old details stay on screen while it reloads.
-            LaunchedEffect(loadedOwner) { loadedOwner?.let(detail::load) }
-            val state by detail.details.collectAsState()
-            val deleting by detail.isDeleting.collectAsState()
-            OwnerCampsiteDetailScreen(
-                state = state,
-                isDeleting = deleting,
-                onBackClick = { navController.popBackStack() },
-                onRetry = detail::retry,
-                onViewMapClick = {
-                    (state as? UiState.Content)?.let {
-                        navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
+            composable(Routes.REGISTER_CAMPSITE) {
+                // Scoped to this screen, so leaving it (save, cancel or back) throws the form away.
+                // The map screen borrows the same instance to fill in the location.
+                val form: RegisterCampsiteViewModel = viewModel()
+                CampsiteFormRoute(
+                    navController = navController,
+                    form = form,
+                    ownerViewModel = ownerViewModel,
+                    isEditing = false,
+                    toast = ::toast,
+                )
+            }
+
+            composable(Routes.EDIT_CAMPSITE) { entry ->
+                val form: RegisterCampsiteViewModel = viewModel()
+                val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toIdOrNull() }
+                LaunchedEffect(campsiteId) { campsiteId?.let { form.startEditing(it) } }
+                val load by form.editLoad.collectAsState()
+                when {
+                    campsiteId == null -> {
+                        CenteredMessage(CAMPSITE_NOT_FOUND)
                     }
-                },
-                onViewWaitlistClick = {
-                    // The campsite's current lottery, if it's in one that isn't finished or cancelled.
-                    val lotteryId = (state as? UiState.Content)?.data?.lotteryId
-                    if (lotteryId != null) {
-                        navController.navigate(Routes.ownerLotteryWaitlist(lotteryId))
-                    } else {
-                        toast("This campsite isn't in a lottery right now")
+
+                    load is UiState.Loading -> {
+                        CenteredSpinner()
                     }
-                },
-                onEditClick = {
-                    (state as? UiState.Content)?.let { navController.navigate(Routes.editCampsite(it.data.id)) }
-                },
-                onDeleteConfirmed = {
-                    detail.delete { result ->
-                        when (result) {
-                            DeleteResult.DELETED -> {
-                                toast("Campsite deleted")
-                                // Reload the owner so their campsite list no longer has it.
-                                user?.let { ownerViewModel.load(it, force = true) }
-                                navController.popBackStack()
-                            }
 
-                            DeleteResult.LOTTERY_RUNNING -> {
-                                toast("This campsite has a lottery running. Delete it after the lottery ends.")
-                            }
-
-                            DeleteResult.FAILED -> {
-                                toast("Couldn't delete campsite. Check your connection and try again.")
-                            }
-                        }
+                    load is UiState.Error -> {
+                        CenteredMessage(
+                            "${(load as UiState.Error).message}. Tap to try again.",
+                            onClick = { form.startEditing(campsiteId, force = true) },
+                        )
                     }
-                },
-            )
-        }
 
-        composable(Routes.REGISTER_CAMPSITE) {
-            // Scoped to this screen, so leaving it (save, cancel or back) throws the form away.
-            // The map screen borrows the same instance to fill in the location.
-            val form: RegisterCampsiteViewModel = viewModel()
-            CampsiteFormRoute(
-                navController = navController,
-                form = form,
-                ownerViewModel = ownerViewModel,
-                isEditing = false,
-                toast = ::toast,
-            )
-        }
-
-        composable(Routes.EDIT_CAMPSITE) { entry ->
-            val form: RegisterCampsiteViewModel = viewModel()
-            val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toIdOrNull() }
-            LaunchedEffect(campsiteId) { campsiteId?.let { form.startEditing(it) } }
-            val load by form.editLoad.collectAsState()
-            when {
-                campsiteId == null -> {
-                    CenteredMessage(CAMPSITE_NOT_FOUND)
-                }
-
-                load is UiState.Loading -> {
-                    CenteredSpinner()
-                }
-
-                load is UiState.Error -> {
-                    CenteredMessage(
-                        "${(load as UiState.Error).message}. Tap to try again.",
-                        onClick = { form.startEditing(campsiteId, force = true) },
-                    )
-                }
-
-                else -> {
-                    CampsiteFormRoute(
-                        navController = navController,
-                        form = form,
-                        ownerViewModel = ownerViewModel,
-                        isEditing = true,
-                        toast = ::toast,
-                    )
+                    else -> {
+                        CampsiteFormRoute(
+                            navController = navController,
+                            form = form,
+                            ownerViewModel = ownerViewModel,
+                            isEditing = true,
+                            toast = ::toast,
+                        )
+                    }
                 }
             }
-        }
 
-        composable(Routes.SELECT_LOCATION) { entry ->
-            // Same form as the Register or Edit campsite screen underneath.
-            val formEntry = remember(entry) { navController.previousBackStackEntry ?: entry }
-            val form: RegisterCampsiteViewModel = viewModel(formEntry)
-            val draft by form.draft.collectAsState()
-            SelectLocationScreen(
-                campsiteName = draft.name,
-                initialLatitude = draft.latitude,
-                initialLongitude = draft.longitude,
-                onConfirm = { latitude, longitude, address ->
-                    form.setLocation(latitude, longitude, address)
+            composable(Routes.SELECT_LOCATION) { entry ->
+                // Same form as the Register or Edit campsite screen underneath.
+                val formEntry = remember(entry) { navController.previousBackStackEntry ?: entry }
+                val form: RegisterCampsiteViewModel = viewModel(formEntry)
+                val draft by form.draft.collectAsState()
+                SelectLocationScreen(
+                    campsiteName = draft.name,
+                    initialLatitude = draft.latitude,
+                    initialLongitude = draft.longitude,
+                    onConfirm = { latitude, longitude, address ->
+                        form.setLocation(latitude, longitude, address)
+                        navController.popBackStack()
+                    },
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            // endregion
+
+            // region Admin
+
+            composable(Routes.ADMIN_HOME) {
+                // Same campsite list and search as Entrant home, with its own HomeViewModel
+                // (scoped to this screen, so the admin's search doesn't change Entrant home's).
+                // No setViewer here: admins see every campsite, their own included.
+                val home: HomeViewModel = viewModel()
+                // Runs every time Admin home comes back, so deleted campsites disappear.
+                LaunchedEffect(Unit) { home.onScreenShown() }
+                val query by home.query.collectAsState()
+                val campsites by home.campsites.collectAsState()
+                AdminHomeScreen(
+                    profileImageUrl = photoUrl,
+                    searchQuery = query,
+                    onSearchQueryChange = home::onQueryChange,
+                    campsites = campsites,
+                    onRetry = home::retry,
+                    onCampsiteClick = { id -> navController.navigate(Routes.adminCampsiteDetail(id)) },
+                    onFilterClick = home::onFilterClick,
+                    onProfileClick = { navController.navigate(Routes.ADMIN_PROFILE) },
+                    onMessagesClick = { showComingSoon("Messages") },
+                    onProfilesClick = { showComingSoon("Profiles") },
+                    onNotificationsClick = { showComingSoon("Notifications") },
+                    onImagesClick = { showComingSoon("Images") },
+                )
+            }
+
+            composable(Routes.ADMIN_PROFILE) {
+                // The owner's read-only profile page, with Admin selected and no delete button.
+                ProfileDetailsScreen(
+                    profileImageUrl = photoUrl,
+                    name = user?.name.orEmpty(),
+                    email = user?.email.orEmpty(),
+                    phoneNumber = user?.phoneNumber.orEmpty(),
+                    isAdmin = isAdmin,
+                    currentRole = ProfileRole.ADMIN,
+                    onBackClick = { navController.popBackStack() },
+                    onRoleSelected = { switchRole(it) },
+                    onDeleteProfile = null,
+                )
+            }
+
+            composable(Routes.ADMIN_CAMPSITE_DETAIL) {
+                // Reads the campsite id from the route through its SavedStateHandle.
+                val detail: AdminCampsiteDetailViewModel = viewModel()
+                LaunchedEffect(Unit) { detail.load() }
+                val state by detail.details.collectAsState()
+                val deleting by detail.isDeleting.collectAsState()
+
+                /** Shows [message] and goes back to Admin home, which reloads when shown. */
+                fun onDeleted(message: String) {
+                    toast(message)
+                    // The admin may have deleted their own campsite or owner profile. Reload the
+                    // shared owner data so the owner screens don't keep showing it.
+                    user?.takeIf { it.id == detail.ownerId }?.let { ownerViewModel.load(it, force = true) }
                     navController.popBackStack()
-                },
-                onBackClick = { navController.popBackStack() },
-            )
-        }
+                }
 
-        // endregion
-
-        // region Admin
-
-        composable(Routes.ADMIN_HOME) {
-            // Same campsite list and search as Entrant home, with its own HomeViewModel
-            // (scoped to this screen, so the admin's search doesn't change Entrant home's).
-            // No setViewer here: admins see every campsite, their own included.
-            val home: HomeViewModel = viewModel()
-            // Runs every time Admin home comes back, so deleted campsites disappear.
-            LaunchedEffect(Unit) { home.onScreenShown() }
-            val query by home.query.collectAsState()
-            val campsites by home.campsites.collectAsState()
-            AdminHomeScreen(
-                profileImageUrl = photoUrl,
-                searchQuery = query,
-                onSearchQueryChange = home::onQueryChange,
-                campsites = campsites,
-                onRetry = home::retry,
-                onCampsiteClick = { id -> navController.navigate(Routes.adminCampsiteDetail(id)) },
-                onFilterClick = home::onFilterClick,
-                onProfileClick = { navController.navigate(Routes.ADMIN_PROFILE) },
-                onMessagesClick = { showComingSoon("Messages") },
-                onProfilesClick = { showComingSoon("Profiles") },
-                onNotificationsClick = { showComingSoon("Notifications") },
-                onImagesClick = { showComingSoon("Images") },
-            )
-        }
-
-        composable(Routes.ADMIN_PROFILE) {
-            // The owner's read-only profile page, with Admin selected and no delete button.
-            ProfileDetailsScreen(
-                profileImageUrl = photoUrl,
-                name = user?.name.orEmpty(),
-                email = user?.email.orEmpty(),
-                phoneNumber = user?.phoneNumber.orEmpty(),
-                isAdmin = isAdmin,
-                currentRole = ProfileRole.ADMIN,
-                onBackClick = { navController.popBackStack() },
-                onRoleSelected = { switchRole(it) },
-                onDeleteProfile = null,
-            )
-        }
-
-        composable(Routes.ADMIN_CAMPSITE_DETAIL) {
-            // Reads the campsite id from the route through its SavedStateHandle.
-            val detail: AdminCampsiteDetailViewModel = viewModel()
-            LaunchedEffect(Unit) { detail.load() }
-            val state by detail.details.collectAsState()
-            val deleting by detail.isDeleting.collectAsState()
-
-            /** Shows [message] and goes back to Admin home, which reloads when shown. */
-            fun onDeleted(message: String) {
-                toast(message)
-                // The admin may have deleted their own campsite or owner profile. Reload the
-                // shared owner data so the owner screens don't keep showing it.
-                user?.takeIf { it.id == detail.ownerId }?.let { ownerViewModel.load(it, force = true) }
-                navController.popBackStack()
+                AdminCampsiteDetailScreen(
+                    state = state,
+                    isDeleting = deleting,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = detail::load,
+                    onViewMapClick = {
+                        (state as? UiState.Content)?.let {
+                            navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
+                        }
+                    },
+                    onPoliciesClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
+                    },
+                    onDeleteCampsiteConfirmed = {
+                        detail.deleteCampsite { ok ->
+                            if (ok) onDeleted("Campsite deleted") else toast("Couldn't delete campsite. Check your connection and try again.")
+                        }
+                    },
+                    onDeleteOwnerConfirmed = {
+                        detail.deleteOwner { ok ->
+                            if (ok) onDeleted("Owner deleted") else toast("Couldn't delete owner. Check your connection and try again.")
+                        }
+                    },
+                )
             }
 
-            AdminCampsiteDetailScreen(
-                state = state,
-                isDeleting = deleting,
-                onBackClick = { navController.popBackStack() },
-                onRetry = detail::load,
-                onViewMapClick = {
-                    (state as? UiState.Content)?.let {
-                        navController.navigate(Routes.campsiteMap(it.data.latitude, it.data.longitude))
-                    }
-                },
-                onPoliciesClick = {
-                    (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
-                },
-                onDeleteCampsiteConfirmed = {
-                    detail.deleteCampsite { ok ->
-                        if (ok) onDeleted("Campsite deleted") else toast("Couldn't delete campsite. Check your connection and try again.")
-                    }
-                },
-                onDeleteOwnerConfirmed = {
-                    detail.deleteOwner { ok ->
-                        if (ok) onDeleted("Owner deleted") else toast("Couldn't delete owner. Check your connection and try again.")
-                    }
-                },
-            )
+            // endregion
         }
 
-        // endregion
+        // One bar for all entrant tabs, drawn over the NavHost so it stays put while the tab
+        // screens slide underneath it. It slides away when a non-tab screen opens on top.
+        AnimatedVisibility(
+            visible = entrantTab >= 0,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = slideInVertically(tween(TAB_BAR_MS)) { it },
+            exit = slideOutVertically(tween(TAB_BAR_MS)) { it },
+        ) {
+            EntrantBottomNavBar(selectedIndex = entrantTab, onTabClick = ::openEntrantTab)
+        }
     }
 }
 
@@ -1085,6 +1102,24 @@ private fun CenteredMessage(
  * Goes back to the splash screen and clears everything behind it, so back can't return to
  * screens for a profile that no longer exists. Used after deleting the profile.
  */
+/**
+ * The entrant's bottom bar: Explore, Reservations, Lotteries and Messages.
+ *
+ * Keeps showing the last tab while it slides away (when [selectedIndex] is -1), so the
+ * highlight doesn't jump as the bar leaves.
+ */
+@Composable
+private fun EntrantBottomNavBar(selectedIndex: Int, onTabClick: (Int) -> Unit) {
+    var shownIndex by remember { mutableIntStateOf(selectedIndex.coerceAtLeast(0)) }
+    SideEffect { if (selectedIndex >= 0) shownIndex = selectedIndex }
+    BottomNavBar(
+        labels = listOf("Explore", "Reservations", "Lotteries", "Messages"),
+        icons = listOf(AppIcons.Home, AppIcons.Reservation, AppIcons.LotteryTicket, AppIcons.Chat),
+        onClicks = List(4) { index -> { onTabClick(index) } },
+        selectedIndex = if (selectedIndex >= 0) selectedIndex else shownIndex,
+    )
+}
+
 private fun NavHostController.restartAtSplash() {
     navigate(Routes.SPLASH) {
         popUpTo(graph.id) { inclusive = true }

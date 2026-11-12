@@ -31,7 +31,7 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.CampsiteCard
 import com.example.daemon_expedite.ui_components.CampsitePill
 import com.example.daemon_expedite.ui_components.ConfirmDialog
@@ -54,10 +54,6 @@ import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
  * @param onRetry Called when the user retries loading reservations.
  * @param onCancelConfirmed Called after confirming reservation cancellation.
  * @param onRateStayClick Called when Rate Your Stay is tapped.
- * @param onExploreClick Called when the Explore tab is tapped.
- * @param onReservationsClick Called when the Reservations tab is tapped.
- * @param onLotteriesClick Called when the Lotteries tab is tapped.
- * @param onMessagesClick Called when the Messages tab is tapped.
  */
 @Composable
 fun EntrantReservationsScreen(
@@ -66,10 +62,6 @@ fun EntrantReservationsScreen(
     onRetry: () -> Unit,
     onCancelConfirmed: (Id) -> Unit,
     onRateStayClick: (Id) -> Unit,
-    onExploreClick: () -> Unit = {},
-    onReservationsClick: () -> Unit = {},
-    onLotteriesClick: () -> Unit = {},
-    onMessagesClick: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // The reservation waiting for the user to confirm cancelling, or null when no dialog is open.
@@ -127,27 +119,8 @@ fun EntrantReservationsScreen(
                 )
             }
         }
-        BottomNavBar(
-            labels = listOf(
-                "Explore",
-                "Reservations",
-                "Lotteries",
-                "Messages"
-            ),
-            icons = listOf(
-                AppIcons.Home,
-                AppIcons.Reservation,
-                AppIcons.LotteryTicket,
-                AppIcons.Chat
-            ),
-            onClicks = listOf(
-                onExploreClick,
-                onReservationsClick,
-                onLotteriesClick,
-                onMessagesClick
-            ),
-            selectedIndex = 1
-        )
+        // Room for the shared bottom bar AppNavigation draws on top.
+        BottomNavBarSpacer()
     }
 
     askCancel?.let { reservation ->
