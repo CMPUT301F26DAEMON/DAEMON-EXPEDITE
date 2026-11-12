@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,35 +30,41 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.LotteryCard
 import com.example.daemon_expedite.ui_components.PillVariant
 import com.example.daemon_expedite.ui_components.RedButton
-import com.example.daemon_expedite.ui_components.ScreenHeader
 import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
 
 /**
- * The entrant's lotteries, with In Progress and Results tabs. Opened from the Lotteries tab on
- * Entrant Home.
+ * The entrant's lotteries, with In Progress and Results tabs.
+ * Accessible through the Lotteries tab in the shared bottom navigation bar.
  *
  * Same layout as [OwnerLotteriesScreen], without the "Create New Lottery" button. In Progress
  * cards have a "Leave Waiting List" button that asks for confirmation first. Results cards show
  * how the entrant did in the pill ("Lost", "Won · Action Pending", ...). Cards themselves
  * aren't tappable.
  *
- * @param state The lotteries, or loading / error.
- * @param leavingId The lottery whose waiting list is being left, or null. Its button ignores taps.
- * @param onBackClick Called when the back button is tapped.
- * @param onRetry Called when the error message is tapped.
- * @param onLeaveConfirmed Called with the lottery id after the entrant confirms leaving it.
+ * @param state The entrant's lotteries, or a loading/error state.
+ * @param leavingId ID of the lottery currently being left, or null.
+ * @param onRetry Called when the user taps an error message to retry loading.
+ * @param onLeaveConfirmed Called with the lottery ID after confirming departure.
+ * @param onExploreClick Called when the Explore navigation tab is tapped.
+ * @param onReservationsClick Called when the Reservations tab is tapped.
+ * @param onLotteriesClick Called when the Lotteries tab is tapped.
+ * @param onMessagesClick Called when the Messages tab is tapped.
  */
 @Composable
 fun EntrantLotteriesScreen(
     state: UiState<EntrantLotteries>,
     leavingId: Id?,
-    onBackClick: () -> Unit,
     onRetry: () -> Unit,
     onLeaveConfirmed: (lotteryId: Id) -> Unit,
+    onExploreClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {},
+    onLotteriesClick: () -> Unit = {},
+    onMessagesClick: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // Id of the lottery the confirm dialog is about, as a String so it survives rotation.
@@ -70,9 +75,17 @@ fun EntrantLotteriesScreen(
             .fillMaxSize()
             .background(AppColors.Background)
             .statusBarsPadding()
-            .navigationBarsPadding(),
     ) {
-        ScreenHeader(title = "My Lotteries", onBackClick = onBackClick)
+        Text(
+            text = "My Lotteries",
+            style = AppTextStyles.PageTitle,
+            color = AppColors.TextPrimary,
+            modifier = Modifier.padding(
+                start = 28.dp,
+                top = 24.dp,
+                bottom = 20.dp
+            )
+        )
 
         ToggleButtonWithContent(
             options = listOf("In Progress", "Results"),
@@ -109,6 +122,29 @@ fun EntrantLotteriesScreen(
                 }
             }
         }
+
+        BottomNavBar(
+            labels = listOf(
+                "Explore",
+                "Reservations",
+                "Lotteries",
+                "Messages"
+            ),
+            icons = listOf(
+                AppIcons.Home,
+                AppIcons.Reservation,
+                AppIcons.LotteryTicket,
+                AppIcons.Chat
+            ),
+            onClicks = listOf(
+                onExploreClick,
+                onReservationsClick,
+                onLotteriesClick,
+                onMessagesClick
+            ),
+            selectedIndex = 2
+        )
+
     }
 
     val leaving = (state as? UiState.Content)?.data?.inProgress?.firstOrNull { it.id.value.toString() == askLeave }
@@ -204,7 +240,6 @@ private fun EntrantLotteriesScreenPreview() {
             ),
         ),
         leavingId = null,
-        onBackClick = {},
         onRetry = {},
         onLeaveConfirmed = {},
     )

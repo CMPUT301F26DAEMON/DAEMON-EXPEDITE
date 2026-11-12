@@ -1,32 +1,38 @@
+
 package com.example.daemon_expedite.ui_components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.ui.unit.sp
-
 
 /**
- * A navigation bar at the bottom of the main screen.
+ * Bottom navigation bar shared across the app.
  *
- * Takes 3 parallel lists of equal size
- *
- * @param labels A list of strings where each element is a label for the corresponding icon
- * @param icons A list of ImageVectors where each element is an icon corresponding to the label
- * @param onClicks Action to perform when the corresponding icon is clicked
+ * @param labels Labels for each navigation tab.
+ * @param icons Icons corresponding to each label.
+ * @param onClicks Actions performed when tabs are tapped.
+ * @param selectedIndex Currently selected tab (-1 means none).
  */
 @Composable
 fun BottomNavBar(
     labels: List<String>,
     icons: List<ImageVector>,
     onClicks: List<() -> Unit>,
+    selectedIndex: Int = -1,
 ) {
     require(labels.size == icons.size && icons.size == onClicks.size) {
         "labels, icons, and onClicks must all be the same size"
@@ -34,30 +40,58 @@ fun BottomNavBar(
 
     Surface(
         color = AppColors.Background,
-        contentColor = AppColors.TextOnPrimary
+        contentColor = AppColors.TextPrimary
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.Top,
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             labels.indices.forEach { i ->
+                val isSelected = i == selectedIndex
+
                 Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    IconButton(onClick = onClicks[i]) {
-                        Icon(
-                            imageVector = icons[i],
-                            contentDescription = labels[i],
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(76.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            color = if (isSelected) {
+                                AppColors.Surface
+                            } else {
+                                Color.Transparent
+                            }
                         )
-                    }
+                        .clickable(onClick = onClicks[i])
+                        .padding(vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = icons[i],
+                        contentDescription = labels[i],
+                        tint = if (isSelected) {
+                            AppColors.TextPrimary
+                        } else {
+                            AppColors.TextSecondary
+                        },
+                        modifier = Modifier.size(24.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Text(
                         text = labels[i],
-                        fontFamily = AppFonts.Inter,
-                        fontSize = 13.sp
+                        style = AppTextStyles.NavLabel,
+                        color = if (isSelected) {
+                            AppColors.TextPrimary
+                        } else {
+                            AppColors.TextSecondary
+                        },
+                        maxLines = 1
                     )
                 }
             }
@@ -65,17 +99,28 @@ fun BottomNavBar(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(
+    showBackground = true,
+    backgroundColor = 0xFF000000
+)
 @Composable
-fun BottomNavBarPreview() {
+private fun BottomNavBarPreview() {
     MaterialTheme(colorScheme = darkColorScheme()) {
         BottomNavBar(
-            labels = listOf("Reservations", "Lotteries", "Messages"),
+            labels = listOf(
+                "Explore",
+                "Reservations",
+                "Lotteries",
+                "Messages"
+            ),
             icons = listOf(
+                AppIcons.Home,
                 AppIcons.Reservation,
                 AppIcons.LotteryTicket,
-                AppIcons.Chat,
+                AppIcons.Chat
             ),
-            onClicks = listOf({}, {}, {}))
+            onClicks = listOf({}, {}, {}, {}),
+            selectedIndex = 0
+        )
     }
 }

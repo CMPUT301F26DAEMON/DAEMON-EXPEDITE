@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,39 +31,45 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.CampsiteCard
 import com.example.daemon_expedite.ui_components.CampsitePill
 import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.GreenButton
 import com.example.daemon_expedite.ui_components.PillVariant
 import com.example.daemon_expedite.ui_components.RedButton
-import com.example.daemon_expedite.ui_components.ScreenHeader
 import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
 
 /**
  * The entrant's reservations, with Active, Past and Cancelled tabs.
- * Opened from the Reservations button on Entrant Home.
+ * Accessible through the Reservations tab in the shared bottom navigation bar.
+ *
  *
  * Laid out like [OwnerLotteriesScreen], with campsite cards in place of lottery cards.
  * Active cards have a "Cancel Reservation" button, which asks first; past cards have
  * "Rate Your Stay"; cancelled cards have no button.
  *
- * @param state The reservations, or loading / error.
- * @param cancellingId The reservation being cancelled right now, or null. Its button shows
- * "Cancelling…" and other cancel buttons are ignored until it finishes.
- * @param onBackClick Called when the back button is tapped.
- * @param onRetry Called when the error message is tapped.
- * @param onCancelConfirmed Called with a reservation's id once the user confirms cancelling it.
- * @param onRateStayClick Called with a past reservation's id when "Rate Your Stay" is tapped.
+ * @param state The reservations, or a loading/error state.
+ * @param cancellingId ID of the reservation currently being cancelled, or null.
+ * @param onRetry Called when the user retries loading reservations.
+ * @param onCancelConfirmed Called after confirming reservation cancellation.
+ * @param onRateStayClick Called when Rate Your Stay is tapped.
+ * @param onExploreClick Called when the Explore tab is tapped.
+ * @param onReservationsClick Called when the Reservations tab is tapped.
+ * @param onLotteriesClick Called when the Lotteries tab is tapped.
+ * @param onMessagesClick Called when the Messages tab is tapped.
  */
 @Composable
 fun EntrantReservationsScreen(
     state: UiState<EntrantReservations>,
     cancellingId: Id?,
-    onBackClick: () -> Unit,
     onRetry: () -> Unit,
     onCancelConfirmed: (Id) -> Unit,
     onRateStayClick: (Id) -> Unit,
+    onExploreClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {},
+    onLotteriesClick: () -> Unit = {},
+    onMessagesClick: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // The reservation waiting for the user to confirm cancelling, or null when no dialog is open.
@@ -75,9 +80,17 @@ fun EntrantReservationsScreen(
             .fillMaxSize()
             .background(AppColors.Background)
             .statusBarsPadding()
-            .navigationBarsPadding(),
     ) {
-        ScreenHeader(title = "My Reservations", onBackClick = onBackClick)
+        Text(
+            text = "My reservations",
+            style = AppTextStyles.PageTitle,
+            color = AppColors.TextPrimary,
+            modifier = Modifier.padding(
+                start = 28.dp,
+                top = 24.dp,
+                bottom = 20.dp
+            )
+        )
 
         ToggleButtonWithContent(
             options = TABS.map { it.label },
@@ -114,6 +127,27 @@ fun EntrantReservationsScreen(
                 )
             }
         }
+        BottomNavBar(
+            labels = listOf(
+                "Explore",
+                "Reservations",
+                "Lotteries",
+                "Messages"
+            ),
+            icons = listOf(
+                AppIcons.Home,
+                AppIcons.Reservation,
+                AppIcons.LotteryTicket,
+                AppIcons.Chat
+            ),
+            onClicks = listOf(
+                onExploreClick,
+                onReservationsClick,
+                onLotteriesClick,
+                onMessagesClick
+            ),
+            selectedIndex = 1
+        )
     }
 
     askCancel?.let { reservation ->
@@ -266,7 +300,6 @@ private fun EntrantReservationsScreenPreview() {
             )
         ),
         cancellingId = null,
-        onBackClick = {},
         onRetry = {},
         onCancelConfirmed = {},
         onRateStayClick = {},
