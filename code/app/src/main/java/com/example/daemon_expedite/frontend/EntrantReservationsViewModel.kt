@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.BookingRejectedException
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.Rating
 import com.example.daemon_expedite.backend.Reservation
 import com.example.daemon_expedite.backend.User
 import kotlinx.coroutines.async
@@ -45,6 +46,8 @@ data class ReservationSummary(
     val campsite: CampsiteSummary,
     /** For example "16 Oct – 18 Oct". */
     val datesText: String,
+    /** Stars the user gave this stay, or null if they haven't rated it. */
+    val yourRating: Int? = null,
 )
 
 /** The user's reservations split for the Active, Past and Cancelled tabs. */
@@ -59,7 +62,8 @@ data class EntrantReservations(
  *
  * [load] fetches every reservation in [User.reservationIds] once and splits them into the three
  * tabs; switching tabs doesn't fetch anything. [cancel] saves the change and moves the card
- * to Cancelled without reloading the page.
+ * to Cancelled without reloading the page. [rate] saves a rating for a past stay and refreshes
+ * that campsite's average from the database.
  */
 class EntrantReservationsViewModel : ViewModel() {
 
@@ -70,12 +74,18 @@ class EntrantReservationsViewModel : ViewModel() {
     private val _cancellingId = MutableStateFlow<Id?>(null)
     val cancellingId: StateFlow<Id?> = _cancellingId.asStateFlow()
 
+    /** The reservation whose rating is being saved right now, or null. Its button shows "Saving…". */
+    private val _ratingId = MutableStateFlow<Id?>(null)
+    val ratingId: StateFlow<Id?> = _ratingId.asStateFlow()
+
     private var user: User? = null
 
     // What the screen is showing, kept so [cancel] can update one reservation and regroup
     // the cards without fetching everything again.
     private var loaded: List<Reservation> = emptyList()
     private var campsites: Map<Id, CampsiteSummary> = emptyMap()
+    /** Stars the user gave, by reservation id, read from each campsite's ratings. */
+    private var yourRatings: Map<Id, Int> = emptyMap()
 
     /** Call every time the screen is shown. What is on screen stays there while it reloads. */
     fun load(user: User) {
@@ -114,13 +124,53 @@ class EntrantReservationsViewModel : ViewModel() {
             }
             result.getOrNull()?.let { cancelled ->
                 loaded = loaded.map { if (it.id == reservationId) cancelled else it }
-                _reservations.value = UiState.Content(groupReservations(loaded, campsites))
+                _reservations.value = UiState.Content(groupReservations(loaded, campsites, yourRatings = yourRatings))
             }
             _cancellingId.value = null
             onResult(
                 result.exceptionOrNull()?.let { e ->
                     generateSequence(e) { it.cause }.filterIsInstance<BookingRejectedException>().firstOrNull()?.message
                         ?: CANCEL_FAILED
+                },
+            )
+        }
+    }
+
+    /**
+     * Rates the past stay [reservationId] with [score] stars and an optional [review] through
+     * [Database.rateStay], then re-fetches its campsite so the card shows the new average as
+     * the database works it out. [onResult] gets null if it worked, or a message to show.
+     * Ignored while another rating is still saving.
+     */
+    fun rate(reservationId: Id, score: Int, review: String, onResult: (String?) -> Unit) {
+        if (_ratingId.value != null) return
+        val viewer = user ?: return onResult(RATE_FAILED)
+        val reservation = loaded.firstOrNull { it.id == reservationId } ?: return onResult(RATE_FAILED)
+        if (score !in 1..Rating.MAX_RATING) return onResult("Pick between 1 and ${Rating.MAX_RATING} stars")
+        _ratingId.value = reservationId
+        viewModelScope.launch {
+            val result = try {
+                Result.success(Database.rateStay(reservationId, viewer.id, score, review))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Rating reservation $reservationId failed", e)
+                Result.failure(e)
+            }
+            result.getOrNull()?.let { saved ->
+                yourRatings = yourRatings + (reservationId to saved.score)
+                // Reload the campsite rather than averaging here, so the card shows what every
+                // other screen will show, including ratings other people added meanwhile.
+                quietly("Couldn't refresh campsite ${reservation.campsite}") {
+                    Database.fetchCampsite(reservation.campsite).toSummary()
+                }?.let { campsites = campsites + (reservation.campsite to it) }
+                _reservations.value = UiState.Content(groupReservations(loaded, campsites, yourRatings = yourRatings))
+            }
+            _ratingId.value = null
+            onResult(
+                result.exceptionOrNull()?.let { e ->
+                    generateSequence(e) { it.cause }.filterIsInstance<BookingRejectedException>().firstOrNull()?.message
+                        ?: RATE_FAILED
                 },
             )
         }
@@ -135,20 +185,30 @@ class EntrantReservationsViewModel : ViewModel() {
             .filterNotNull()
 
         // Look each campsite up once, even if the user has several stays there.
-        val summaries = reservations.map { it.campsite }.distinct().map { id ->
-            async { id to quietly("Couldn't load campsite $id") { Database.fetchCampsite(id).toSummary() } }
-        }.awaitAll().mapNotNull { (id, summary) -> summary?.let { id to it } }.toMap()
+        val fetched = reservations.map { it.campsite }.distinct().map { id ->
+            async { quietly("Couldn't load campsite $id") { Database.fetchCampsite(id) } }
+        }.awaitAll().filterNotNull()
+        val summaries = fetched.map { campsite ->
+            async { campsite.id to campsite.toSummary() }
+        }.awaitAll().toMap()
+        val ratings = yourRatingsFor(user.id, fetched.flatMap { it.ratings })
 
         loaded = reservations
         campsites = summaries
-        groupReservations(reservations, summaries)
+        yourRatings = ratings
+        groupReservations(reservations, summaries, yourRatings = ratings)
     }
 
     private companion object {
         const val TAG = "EntrantReservations"
         const val CANCEL_FAILED = "Couldn't cancel the reservation. Check your connection and try again."
+        const val RATE_FAILED = "Couldn't save your rating. Check your connection and try again."
     }
 }
+
+/** Stars [user] gave, by the reservation they rated, picked out of [ratings]. */
+internal fun yourRatingsFor(user: Id, ratings: List<Rating>): Map<Id, Int> =
+    ratings.filter { it.authorId == user }.associate { it.reservationId to it.score }
 
 /**
  * Splits [reservations] into the three tabs and formats each one for its card.
@@ -156,12 +216,14 @@ class EntrantReservationsViewModel : ViewModel() {
  * Active stays are listed soonest first; past and cancelled ones most recent first.
  * [campsites] maps campsite ids to their card details. A reservation whose campsite is
  * missing from it (deleted, or failed to load) still gets a card, so it can be cancelled.
+ * [yourRatings] holds the stars the user gave, by reservation id.
  */
 internal fun groupReservations(
     reservations: List<Reservation>,
     campsites: Map<Id, CampsiteSummary>,
     now: Instant = Clock.System.now(),
     zone: ZoneId = ZoneId.systemDefault(),
+    yourRatings: Map<Id, Int> = emptyMap(),
 ): EntrantReservations {
     val byStatus = reservations.groupBy { it.status(now, zone) }
     fun list(status: ReservationStatus, newestFirst: Boolean): List<ReservationSummary> {
@@ -171,7 +233,9 @@ internal fun groupReservations(
         } else {
             group.sortedBy { it.period.start }
         }
-        return sorted.map { it.toSummary(campsites[it.campsite] ?: unavailableCampsite(it.campsite), now, zone) }
+        return sorted.map {
+            it.toSummary(campsites[it.campsite] ?: unavailableCampsite(it.campsite), yourRatings[it.id], now, zone)
+        }
     }
     return EntrantReservations(
         active = list(ReservationStatus.ACTIVE, newestFirst = false),
@@ -180,8 +244,8 @@ internal fun groupReservations(
     )
 }
 
-private fun Reservation.toSummary(campsite: CampsiteSummary, now: Instant, zone: ZoneId) =
-    ReservationSummary(id = id, campsite = campsite, datesText = datesText(now, zone))
+private fun Reservation.toSummary(campsite: CampsiteSummary, yourRating: Int?, now: Instant, zone: ZoneId) =
+    ReservationSummary(id = id, campsite = campsite, datesText = datesText(now, zone), yourRating = yourRating)
 
 /** "16 Oct – 18 Oct", from the first night to the check-out day. */
 internal fun Reservation.datesText(

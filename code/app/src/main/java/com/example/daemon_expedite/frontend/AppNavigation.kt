@@ -315,15 +315,19 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 LaunchedEffect(user) { user?.let(reservations::load) }
                 val state by reservations.reservations.collectAsState()
                 val cancellingId by reservations.cancellingId.collectAsState()
+                val ratingId by reservations.ratingId.collectAsState()
                 EntrantReservationsScreen(
                     state = state,
                     cancellingId = cancellingId,
+                    ratingId = ratingId,
                     onRetry = reservations::retry,
 
                     onCancelConfirmed = { id ->
                         reservations.cancel(id) { problem -> toast(problem ?: "Reservation cancelled") }
                     },
-                    onRateStayClick = { showComingSoon("Rating") },
+                    onRatingSubmitted = { id, stars, review ->
+                        reservations.rate(id, stars, review) { problem -> toast(problem ?: "Thanks for rating your stay") }
+                    },
                 )
             }
 

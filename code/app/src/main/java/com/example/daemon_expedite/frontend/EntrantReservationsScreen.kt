@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,10 +27,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.Rating
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -37,6 +43,7 @@ import com.example.daemon_expedite.ui_components.CampsitePill
 import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.GreenButton
 import com.example.daemon_expedite.ui_components.PillVariant
+import com.example.daemon_expedite.ui_components.RatingPopup
 import com.example.daemon_expedite.ui_components.RedButton
 import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
 
@@ -47,25 +54,31 @@ import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
  *
  * Laid out like [OwnerLotteriesScreen], with campsite cards in place of lottery cards.
  * Active cards have a "Cancel Reservation" button, which asks first; past cards have
- * "Rate Your Stay"; cancelled cards have no button.
+ * "Rate Your Stay", which opens a [RatingPopup] (or show the stars given once rated);
+ * cancelled cards have no button.
  *
  * @param state The reservations, or a loading/error state.
  * @param cancellingId ID of the reservation currently being cancelled, or null.
+ * @param ratingId ID of the reservation whose rating is being saved, or null.
  * @param onRetry Called when the user retries loading reservations.
  * @param onCancelConfirmed Called after confirming reservation cancellation.
- * @param onRateStayClick Called when Rate Your Stay is tapped.
+ * @param onRatingSubmitted Called with the reservation, stars and review text when the
+ *        rating popup is submitted.
  */
 @Composable
 fun EntrantReservationsScreen(
     state: UiState<EntrantReservations>,
     cancellingId: Id?,
+    ratingId: Id?,
     onRetry: () -> Unit,
     onCancelConfirmed: (Id) -> Unit,
-    onRateStayClick: (Id) -> Unit,
+    onRatingSubmitted: (Id, Int, String) -> Unit,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // The reservation waiting for the user to confirm cancelling, or null when no dialog is open.
     var askCancel by remember { mutableStateOf<ReservationSummary?>(null) }
+    // The past stay being rated in the popup, or null when it's closed.
+    var rating by remember { mutableStateOf<ReservationSummary?>(null) }
 
     Column(
         modifier = Modifier
@@ -114,8 +127,9 @@ fun EntrantReservationsScreen(
                     },
                     tab = shown,
                     cancellingId = cancellingId,
+                    ratingId = ratingId,
                     onCancelClick = { if (cancellingId == null) askCancel = it },
-                    onRateStayClick = onRateStayClick,
+                    onRateStayClick = { if (ratingId == null) rating = it },
                 )
             }
         }
@@ -135,6 +149,21 @@ fun EntrantReservationsScreen(
                 onCancelConfirmed(reservation.id)
             },
             onDismiss = { askCancel = null },
+        )
+    }
+
+    rating?.let { reservation ->
+        RatingPopup(
+            title = reservation.campsite.name,
+            onDismiss = { rating = null },
+            onSubmit = { stars ->
+                rating = null
+                onRatingSubmitted(reservation.id, stars, "")
+            },
+            onSubmitWithReview = { stars, review ->
+                rating = null
+                onRatingSubmitted(reservation.id, stars, review)
+            },
         )
     }
 }
@@ -168,8 +197,9 @@ private fun ReservationList(
     reservations: List<ReservationSummary>,
     tab: ReservationTab,
     cancellingId: Id?,
+    ratingId: Id?,
     onCancelClick: (ReservationSummary) -> Unit,
-    onRateStayClick: (Id) -> Unit,
+    onRateStayClick: (ReservationSummary) -> Unit,
 ) {
     if (reservations.isEmpty()) {
         Centered {
@@ -198,8 +228,10 @@ private fun ReservationList(
                         datesText = reservation.datesText,
                         tab = tab,
                         isCancelling = reservation.id == cancellingId,
+                        isRating = reservation.id == ratingId,
+                        yourRating = reservation.yourRating,
                         onCancelClick = { onCancelClick(reservation) },
-                        onRateStayClick = { onRateStayClick(reservation.id) },
+                        onRateStayClick = { onRateStayClick(reservation) },
                     )
                 },
             )
@@ -207,18 +239,27 @@ private fun ReservationList(
     }
 }
 
-/** The stay's dates, then the tab's button: Cancel Reservation, Rate Your Stay, or none. */
+/**
+ * The stay's dates, then the tab's button: Cancel Reservation, Rate Your Stay, or none.
+ * A past stay that's already rated shows the stars given instead of the button.
+ */
 @Composable
 private fun ReservationActions(
     datesText: String,
     tab: ReservationTab,
     isCancelling: Boolean,
+    isRating: Boolean,
+    yourRating: Int?,
     onCancelClick: () -> Unit,
     onRateStayClick: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(datesText, style = AppTextStyles.BodyMedium, color = AppColors.TextPrimary)
         if (tab == ReservationTab.Cancelled) return@Column
+        if (tab == ReservationTab.Past && yourRating != null) {
+            YourRating(yourRating)
+            return@Column
+        }
         // The buttons take a fixed width, so measure the card to make them fill it.
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val width = maxWidth.value.toInt()
@@ -232,9 +273,33 @@ private fun ReservationActions(
             } else {
                 GreenButton(
                     onClick = onRateStayClick,
-                    icon =  AppIcons.Star,
-                    buttonText = "Rate Your Stay",
+                    icon = AppIcons.Star,
+                    buttonText = if (isRating) "Saving…" else "Rate Your Stay",
                     customWidth = width,
+                )
+            }
+        }
+    }
+}
+
+/** "You rated this stay" with the stars given, in place of the Rate Your Stay button. */
+@Composable
+private fun YourRating(stars: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = "You rated this stay $stars out of ${Rating.MAX_RATING} stars"
+        },
+    ) {
+        Text("You rated this stay", style = AppTextStyles.BodySmall, color = AppColors.TextSecondary)
+        Row {
+            repeat(Rating.MAX_RATING) { index ->
+                Icon(
+                    imageVector = if (index < stars) AppIcons.Star else AppIcons.StarOutline,
+                    contentDescription = null,
+                    tint = if (index < stars) AppColors.Accent else AppColors.Secondary,
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
@@ -269,13 +334,14 @@ private fun EntrantReservationsScreenPreview() {
                     sample("Pine Creek Hideaway", "Big Sur, California", "$45", 4.9, "16 Oct – 18 Oct"),
                     sample("Redwood Meadow", "Felton, California", "$38", 4.8, "23 Oct – 25 Oct"),
                 ),
-                past = listOf(sample("Lakeside Retreat", "Banff, Alberta", "$65", 4.7, "2 Sep – 5 Sep")),
+                past = listOf(sample("Lakeside Retreat", "Banff, Alberta", "$65", 4.7, "2 Sep – 5 Sep").copy(yourRating = 4)),
                 cancelled = emptyList(),
             )
         ),
         cancellingId = null,
+        ratingId = null,
         onRetry = {},
         onCancelConfirmed = {},
-        onRateStayClick = {},
+        onRatingSubmitted = { _, _, _ -> },
     )
 }
