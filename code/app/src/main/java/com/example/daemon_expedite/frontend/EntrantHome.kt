@@ -1,8 +1,10 @@
 package com.example.daemon_expedite.frontend
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -22,6 +24,7 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppFonts
 import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.ProfileImage
 import com.example.daemon_expedite.ui_components.SearchBar
@@ -36,21 +39,26 @@ import java.time.LocalDate
 *
 * The screen only displays what it is given; [HomeViewModel] does the loading and searching.
 *
-* @param profileImageUrl URL of the signed-in user's profile picture, or null to show the fallback.
-* @param searchQuery Text currently in the search bar.
-* @param onSearchQueryChange Called as the user types in the search bar.
-* @param campsites The campsites to list, or a loading/error state.
-* @param onRetry Called when the user taps the error message to load again.
-* @param onCampsiteClick Called with the id of the tapped campsite.
-* @param onFilterClick Called when the filter button is tapped.
-* @param onProfileClick Called when the profile picture in the top bar is tapped.
-* @param onReservationsClick Called when the Reservations tab is tapped.
-* @param onLotteriesClick Called when the Lotteries tab is tapped.
-* @param onMessagesClick Called when the Messages tab is tapped.
+ * @param profileImageUrl URL of the signed-in user's profile picture,
+ * or null to display the default image.
+ * @param userName Name of the signed-in user displayed in the greeting.
+ * @param searchQuery Current text entered in the search bar.
+ * @param onSearchQueryChange Called when the search query changes.
+ * @param campsites Campsites to display, or a loading/error state.
+ * @param onRetry Called when the user retries loading campsites.
+ * @param onCampsiteClick Called with the ID of the selected campsite.
+ * @param onFilterClick Called when the user applies or resets filters,
+ * with the location, stay dates, and guest count.
+ * @param onProfileClick Called when the profile picture is tapped.
+ * @param onReservationsClick Called when the Reservations tab is tapped.
+ * @param onLotteriesClick Called when the Lotteries tab is tapped.
+ * @param onMessagesClick Called when the Messages tab is tapped.
+ * @param onExploreClick Called when the Explore tab is tapped.
 */
 @Composable
 fun EntrantHomeScreen(
     profileImageUrl: String? = null,
+    userName: String = "",
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
     campsites: UiState<List<CampsiteSummary>> = UiState.Content(emptyList()),
@@ -61,6 +69,7 @@ fun EntrantHomeScreen(
     onReservationsClick: () -> Unit = {},
     onLotteriesClick: () -> Unit = {},
     onMessagesClick: () -> Unit = {},
+    onExploreClick: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
     var filterLocation by remember { mutableStateOf("") }
@@ -78,7 +87,44 @@ fun EntrantHomeScreen(
         Spacer(
             Modifier.windowInsetsTopHeight(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
         )
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = 20.dp
+                    ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
 
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Find your next hideaway",
+                        style = AppTextStyles.PageTitle,
+                        color = AppColors.TextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Good evening${if (userName.isNotBlank()) ", $userName" else ""} · X lotteries open near you", // TODO: Replace X with the actual number of open nearby lotteries from the backend.
+                        style = AppTextStyles.BodySmall,
+                        color = AppColors.TextSecondary
+                    )
+                }
+            IconButton(onClick = onProfileClick, modifier = Modifier.size(40.dp)) {
+                // Profile picture (falls back to a default image when the user has none)
+                ProfileImage(
+                    imageUrl = profileImageUrl,
+                    size = 39.dp,
+                    contentDescription = "Profile",
+                )
+            }
+        }
         Row(
             modifier =
                 Modifier
@@ -88,39 +134,37 @@ fun EntrantHomeScreen(
                         end = 11.dp, // + the profile button's 4dp inner padding = 15dp, matching start
                         top = 12.dp,
                     ),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Search BAr (no fixed height, so the Row can centre it with the icons)
             Box(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .widthIn(min = 0.dp)
             ) {
                 SearchBar(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChange,
-                    placeholderText = "WHERE DO YOU WANT TO GO?",
+                    placeholderText = "Where do you want to go?",
                     showQrIcon = true,
                     onQRCodeClicked = {},
                 )
             }
             // Smaller buttons than the 48dp default to tighten the filter/profile gap
             IconButton(
-                onClick = {
-                    showFilterSheet = true
-                },
-                modifier = Modifier.size(40.dp),
+                onClick = { showFilterSheet = true },
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(AppColors.SurfaceDeep, CircleShape)
+                    .border(1.dp, AppColors.OutlineStrong, CircleShape)
+
             ) {
                 Icon( // Filter icon
                     imageVector = AppIcons.Filter,
                     contentDescription = "Filter",
                     tint = AppColors.TextOnPrimary,
-                )
-            }
-            IconButton(onClick = onProfileClick, modifier = Modifier.size(40.dp)) {
-                // Profile picture (falls back to a default image when the user has none)
-                ProfileImage(
-                    imageUrl = profileImageUrl,
-                    size = 39.dp,
-                    contentDescription = "Profile",
+                    modifier = Modifier.size(23.dp)
                 )
             }
         }
@@ -134,22 +178,31 @@ fun EntrantHomeScreen(
                         top = 32.dp,
                     ),
         ) {
-            // Heading
-            Text(
-                text = "Find your next hideaway",
-                fontFamily = AppFonts.Inter,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                color = AppColors.TextPrimary,
-            )
-            Text(
-                text = "Campsites for you",
-                fontFamily = AppFonts.Inter,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
-                color = AppColors.TextPrimary,
-                modifier = Modifier.padding(top = 20.dp),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Campsites for you",
+                    style = AppTextStyles.HeadingMedium,
+                    color = AppColors.TextPrimary
+                )
+
+                val campsiteCount = (campsites as? UiState.Content)?.data?.size
+
+                if (campsiteCount != null) {
+                    Text(
+                        text = campsiteCount.toString(),
+                        style = AppTextStyles.Caption,
+                        color = AppColors.TextSecondary,
+                        modifier = Modifier
+                            .background(AppColors.SurfaceDeep, CircleShape)
+                            .padding(horizontal = 9.dp, vertical = 4.dp)
+                    )
+                }
+            }
         }
 
         // Campsite cards, or a spinner/error/empty message
@@ -171,22 +224,26 @@ fun EntrantHomeScreen(
         BottomNavBar(
             labels =
                 listOf(
+                    "Explore",
                     "Reservations",
                     "Lotteries",
                     "Messages",
                 ),
             icons =
                 listOf(
+                    AppIcons.Home,
                     AppIcons.Reservation,
                     AppIcons.LotteryTicket,
                     AppIcons.Chat,
                 ),
             onClicks =
                 listOf(
+                    onExploreClick,
                     onReservationsClick,
                     onLotteriesClick,
                     onMessagesClick,
                 ),
+            selectedIndex = 0
         )
     }
 

@@ -230,6 +230,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             val campsites by home.campsites.collectAsState()
             EntrantHomeScreen(
                 profileImageUrl = photoUrl,
+                userName = user?.name.orEmpty(),
                 searchQuery = query,
                 onSearchQueryChange = home::onQueryChange,
                 campsites = campsites,
@@ -252,8 +253,21 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             EntrantLotteriesScreen(
                 state = state,
                 leavingId = leavingId,
-                onBackClick = { navController.popBackStack() },
                 onRetry = lotteries::retry,
+
+                onExploreClick = {
+                    navController.popBackStack(Routes.HOME, false)
+                },
+                onReservationsClick = {
+                    navController.navigate(Routes.RESERVATIONS) {
+                        popUpTo(Routes.HOME)
+                        launchSingleTop = true
+                    }
+                },
+                onLotteriesClick = {},
+                onMessagesClick = {
+                    showComingSoon("Messages")
+                },
                 onLeaveConfirmed = { lotteryId ->
                     leavingId = lotteryId
                     session.leaveLottery(lotteryId) { result ->
@@ -286,8 +300,21 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             EntrantReservationsScreen(
                 state = state,
                 cancellingId = cancellingId,
-                onBackClick = { navController.popBackStack() },
                 onRetry = reservations::retry,
+
+                onExploreClick = {
+                    navController.popBackStack(Routes.HOME, false)
+                },
+                onReservationsClick = {},
+                onLotteriesClick = {
+                    navController.navigate(Routes.ENTRANT_LOTTERIES) {
+                        popUpTo(Routes.HOME)
+                        launchSingleTop = true
+                    }
+                },
+                onMessagesClick = {
+                    showComingSoon("Messages")
+                },
                 onCancelConfirmed = { id ->
                     reservations.cancel(id) { problem -> toast(problem ?: "Reservation cancelled") }
                 },

@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.ui.graphics.Color
@@ -73,6 +74,7 @@ object AppIcons {
     val Email = Icons.Default.Email
     val ArrowBack = Icons.AutoMirrored.Filled.ArrowBack
     val ArrowForward = Icons.AutoMirrored.Filled.ArrowForward
+    val Home = Icons.Outlined.Home
     val Reservation = Icons.Outlined.EventAvailable
     val LotteryTicket = Icons.Outlined.ConfirmationNumber
     val Chat = Icons.Outlined.ChatBubbleOutline
