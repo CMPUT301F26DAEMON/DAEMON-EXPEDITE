@@ -11,20 +11,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -100,8 +95,6 @@ fun LotteryStatusCard(
     val ends = endsText?.let { "Lottery ends $it" }
     when (status) {
         LotteryStatus.OPEN -> CardFrame(
-            border = AppColors.Accent,
-            icon = AppIcons.LotteryTicket,
             title = "Your next adventure awaits",
             subtitle = ends,
             modifier = modifier,
@@ -111,12 +104,11 @@ fun LotteryStatusCard(
                 icon = AppIcons.LotteryTicket,
                 buttonText = if (busy) "Joining…" else "Join Lottery!",
                 customWidth = width,
+                customHeight = 58,
             )
         }
 
         LotteryStatus.JOINED -> CardFrame(
-            border = AppColors.Danger,
-            icon = AppIcons.CircleCheck,
             title = "You’re on the waiting list",
             subtitle = ends,
             modifier = modifier,
@@ -126,12 +118,11 @@ fun LotteryStatusCard(
                 icon = AppIcons.LeaveList,
                 buttonText = if (busy) "Leaving…" else "Leave waiting list",
                 customWidth = width,
+                customHeight = 58,
             )
         }
 
         LotteryStatus.FULL -> CardFrame(
-            border = AppColors.OutlineButton,
-            icon = AppIcons.LotteryTicket,
             title = "The waiting list is full",
             subtitle = ends,
             modifier = modifier,
@@ -140,8 +131,6 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.DRAWING -> CardFrame(
-            border = AppColors.OutlineButton,
-            icon = AppIcons.Clock,
             title = "Drawing winners…",
             subtitle = "Entries are closed. Your result will show here soon.",
             modifier = modifier,
@@ -150,19 +139,15 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.WON -> CardFrame(
-            border = AppColors.Accent,
-            icon = AppIcons.Trophy,
             title = "You won!",
             subtitle = "Book your nights" + (bookByText?.let { " before $it" } ?: "") +
                 ". It's first come, first served among winners.",
             modifier = modifier,
         ) { width ->
-            YellowButton(onClick = onBookClick, icon = AppIcons.Calendar, buttonText = "Book your stay", customWidth = width)
+            YellowButton(onClick = onBookClick, icon = AppIcons.Calendar, buttonText = "Book your stay", customWidth = width, customHeight = 58)
         }
 
         LotteryStatus.LOST -> CardFrame(
-            border = AppColors.OutlineButton,
-            icon = AppIcons.LotteryTicket,
             title = "Not selected this time",
             subtitle = "You weren't drawn in this lottery. Keep an eye out for the next one.",
             modifier = modifier,
@@ -171,8 +156,6 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.BOOKED -> CardFrame(
-            border = AppColors.Primary,
-            icon = AppIcons.CircleCheck,
             title = "You're booked",
             subtitle = bookingText,
             modifier = modifier,
@@ -180,8 +163,6 @@ fun LotteryStatusCard(
         )
 
         LotteryStatus.DECLINED -> CardFrame(
-            border = AppColors.OutlineButton,
-            icon = AppIcons.CancelCircle,
             title = "You declined this win",
             subtitle = "Your spot was released for other winners.",
             modifier = modifier,
@@ -190,8 +171,6 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.MISSED -> CardFrame(
-            border = AppColors.OutlineButton,
-            icon = AppIcons.Clock,
             title = "Booking has closed",
             subtitle = "You didn't book before the first night, so your win was released.",
             modifier = modifier,
@@ -200,8 +179,6 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.UPCOMING -> CardFrame(
-            border = AppColors.OutlineButton,
-            icon = AppIcons.Clock,
             title = "A lottery is coming",
             subtitle = opensText?.let { "Entries open $it." },
             modifier = modifier,
@@ -210,8 +187,6 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.NONE -> CardFrame(
-            border = AppColors.OutlineButton,
-            icon = AppIcons.Clock,
             title = "No lottery is open",
             subtitle = "The owner hasn't opened a lottery yet.",
             modifier = modifier,
@@ -222,35 +197,29 @@ fun LotteryStatusCard(
 }
 
 /**
- * Shared layout of the cards: icon and title, a line of detail, then a full-width button.
+ * Shared layout of the cards: a title, a line of detail, then a full-width button.
  * [button] gets the width available inside the card, since the shared buttons take a width in dp.
  * Pass null for a card without a button.
  */
 @Composable
 private fun CardFrame(
-    border: Color,
-    icon: ImageVector,
     title: String,
     subtitle: String?,
     modifier: Modifier,
     button: (@Composable (width: Int) -> Unit)?,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    // Figma "Expedite/Card/Lottery": outlined, no fill, title then a muted detail line.
+    val shape = RoundedCornerShape(14.dp)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(AppColors.Surface)
-            .border(BorderStroke(1.dp, border), shape)
+            .border(BorderStroke(1.dp, AppColors.OutlineButton), shape)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(icon, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(20.dp))
-            Text(title, style = AppTextStyles.CardTitle, color = AppColors.TextPrimary)
-        }
+        Text(title, style = AppTextStyles.TitleMedium, color = AppColors.TextPrimary)
         if (subtitle != null) {
-            Text(subtitle, style = AppTextStyles.BodySmallMultiline, color = AppColors.Secondary)
+            Text(subtitle, style = AppTextStyles.BodySmallMultiline, color = AppColors.TextMuted)
         }
         if (button != null) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -266,13 +235,13 @@ private fun DisabledButton(text: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(58.dp)
             .clip(shape)
             .background(AppColors.SurfaceDisabled)
             .border(BorderStroke(1.dp, AppColors.OutlineStrong), shape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, style = AppTextStyles.ButtonLabel, color = AppColors.Secondary)
+        Text(text, style = AppTextStyles.ButtonLabel, color = AppColors.TextSecondary)
     }
 }
 

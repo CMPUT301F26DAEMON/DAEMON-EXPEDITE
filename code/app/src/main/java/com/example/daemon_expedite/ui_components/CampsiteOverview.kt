@@ -4,12 +4,19 @@
 
 package com.example.daemon_expedite.ui_components
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,9 +39,10 @@ import androidx.compose.ui.unit.dp
  * @param amenities Amenity tags. The section is hidden when empty.
  * @param maxOccupancy Maximum number of guests.
  * @param pricePerNight Already formatted price, for example "$45".
- * @param onViewMapClick Called when "View on map" is tapped.
+ * @param onViewMapClick Called when the "View on map" row is tapped.
  * @param modifier [Modifier] applied to the column.
  * @param pill Optional badge in the top-right corner of the photo, usually a [CampsitePill].
+ * @param onReviewsClick Makes the rating line a link to the reviews. Null leaves it as plain text.
  */
 @Composable
 fun CampsiteOverview(
@@ -49,18 +57,22 @@ fun CampsiteOverview(
     onViewMapClick: () -> Unit,
     modifier: Modifier = Modifier,
     pill: (@Composable () -> Unit)? = null,
+    onReviewsClick: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         CampsiteImageCarousel(imageUrls = imageUrls, pill = pill)
 
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(name, style = AppTextStyles.PageTitleMultiline, color = AppColors.TextPrimary)
-            Spacer(Modifier.height(4.dp))
-            RatingLabel(average = averageRating, reviewCount = reviewCount)
-            if (description.isNotBlank()) {
-                Spacer(Modifier.height(10.dp))
-                Text(description, style = AppTextStyles.BodySmallMultiline, color = AppColors.TextPrimary)
-            }
+            RatingLabel(average = averageRating, reviewCount = reviewCount, onClick = onReviewsClick)
+        }
+
+        if (description.isNotBlank()) {
+            Text(
+                description,
+                style = AppTextStyles.BodyMedium.copy(lineHeight = 21.sp),
+                color = AppColors.TextSecondary,
+            )
         }
 
         if (amenities.isNotEmpty()) {
@@ -70,16 +82,30 @@ fun CampsiteOverview(
             }
         }
 
-        StayFactsCard(maxOccupancy = maxOccupancy, pricePerNight = pricePerNight)
-
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            GreenButton(
-                onClick = onViewMapClick,
-                icon = AppIcons.MapPin,
-                buttonText = "View on map",
-                customWidth = maxWidth.value.toInt(),
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            StayFactsCard(maxOccupancy = maxOccupancy, pricePerNight = pricePerNight)
+            ViewOnMapRow(onClick = onViewMapClick)
         }
+    }
+}
+
+/** Figma "View on map": an outlined row with a pin, the label and a chevron. */
+@Composable
+private fun ViewOnMapRow(onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(1.dp, AppColors.OutlineButton, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(AppIcons.MapPin, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(19.dp))
+        Text("View on map", style = AppTextStyles.TitleSmall, color = AppColors.TextPrimary, modifier = Modifier.weight(1f))
+        Icon(AppIcons.ChevronRight, contentDescription = null, tint = AppColors.TextMuted, modifier = Modifier.size(18.dp))
     }
 }
 

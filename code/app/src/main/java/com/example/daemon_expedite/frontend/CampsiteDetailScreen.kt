@@ -68,6 +68,7 @@ import java.time.YearMonth
  * @param onMessageOwnerClick Called when the message button on the owner card is tapped.
  * @param onPoliciesClick Called when "Campsite Policies" is tapped.
  * @param isLotteryBusy True while joining or leaving; the lottery button ignores taps.
+ * @param onReviewsClick Called when the rating line ("★ 4.9 · 24 reviews ›") is tapped.
  */
 @Composable
 fun CampsiteDetailScreen(
@@ -81,6 +82,7 @@ fun CampsiteDetailScreen(
     onPoliciesClick: () -> Unit,
     isLotteryBusy: Boolean = false,
     onBookClick: () -> Unit = {},
+    onReviewsClick: () -> Unit = {},
 ) {
     var askLeave by rememberSaveable { mutableStateOf(false) }
 
@@ -95,8 +97,10 @@ fun CampsiteDetailScreen(
             maxOccupancy = details.maxOccupancy,
             pricePerNight = details.pricePerNight,
             onViewMapClick = onViewMapClick,
-            pill = { LotteryPill(details.lotteryStatus) },
+            onReviewsClick = onReviewsClick,
         )
+
+        CalendarSection(title = "Available Dates", ranges = details.availableNights)
 
         LotteryStatusCard(
             status = details.lotteryStatus,
@@ -110,10 +114,9 @@ fun CampsiteDetailScreen(
             onLeaveClick = { askLeave = true },
         )
 
-        CalendarSection(title = "Available Dates", ranges = details.availableNights)
-
         OwnerCard(
             name = details.ownerName ?: "Campsite owner",
+            photoUrl = details.ownerPhotoUrl,
             onMessageClick = onMessageOwnerClick,
         )
 
@@ -179,7 +182,7 @@ internal fun <T> DetailPageScaffold(
                         .widthIn(max = 412.dp)
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 28.dp, vertical = 12.dp),
+                        .padding(start = 28.dp, end = 28.dp, top = 12.dp, bottom = 40.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
                     content(state.data)
@@ -226,7 +229,7 @@ internal fun PoliciesLink(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 14.dp),
+            .padding(top = 12.dp, bottom = 12.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {

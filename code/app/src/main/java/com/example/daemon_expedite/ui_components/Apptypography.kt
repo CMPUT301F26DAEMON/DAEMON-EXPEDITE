@@ -123,6 +123,9 @@ object AppTextStyles {
     /** Addresses and small titles. Inter SemiBold 14. */
     val TitleSmall = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
 
+    /** Card titles such as the lottery card heading. Inter SemiBold 16. */
+    val TitleMedium = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
+
     /** Tab and toggle labels. Inter SemiBold 13. */
     val TabLabel = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
 
