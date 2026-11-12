@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -23,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.NotificationCard
 
 /**
  * Notifications screen for the Expedite application.
@@ -102,7 +102,9 @@ fun NotificationsScreen(
         // Notification list
         notifications.forEach { notification ->
             NotificationCard(
-                notification = notification,
+                sender = notification.sender,
+                message = notification.message,
+                timestamp = notification.timestamp,
                 onClick = {
                     onNotificationClick(notification)
                 }
@@ -121,58 +123,6 @@ fun NotificationsScreen(
     }
 }
 
-/**
- * Displays a notification with sender, message and time.
- */
-@Composable
-private fun NotificationCard(
-    notification: NotificationEntry,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(14.dp)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(AppColors.FillDeepTint)
-            .border(
-                width = 0.5.dp,
-                color = AppColors.SurfaceDeep,
-                shape = shape
-            )
-            .clickable(onClick = onClick)
-            .padding(
-                horizontal = 13.dp,
-                vertical = 11.dp
-            )
-    ) {
-        Text(
-            text = notification.sender,
-            color = AppColors.TextPrimary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(Modifier.height(5.dp))
-
-        Text(
-            text = notification.message,
-            color = AppColors.TextPrimary,
-            fontSize = 12.sp,
-            lineHeight = 17.sp
-        )
-
-        Spacer(Modifier.height(6.dp))
-
-        Text(
-            text = notification.timestamp,
-            color = AppColors.Secondary,
-            fontSize = 11.sp
-        )
-    }
-}
-
 @Preview(
     showBackground = true,
     widthDp = 393,
@@ -180,5 +130,28 @@ private fun NotificationCard(
 )
 @Composable
 private fun NotificationsScreenPreview() {
-    NotificationsScreen()
+    NotificationsScreen(
+        notifications = listOf(
+            NotificationEntry(
+                sender = "Pine Creek Hideaway",
+                message = "You won the lottery for Jun 12 - Jun 14. Accept your spot within 48 hours.",
+                timestamp = "2h ago"
+            ),
+            NotificationEntry(
+                sender = "Maple Hollow",
+                message = "The lottery you joined closes tomorrow at midnight.",
+                timestamp = "5h ago"
+            ),
+            NotificationEntry(
+                sender = "Lakeside Retreat",
+                message = "Your reservation for Jul 3 - Jul 5 was cancelled by the owner.",
+                timestamp = "Yesterday"
+            ),
+            NotificationEntry(
+                sender = "Expedite",
+                message = "Welcome! Turn on notifications to hear about lottery results.",
+                timestamp = "Nov 2"
+            )
+        )
+    )
 }
