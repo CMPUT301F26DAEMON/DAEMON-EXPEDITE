@@ -1,37 +1,26 @@
 package com.example.daemon_expedite.backend
 
 /**
- * Aggregates user ratings for a campsite or similar entity.
- *
- * The rating keeps a running total score and count of submissions so the average can be
- * calculated without storing each individual review separately.
+ * One review of a campsite: a star score and optional text, left by an entrant after a stay.
  *
  * @property id Unique identifier for the rating record.
+ * @property campsiteId The campsite being reviewed.
+ * @property authorId The user who wrote the review.
+ * @property score Stars given, from 1 to [MAX_RATING].
+ * @property reservationId The stay this review is for.
+ * @property description The review text, or null if the user only gave stars.
+ * @throws IllegalArgumentException if [score] is outside 1..[MAX_RATING].
  */
 class Rating(
     val id: Id = Id(),
-    totalScore: Int = 0,
-    count: Int = 0
+    val campsiteId: Id,
+    val authorId: Id,
+    val score: Int,
+    val reservationId: Id,
+    val description: String? = null
 ) {
-    var totalScore: Int = totalScore
-        private set
-
-    var count: Int = count
-        private set
-
-    /**
-     * Adds one rating of 1 to [MAX_RATING] stars.
-     *
-     * @throws IllegalArgumentException if [rating] is outside 1..[MAX_RATING].
-     */
-    fun addRating(rating: Int) {
-        require(rating in 1..MAX_RATING) { "Rating must be 1 to $MAX_RATING stars, was $rating" }
-        totalScore += rating
-        count++
-    }
-
-    fun average(): Double {
-        return if (count == 0) 0.0 else totalScore.toDouble() / count
+    init {
+        require(score in 1..MAX_RATING) { "Rating must be 1 to $MAX_RATING stars, was $score" }
     }
 
     companion object {

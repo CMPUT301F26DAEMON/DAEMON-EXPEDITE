@@ -269,7 +269,7 @@ class RegisterCampsiteViewModel : ViewModel() {
      * Updates [original] with the form.
      *
      * 1. Newly picked photos are uploaded; photos it already had are kept as they are.
-     * 2. The campsite is saved with [Database.updateCampsite], keeping its id, owner and rating.
+     * 2. The campsite is saved with [Database.updateCampsite], keeping its id, owner and ratings.
      * 3. Photos the owner removed are deleted. A failure here only leaves unused files behind,
      *    so it doesn't fail the save.
      *
@@ -286,7 +286,7 @@ class RegisterCampsiteViewModel : ViewModel() {
                     }
                 }
                 val images = draft.photos.map { existingPhotos[it] ?: uploaded.getValue(it) }
-                Database.updateCampsite(draft.toCampsite(original.id, original.ownerId, images, original.rating))
+                Database.updateCampsite(draft.toCampsite(original.id, original.ownerId, images, original.ratings))
                 saved = true
                 val keptIds = images.map { it.id }.toSet()
                 original.images.filter { it.id !in keptIds }.forEach { removed ->
@@ -335,9 +335,9 @@ class RegisterCampsiteViewModel : ViewModel() {
 
 /**
  * Builds the [Campsite] to save. Only call once the draft has passed validation.
- * [rating] is kept from the saved campsite when editing.
+ * [ratings] are kept from the saved campsite when editing.
  */
-private fun CampsiteDraft.toCampsite(id: Id, ownerId: Id, images: List<Image>, rating: Rating = Rating()) = Campsite(
+private fun CampsiteDraft.toCampsite(id: Id, ownerId: Id, images: List<Image>, ratings: List<Rating> = emptyList()) = Campsite(
     id = id,
     name = name.trim(),
     description = description.trim(),
@@ -351,7 +351,7 @@ private fun CampsiteDraft.toCampsite(id: Id, ownerId: Id, images: List<Image>, r
     pricePerNight = pricePerNight.toInt(),
     images = images,
     ownerId = ownerId,
-    rating = rating,
+    ratings = ratings,
     address = address.trim(),
 )
 

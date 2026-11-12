@@ -10,7 +10,6 @@ import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.Owner
-import com.example.daemon_expedite.backend.Rating
 import com.example.daemon_expedite.backend.Reservation
 import com.example.daemon_expedite.backend.User
 import io.mockk.mockk
@@ -46,7 +45,6 @@ class OwnerTest {
         maxOccupancy = 4,
         pricePerNight = 40,
         ownerId = ownerId,
-        rating = Rating(),
         address = "1 Pine Rd",
     )
 

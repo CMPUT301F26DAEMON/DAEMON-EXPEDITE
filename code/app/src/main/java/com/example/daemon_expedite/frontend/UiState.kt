@@ -73,7 +73,7 @@ suspend fun Campsite.toSummary(): CampsiteSummary {
         name = name,
         location = address,
         pricePerNight = "$$pricePerNight",
-        rating = rating.takeIf { it.count > 0 }?.average(),
+        rating = averageRating().takeIf { ratings.isNotEmpty() },
         maxOccupancy = maxOccupancy,
         imageUrl = imageUrl,
         ownerId = ownerId,

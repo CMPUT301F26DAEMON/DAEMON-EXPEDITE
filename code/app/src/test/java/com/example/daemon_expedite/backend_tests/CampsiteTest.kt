@@ -13,13 +13,12 @@ import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 
 /** Unit tests for [Campsite]. The model only changes in-memory state; saving is up to ViewModels. */
 class CampsiteTest {
 
-    private fun campsite(images: List<Image> = emptyList(), rating: Rating = Rating()) = Campsite(
+    private fun campsite(images: List<Image> = emptyList(), ratings: List<Rating> = emptyList()) = Campsite(
         name = "Pine Creek",
         description = "Quiet spot by the river",
         tags = listOf("Water"),
@@ -28,7 +27,7 @@ class CampsiteTest {
         pricePerNight = 40,
         images = images,
         ownerId = Id(),
-        rating = rating,
+        ratings = ratings,
         address = "1 Pine Rd",
     )
 
@@ -60,34 +59,40 @@ class CampsiteTest {
         assertEquals(1, campsite.images.size)
     }
 
-    @Test
-    fun updateRating_firstRatingSetsAverage() {
-        val campsite = campsite()
-        campsite.updateRating(4)
+    private fun rating(campsite: Campsite, score: Int) =
+        Rating(campsiteId = campsite.id, authorId = Id(), score = score, reservationId = Id())
 
-        assertEquals(1, campsite.rating.count)
-        assertEquals(4.0, campsite.rating.average(), 0.001)
+    @Test
+    fun averageRating_noRatingsIsZero() {
+        assertEquals(0.0, campsite().averageRating(), 0.001)
     }
 
     @Test
-    fun updateRating_addsToExistingRatings() {
-        val campsite = campsite(rating = Rating(totalScore = 10, count = 2)) // average 5
-        campsite.updateRating(2)
+    fun addRating_firstRatingSetsAverage() {
+        val campsite = campsite()
+        assertTrue(campsite.addRating(rating(campsite, 4)))
 
-        assertEquals(3, campsite.rating.count)
-        assertEquals(4.0, campsite.rating.average(), 0.001)
+        assertEquals(1, campsite.ratings.size)
+        assertEquals(4.0, campsite.averageRating(), 0.001)
     }
 
     @Test
-    fun updateRating_outOfRangeIsRefused() {
+    fun addRating_addsToExistingRatings() {
+        val first = campsite()
+        val campsite = campsite(ratings = listOf(rating(first, 5), rating(first, 5)))
+        campsite.addRating(rating(campsite, 2))
+
+        assertEquals(3, campsite.ratings.size)
+        assertEquals(4.0, campsite.averageRating(), 0.001)
+    }
+
+    @Test
+    fun addRating_sameRatingTwiceIsIgnored() {
         val campsite = campsite()
-        for (bad in listOf(0, 6, -3)) {
-            try {
-                campsite.updateRating(bad)
-                fail("Expected IllegalArgumentException for $bad")
-            } catch (_: IllegalArgumentException) {
-            }
-        }
-        assertEquals(0, campsite.rating.count)
+        val rating = rating(campsite, 3)
+        campsite.addRating(rating)
+
+        assertFalse(campsite.addRating(rating))
+        assertEquals(1, campsite.ratings.size)
     }
 }
