@@ -3,10 +3,8 @@ package com.example.daemon_expedite.frontend
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,13 +20,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
-import com.example.daemon_expedite.ui_components.AppFonts
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.ProfileImage
 import com.example.daemon_expedite.ui_components.SearchBar
 import java.time.LocalDate
+import java.time.LocalTime
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
 
 /**
 * The main Entrant Home screen.
@@ -76,6 +77,8 @@ fun EntrantHomeScreen(
     var filterStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var filterEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var filterGuestCount by remember { mutableStateOf(1) }
+    val openLotteryCount = (campsites as? UiState.Content)?.data
+        ?.mapNotNull { it.openLotteryId }?.distinct()?.size ?: 0
 
     Column(
         modifier =
@@ -87,121 +90,98 @@ fun EntrantHomeScreen(
         Spacer(
             Modifier.windowInsetsTopHeight(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
         )
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 20.dp,
-                        end = 20.dp,
-                        top = 20.dp
-                    ),
-            verticalAlignment = Alignment.CenterVertically,
+        // Top bar: greeting, profile picture, then the search row
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
                         text = "Find your next hideaway",
-                        style = AppTextStyles.PageTitle,
-                        color = AppColors.TextPrimary
+                        style = AppTextStyles.PageTitle.copy(fontSize = 22.sp, lineHeight = 28.sp),
+                        color = AppColors.TextPrimary,
                     )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
                     Text(
-                        text = "Good evening${if (userName.isNotBlank()) ", $userName" else ""} · X lotteries open near you", // TODO: Replace X with the actual number of open nearby lotteries from the backend.
-                        style = AppTextStyles.BodySmall,
-                        color = AppColors.TextMuted
+                        text = greeting(userName, openLotteryCount),
+                        style = AppTextStyles.BodySmall.copy(lineHeight = 18.sp),
+                        color = AppColors.TextMuted,
                     )
                 }
-            IconButton(onClick = onProfileClick, modifier = Modifier.size(40.dp)) {
                 // Profile picture (falls back to a default image when the user has none)
                 ProfileImage(
                     imageUrl = profileImageUrl,
-                    size = 39.dp,
+                    size = 42.dp,
                     contentDescription = "Profile",
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable(onClick = onProfileClick),
                 )
             }
-        }
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 15.dp,
-                        end = 11.dp, // + the profile button's 4dp inner padding = 15dp, matching start
-                        top = 12.dp,
-                    ),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Search BAr (no fixed height, so the Row can centre it with the icons)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .widthIn(min = 0.dp)
-            ) {
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = onSearchQueryChange,
-                    placeholderText = "Where do you want to go?",
-                    showQrIcon = true,
-                    onQRCodeClicked = {},
-                )
-            }
-            // Smaller buttons than the 48dp default to tighten the filter/profile gap
-            IconButton(
-                onClick = { showFilterSheet = true },
-                modifier = Modifier
-                    .size(30.dp)
-                    .background(AppColors.FillField, CircleShape)
-                    .border(1.dp, AppColors.OutlineField, CircleShape)
-
-            ) {
-                Icon( // Filter icon
-                    imageVector = AppIcons.Filter,
-                    contentDescription = "Filter",
-                    tint = AppColors.TextOnPrimary,
-                    modifier = Modifier.size(23.dp)
-                )
-            }
-        }
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 25.dp,
-                        end = 25.dp,
-                        top = 32.dp,
-                    ),
-        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = "Campsites for you",
-                    style = AppTextStyles.HeadingMedium,
-                    color = AppColors.TextPrimary
-                )
-
-                val campsiteCount = (campsites as? UiState.Content)?.data?.size
-
-                if (campsiteCount != null) {
-                    Text(
-                        text = campsiteCount.toString(),
-                        style = AppTextStyles.Caption,
-                        color = AppColors.TextSecondary,
-                        modifier = Modifier
-                            .background(AppColors.SurfaceDeep, CircleShape)
-                            .padding(horizontal = 9.dp, vertical = 4.dp)
+                Box(modifier = Modifier.weight(1f)) {
+                    SearchBar(
+                        query = searchQuery,
+                        onQueryChange = onSearchQueryChange,
+                        placeholderText = "Where do you want to go?",
+                        showQrIcon = true,
+                        onQRCodeClicked = {},
                     )
                 }
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(AppColors.FillField)
+                        .border(1.dp, AppColors.OutlineField, CircleShape)
+                        .clickable(role = Role.Button, onClickLabel = "Filter") { showFilterSheet = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = AppIcons.Filter,
+                        contentDescription = "Filter",
+                        tint = AppColors.TextPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+
+        // Results heading with the number of campsites
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 28.dp, top = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Campsites for you",
+                style = AppTextStyles.HeadingMedium.copy(lineHeight = 25.sp),
+                color = AppColors.TextPrimary,
+            )
+            val campsiteCount = (campsites as? UiState.Content)?.data?.size
+            if (campsiteCount != null) {
+                Text(
+                    text = campsiteCount.toString(),
+                    style = AppTextStyles.Caption.copy(fontWeight = FontWeight.SemiBold, lineHeight = 16.sp),
+                    color = AppColors.TextSecondary,
+                    modifier = Modifier
+                        .background(AppColors.FillChip, CircleShape)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
             }
         }
 
@@ -216,6 +196,7 @@ fun EntrantHomeScreen(
                 },
             onRetry = onRetry,
             onCampsiteClick = onCampsiteClick,
+            horizontalPadding = 28.dp,
             modifier =
                 Modifier
                     .weight(1f)
@@ -278,6 +259,25 @@ fun EntrantHomeScreen(
             onDismiss = { showFilterSheet = false },
         )
     }
+}
+
+/**
+ * "Good morning, Jamie · 1 lottery open near you". The time of day follows the phone's clock,
+ * and the lottery part is left out when none of the shown campsites has an open lottery.
+ */
+private fun greeting(userName: String, openLotteryCount: Int, now: LocalTime = LocalTime.now()): String {
+    val timeOfDay = when (now.hour) {
+        in 5..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        else -> "Good evening"
+    }
+    val name = if (userName.isNotBlank()) ", $userName" else ""
+    val lotteries = when (openLotteryCount) {
+        0 -> ""
+        1 -> " · 1 lottery open near you"
+        else -> " · $openLotteryCount lotteries open near you"
+    }
+    return timeOfDay + name + lotteries
 }
 
 @Preview(showBackground = true)

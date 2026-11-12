@@ -1,14 +1,14 @@
 package com.example.daemon_expedite.ui_components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
@@ -22,50 +22,53 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
+/**
+ * Pill-shaped search field from the Figma "Search field": a search icon, the text, and an
+ * optional QR scanner button on the right.
+ *
+ * @param query Text currently typed into the field.
+ * @param onQueryChange Called with the new text whenever the user types.
+ * @param onQRCodeClicked Called when the QR scanner button is tapped.
+ * @param placeholderText Shown while the field is empty.
+ * @param showQrIcon Whether to show the QR scanner button.
+ */
 @Composable
 fun SearchBar(
-    query: String, // text currently typed into search bar
-    onQueryChange: (String) -> Unit, // called when user types search
-    onQRCodeClicked: () -> Unit, // called when QR code button clicked
-    placeholderText: String, // shown when search bar is empty
-    showQrIcon: Boolean // whether to display QR icon
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onQRCodeClicked: () -> Unit,
+    placeholderText: String,
+    showQrIcon: Boolean,
 ) {
+    val shape = RoundedCornerShape(50)
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
-            .background(AppColors.SearchBarBackground, RoundedCornerShape(50)),
+            .height(44.dp)
+            .background(AppColors.FillField, shape)
+            .border(1.dp, AppColors.OutlineField, shape),
         singleLine = true,
-        textStyle = TextStyle(
-            color = AppColors.SearchBarIcon,
-            fontFamily = AppFonts.Inter,
-            fontWeight = FontWeight.Normal,
-            fontSize = 16.sp
-        ),
-        cursorBrush = SolidColor(AppColors.SearchBarIcon),
+        textStyle = AppTextStyles.BodyMedium.copy(color = AppColors.TextPrimary),
+        cursorBrush = SolidColor(AppColors.Secondary),
         decorationBox = { innerTextField ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 14.dp, end = if (showQrIcon) 4.dp else 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     imageVector = AppIcons.Search,
                     contentDescription = "Search",
-                    tint = AppColors.SearchBarIcon,
-                    modifier = Modifier.size(20.dp)
+                    tint = AppColors.TextMuted,
+                    modifier = Modifier.size(18.dp)
                 )
-
-                Spacer(modifier = Modifier.width(8.dp))
 
                 Box(
                     modifier = Modifier.weight(1f),
@@ -74,26 +77,24 @@ fun SearchBar(
                     if (query.isEmpty()) {
                         Text(
                             text = placeholderText,
-                            color = AppColors.TextPlaceholder,
-                            fontFamily = AppFonts.Inter,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 11.sp
+                            style = AppTextStyles.BodyMedium,
+                            color = AppColors.TextMuted,
+                            maxLines = 1,
                         )
                     }
                     innerTextField()
                 }
 
                 if (showQrIcon) {
-                    Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = onQRCodeClicked,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             imageVector = AppIcons.QRCode,
                             contentDescription = "Scan QR code",
-                            tint = AppColors.SearchBarIcon,
-                            modifier = Modifier.size(20.dp)
+                            tint = AppColors.TextMuted,
+                            modifier = Modifier.size(23.dp)
                         )
                     }
                 }

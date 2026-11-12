@@ -95,9 +95,6 @@ object AppColors {
 
     /** Text and icons on top of [Accent] (the yellow button). */
     val TextOnAccent = Color(0xFF121514)
-
-    /** Placeholder text inside the white search bar (dark green at 70%). */
-    val TextPlaceholder = Color(0xB3161D15)
     // endregion
 
     // region Outlines
@@ -151,6 +148,9 @@ object AppColors {
     /** White at 6%. Form fields, search fields and message bubbles. */
     val FillField = Color(0x0FFFFFFF)
 
+    /** White at 8%. Count chips, such as the number next to "Campsites for you". */
+    val FillChip = Color(0x14FFFFFF)
+
     /** [TextPrimary] at 5%. Campsite cards on Explore. */
     val FillCard = Color(0x0DDCDCDC)
 
@@ -159,12 +159,6 @@ object AppColors {
 
     /** [SurfaceDeep] at 60%. Unselected selection circle on images. */
     val FillIndicator = Color(0x99161D15)
-
-    /** White at 80%. */
-    val SearchBarBackground = Color(0xCCFFFFFF)
-
-    /** Dark green used for search bar icons. */
-    val SearchBarIcon = Color(0xFF161D15)
     // endregion
 
     // region Scrims

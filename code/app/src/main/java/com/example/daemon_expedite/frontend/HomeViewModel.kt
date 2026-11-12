@@ -9,6 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.LotteryPhase
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -165,6 +169,24 @@ class HomeViewModel : ViewModel() {
             .filterNot { viewer != null && it.ownerId == viewer }
             .take(RESULT_LIMIT)
             .map { it.toSummary() }
+            .withOpenLotteries()
+    }
+
+    /**
+     * Marks each campsite with the lottery currently open for entries there, so its card can
+     * show the "Lottery · Active" badge. A campsite whose lotteries can't be loaded just
+     * shows no badge.
+     */
+    private suspend fun List<CampsiteSummary>.withOpenLotteries(): List<CampsiteSummary> = coroutineScope {
+        map { campsite ->
+            async {
+                val lotteries = quietly("Couldn't load lotteries for ${campsite.id}") {
+                    Database.fetchLotteriesForCampsite(campsite.id)
+                }.orEmpty()
+                val open = lotteries.firstOrNull { it.phase() == LotteryPhase.OPEN }
+                campsite.copy(openLotteryId = open?.id)
+            }
+        }.awaitAll()
     }
 
     private companion object {
