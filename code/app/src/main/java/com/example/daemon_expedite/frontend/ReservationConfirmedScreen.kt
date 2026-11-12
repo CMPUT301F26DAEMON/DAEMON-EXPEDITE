@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,8 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.BoxWithConstraints
+
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -64,6 +64,7 @@ fun ReservationConfirmedScreen(
             .background(AppColors.Background)
             .padding(horizontal = 29.dp)
     ) {
+        // Prevent the shared button from exceeding the available width.
         val buttonWidth = maxWidth.coerceAtMost(356.dp)
 
         Column(
@@ -103,9 +104,10 @@ fun ReservationConfirmedScreen(
 
             Spacer(modifier = Modifier.height(7.dp))
 
+            // Confirmation subtitle
             Text(
                 text = "You're booked at $campsiteName.",
-                fontSize = 14.sp,
+                style = AppTextStyles.BodyMedium,
                 color = AppColors.TextSecondary,
                 textAlign = TextAlign.Center
             )
@@ -119,24 +121,27 @@ fun ReservationConfirmedScreen(
                     .height(89.dp)
                     .clip(RoundedCornerShape(15.dp))
                     .background(Color(0xFF171E17))
-                    .padding(horizontal = 15.dp, vertical = 14.dp),
+                    .padding(
+                        horizontal = 15.dp,
+                        vertical = 14.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Left side: reservation information
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = "YOUR STAY",
-                        fontSize = 11.sp,
+                        style = AppTextStyles.SectionLabel,
                         color = AppColors.TextSecondary
                     )
 
                     Text(
                         text = campsiteName,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
+                        style = AppTextStyles.TitleSmall,
                         color = AppColors.TextPrimary
                     )
 
@@ -144,25 +149,25 @@ fun ReservationConfirmedScreen(
 
                     Text(
                         text = "$stayDates · $nights nights",
-                        fontSize = 12.sp,
+                        style = AppTextStyles.Caption,
                         color = AppColors.TextSecondary
                     )
                 }
 
+                // Right side: total price
                 Column(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = totalPrice,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = AppTextStyles.Amount,
                         color = AppColors.TextPrimary
                     )
 
                     Text(
                         text = "total",
-                        fontSize = 12.sp,
+                        style = AppTextStyles.Caption,
                         color = AppColors.TextSecondary
                     )
                 }
@@ -170,6 +175,7 @@ fun ReservationConfirmedScreen(
 
             Spacer(modifier = Modifier.weight(0.8f))
 
+            // Primary action: existing team GreenButton
             GreenButton(
                 onClick = onViewReservationsClick,
                 buttonText = "View my reservations",
@@ -179,13 +185,16 @@ fun ReservationConfirmedScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Secondary outlined button
+            // Secondary action: outlined button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(57.dp)
                     .border(
-                        BorderStroke(1.dp, Color(0xFF303431)),
+                        BorderStroke(
+                            width = 1.dp,
+                            color = Color(0xFF303431)
+                        ),
                         RoundedCornerShape(15.dp)
                     )
                     .clip(RoundedCornerShape(15.dp))
@@ -194,8 +203,9 @@ fun ReservationConfirmedScreen(
             ) {
                 Text(
                     text = "Back to explore",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    style = AppTextStyles.BodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
                     color = AppColors.TextPrimary
                 )
             }
