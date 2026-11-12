@@ -580,7 +580,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "pricePerNight" to campsite.pricePerNight,
                 "images" to campsite.images.map { it.id.value.toString() },
                 "owner" to campsite.ownerId.value.toString(),
-                "rating" to mapOf("totalScore" to campsite.rating.totalScore, "count" to campsite.rating.count),
+                "ratings" to campsite.ratings.map { it.toMap() },
                 "address" to campsite.address,
             )
         db
@@ -645,12 +645,13 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 throw Exception("${ campsiteId.value }, malformed owner id '$ownerStr'")
             }
 
-        val ratingMap = campsiteData["rating"] as? Map<*, *>
-        val rating =
-            Rating(
-                totalScore = (ratingMap?.get("totalScore") as? Number)?.toInt() ?: 0,
-                count = (ratingMap?.get("count") as? Number)?.toInt() ?: 0,
-            )
+        // Unreadable entries are skipped so one bad review doesn't hide the whole campsite.
+        // Documents saved before reviews had text only kept a total and count, so they load
+        // with no ratings.
+        val ratings =
+            (campsiteData["ratings"] as? List<*>)
+                ?.mapNotNull { (it as? Map<*, *>)?.let(::parseRating) }
+                ?: emptyList()
 
         val address = campsiteData["address"] as? String ?: ""
 
@@ -665,10 +666,35 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             pricePerNight = pricePerNight,
             images = images,
             ownerId = ownerId,
-            rating = rating,
+            ratings = ratings,
             address = address,
         )
     }
+
+    private fun Rating.toMap(): Map<String, Any?> =
+        mapOf(
+            "id" to id.value.toString(),
+            "campsiteId" to campsiteId.value.toString(),
+            "authorId" to authorId.value.toString(),
+            "score" to score,
+            "reservationId" to reservationId.value.toString(),
+            "description" to description,
+        )
+
+    private fun parseRating(data: Map<*, *>): Rating? =
+        try {
+            Rating(
+                id = Id(Uuid.parse(data["id"] as String)),
+                campsiteId = Id(Uuid.parse(data["campsiteId"] as String)),
+                authorId = Id(Uuid.parse(data["authorId"] as String)),
+                score = (data["score"] as Number).toInt(),
+                reservationId = Id(Uuid.parse(data["reservationId"] as String)),
+                description = data["description"] as? String,
+            )
+        } catch (e: Exception) {
+            Log.e("DatabaseInner", "Unreadable rating $data", e)
+            null
+        }
 
     override suspend fun fetchCampsite(campsiteId: Id): Campsite {
         try {

@@ -10,7 +10,7 @@ import android.location.Location
  *
  * @property id Unique identifier for the campsite.
  * @property ownerId Identifier of the owner who manages this campsite.
- * @property rating Aggregated user rating for the campsite.
+ * @property ratings Every review left for the campsite; see [averageRating].
  */
 class Campsite(
     val id: Id = Id(),
@@ -23,7 +23,7 @@ class Campsite(
     pricePerNight: Int,
     images: List<Image> = emptyList(),
     val ownerId: Id,
-    rating: Rating,
+    ratings: List<Rating> = emptyList(),
     address: String
 ) {
     var name: String = name
@@ -38,8 +38,6 @@ class Campsite(
         private set
     var policies: String = policies
         private set
-    var rating: Rating = rating
-        private set
     var address: String = address
         private set
 
@@ -48,6 +46,9 @@ class Campsite(
 
     private val _images = images.toMutableList()
     val images: List<Image> get() = _images
+
+    private val _ratings = ratings.toMutableList()
+    val ratings: List<Rating> get() = _ratings
 
     /** Changes the details */
     fun updateDetails(newName: String, newRate: Int, newMaxOccupancy: Int) {
@@ -64,12 +65,21 @@ class Campsite(
         return _images.add(image)
     }
 
-    fun generateQRCode(){
-       // generate QR Code library function
+    fun addRating(rating: Rating): Boolean {
+        if (rating in _ratings) return false
+        return _ratings.add(rating)
     }
 
-    /** Adds [rating]. */
-    fun updateRating(rating: Int) {
-        this.rating.addRating(rating)
+    fun averageRating(): Double {
+        if (_ratings.isEmpty()) return 0.0
+        var sum = 0
+        for (rating in _ratings){
+            sum += rating.score
+        }
+        return sum.toDouble() / _ratings.size
+    }
+
+    fun generateQRCode(){
+       // generate QR Code library function
     }
 }
