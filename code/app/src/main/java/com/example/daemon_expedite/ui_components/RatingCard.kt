@@ -13,12 +13,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 /**
@@ -101,10 +97,8 @@ fun RatingCard(
         ) {
             Text(
                 text = title,
-                color = AppColors.TextOnPrimary,
-                fontSize = 18.sp,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold
+                style = AppTextStyles.CardTitle,
+                color = AppColors.TextOnPrimary
             )
             Spacer(modifier = Modifier.height(14.dp))
             Row(
@@ -138,11 +132,7 @@ fun RatingCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp),
-                textStyle = TextStyle(
-                    color = AppColors.TextOnPrimary,
-                    fontSize = 12.sp,
-                    lineHeight = 18.sp
-                ),
+                textStyle = AppTextStyles.CaptionMultiline.copy(color = AppColors.TextOnPrimary),
                 cursorBrush = SolidColor(AppColors.Primary),
                 decorationBox = { innerTextField ->
                     Surface(
@@ -163,8 +153,8 @@ fun RatingCard(
                             if (reviewText.isEmpty()) {
                                 Text(
                                     text = "What was your stay like? (Optional)",
-                                    color = AppColors.TextSecondary,
-                                    fontSize = 12.sp
+                                    style = AppTextStyles.CaptionMultiline,
+                                    color = AppColors.TextSecondary
                                 )
                             }
                             innerTextField()

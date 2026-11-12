@@ -95,6 +95,8 @@ interface DatabaseInterface {
 
     suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation
 
+    suspend fun rateStay(reservationId: Id, userId: Id, score: Int, review: String?): Rating
+
     suspend fun fetchLottery(id: Id): Lottery
 
     suspend fun updateLottery(lottery: Lottery)
@@ -1286,6 +1288,48 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     /**
+     * Saves [userId]'s rating of the stay [reservationId] onto its campsite's `ratings` array.
+     *
+     * Runs as a transaction that re-checks [RatingRules.rateProblem] against the campsite's
+     * current ratings, then appends only the new rating with `arrayUnion`. It never rewrites the
+     * whole campsite, so two people rating at the same time can't overwrite each other, and the
+     * same stay can't be rated twice. The average isn't stored: [Campsite.averageRating]
+     * works it out from `ratings` each time the campsite is loaded.
+     *
+     * @return The saved rating.
+     * @throws BookingRejectedException if the stay can't be rated; its message says why.
+     * @throws IllegalArgumentException if [score] is outside 1..[Rating.MAX_RATING].
+     */
+    override suspend fun rateStay(reservationId: Id, userId: Id, score: Int, review: String?): Rating {
+        val ref = reservationRef(reservationId)
+        return db
+            .runTransaction { tx ->
+                // Firestore needs every read before the first write.
+                val data = tx.get(ref).data ?: throw NotFoundException("Reservation ${reservationId.value} not found")
+                val reservation = parseReservation(reservationId, data)
+                    ?: throw NotFoundException("Reservation ${reservationId.value} can't be read")
+                val campsiteRef = db.collection("campsites").document(reservation.campsite.value.toString())
+                val campsiteData = tx.get(campsiteRef).data
+                    ?: throw BookingRejectedException("This campsite no longer exists")
+                val existing = (campsiteData["ratings"] as? List<*>)
+                    ?.mapNotNull { (it as? Map<*, *>)?.let(::parseRating) }
+                    ?: emptyList()
+                RatingRules.rateProblem(reservation, userId, existing, LocalDate.now())
+                    ?.let { throw BookingRejectedException(it) }
+
+                val rating = Rating(
+                    campsiteId = reservation.campsite,
+                    authorId = userId,
+                    score = score,
+                    reservationId = reservation.id,
+                    description = RatingRules.cleanReview(review),
+                )
+                tx.update(campsiteRef, "ratings", FieldValue.arrayUnion(rating.toMap()))
+                rating
+            }.await()
+    }
+
+    /**
      * Uploads the file at a local filesystem [path] as a profile photo.
      * See [uploadProfileImage] for where it is stored.
      */
@@ -1630,6 +1674,10 @@ object Database {
 
     /** Cancels a reservation and frees its lottery booking. See [DatabaseInner.cancelReservation]. */
     suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation = db.cancelReservation(reservationId, userId)
+
+    /** Rates a finished stay and adds it to the campsite's ratings. See [DatabaseInner.rateStay]. */
+    suspend fun rateStay(reservationId: Id, userId: Id, score: Int, review: String?): Rating =
+        db.rateStay(reservationId, userId, score, review)
 
     /** Saves edited lottery settings without touching its waitlist. See [DatabaseInner.updateLotterySettings]. */
     suspend fun updateLotterySettings(edited: Lottery) = db.updateLotterySettings(edited)

@@ -2,6 +2,7 @@ package com.example.daemon_expedite.frontend_tests
 
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.Rating
 import com.example.daemon_expedite.backend.Reservation
 import com.example.daemon_expedite.backend.User
 import com.example.daemon_expedite.frontend.EntrantReservationsViewModel
@@ -11,6 +12,7 @@ import com.example.daemon_expedite.frontend.datesText
 import com.example.daemon_expedite.frontend.groupReservations
 import com.example.daemon_expedite.frontend.status
 import com.example.daemon_expedite.frontend.unavailableCampsite
+import com.example.daemon_expedite.frontend.yourRatingsFor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -29,6 +31,7 @@ class EntrantReservationsViewModelTest {
     val main = MainDispatcherRule()
 
     private val cancelFailed = "Couldn't cancel the reservation. Check your connection and try again."
+    private val rateFailed = "Couldn't save your rating. Check your connection and try again."
 
     // region ViewModel guards
 
@@ -64,6 +67,30 @@ class EntrantReservationsViewModelTest {
         vm.cancel(Id()) { result = it }
         assertEquals(cancelFailed, result)
         assertNull(vm.cancellingId.value)
+    }
+
+    @Test
+    fun startsWithNothingRating() {
+        assertNull(EntrantReservationsViewModel().ratingId.value)
+    }
+
+    @Test
+    fun rate_beforeLoadFails() {
+        val vm = EntrantReservationsViewModel()
+        var result: String? = null
+        vm.rate(Id(), 4, "") { result = it }
+        assertEquals(rateFailed, result)
+        assertNull(vm.ratingId.value)
+    }
+
+    @Test
+    fun rate_reservationNotOnScreenFails() {
+        val vm = EntrantReservationsViewModel()
+        vm.load(User(notificationsEnabled = true, reservations = listOf(Id())))
+        var result: String? = null
+        vm.rate(Id(), 4, "") { result = it }
+        assertEquals(rateFailed, result)
+        assertNull(vm.ratingId.value)
     }
 
     // endregion
@@ -114,6 +141,30 @@ class EntrantReservationsViewModelTest {
         val groups = groupReservations(listOf(older, newer), emptyMap(), noon(day(10, 3)), zone)
         assertEquals(listOf(newer.id, older.id), groups.cancelled.map { it.id })
         assertTrue(groups.active.isEmpty()) // a future cancelled stay isn't active
+    }
+
+    @Test
+    fun group_pastCardsShowTheStarsYouGave() {
+        val rated = reservation(day(9, 1), day(9, 3))
+        val unrated = reservation(day(9, 10), day(9, 12))
+        val groups = groupReservations(
+            listOf(rated, unrated), emptyMap(), noon(day(10, 3)), zone,
+            yourRatings = mapOf(rated.id to 4),
+        )
+        assertEquals(4, groups.past.single { it.id == rated.id }.yourRating)
+        assertNull(groups.past.single { it.id == unrated.id }.yourRating)
+    }
+
+    @Test
+    fun yourRatingsFor_keepsOnlyYourOwnRatings() {
+        val me = Id()
+        val myStay = Id()
+        val theirStay = Id()
+        val ratings = listOf(
+            Rating(campsiteId = pine, authorId = me, score = 5, reservationId = myStay),
+            Rating(campsiteId = pine, authorId = Id(), score = 1, reservationId = theirStay),
+        )
+        assertEquals(mapOf(myStay to 5), yourRatingsFor(me, ratings))
     }
 
     @Test
