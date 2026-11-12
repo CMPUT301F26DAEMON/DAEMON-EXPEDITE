@@ -1,75 +1,48 @@
-
 package com.example.daemon_expedite.frontend
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.daemon_expedite.ui_components.AppColors
+import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.OwnerReservationCard
+import com.example.daemon_expedite.ui_components.OwnerReservationCardStatus
 
-// Colors matching the Figma design
-private val ownerBackground = Color(0xFF121514)
-private val ownerCardBackground = Color(0xFF2C3029)
-private val ownerSelectedGreen = Color(0xFF477C60)
-private val ownerTextGray = Color(0xFFBABDB7)
-private val ownerRed = Color(0xFFD56B65)
-private val ownerGold = Color(0xFFF3B645)
+/** The three tabs in the owner's Reservations screen. */
+enum class OwnerReservationTab(val label: String, val emptyMessage: String) {
+    ACTIVE("Active", "No active reservations"),
+    PAST("Past", "No past reservations"),
+    CANCELLED("Cancelled", "No cancelled reservations")
+}
 
-/**
- * Reservation categories for campsite owners.
- */
-enum class OwnerReservationTab(
-    val label: String,
-    val heading: String,
-    val emptyMessage: String
-) {
-    ACTIVE(
-        "Active",
-        "Upcoming Reservations",
-        "No upcoming reservations"
-    ),
-    PAST(
-        "Past",
-        "Past Reservations",
-        "No past reservations"
-    ),
-    CANCELLED(
-        "Cancelled",
-        "Cancelled Reservations",
-        "No cancelled reservations"
-    )
+/** Navigation destinations displayed in the Figma bottom bar. */
+enum class OwnerReservationNavTab(val label: String) {
+    MY_SITES("My sites"),
+    RESERVATIONS("Reservations"),
+    MESSAGES("Messages"),
+    NOTIFICATIONS("Notifications"),
+    LOTTERIES("Lotteries")
 }
 
 /**
- * UI model for an owner's reservation.
- *
- * Replace with values loaded from the backend.
+ * UI-only reservation model.
+ * Optional fields are added at the end to preserve existing call sites.
  */
 data class OwnerReservationUi(
     val id: String,
@@ -79,130 +52,82 @@ data class OwnerReservationUi(
     val pricePerNight: Int? = null,
     val rating: Double? = null,
     val confirmed: Boolean = false,
-    @DrawableRes val imageResId: Int? = null
+    @DrawableRes val imageResId: Int? = null,
+    val guestName: String? = null,
+    val guestCount: Int? = null,
+    val dateRange: String? = null,
+    val nights: Int? = null,
+    val cancelledByGuest: Boolean = false
 )
 
 /**
- * Owner Reservations screen.
  *
- * Displays active, past, and cancelled reservations.
- * No sample data is used in the actual application.
- *
- * @param reservations Reservations supplied by the backend.
- * @param onBackClick Navigates to the previous screen.
- * @param onRejectReservation Called after rejection confirmation.
+ * @param reservations The live reservations supplied by the caller.
+ * @param onRejectReservation Triggered only after the user confirms rejection.
+ * @param onBottomNavigationSelected Connect this to the app's navigation controller.
+ * @param showBottomNavigation Set false if the parent already draws the bottom bar.
+ * @param initialTab Useful for navigation and the three Android Studio previews.
+ * @param onBackClick Retained for compatibility with older call sites; the Figma
+ *   design has no back button.
  */
 @Composable
 fun OwnerReservationsScreen(
     reservations: List<OwnerReservationUi> = emptyList(),
     onBackClick: () -> Unit = {},
-    onRejectReservation: (OwnerReservationUi) -> Unit = {}
+    onRejectReservation: (OwnerReservationUi) -> Unit = {},
+    onBottomNavigationSelected: (OwnerReservationNavTab) -> Unit = {},
+    showBottomNavigation: Boolean = true,
+    initialTab: OwnerReservationTab = OwnerReservationTab.ACTIVE
 ) {
-    var selectedTab by rememberSaveable {
-        mutableStateOf(OwnerReservationTab.ACTIVE)
-    }
-
-    var reservationToReject by remember {
-        mutableStateOf<OwnerReservationUi?>(null)
-    }
-
-    val filteredReservations = reservations.filter {
-        it.status == selectedTab
-    }
+    var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
+    var reservationToReject by remember { mutableStateOf<OwnerReservationUi?>(null) }
+    val filteredReservations = reservations.filter { it.status == selectedTab }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ownerBackground)
+            .background(AppColors.Background)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-
-        Spacer(Modifier.height(15.dp))
-
-        // Top navigation and page title
-        Box(
+        Text(
+            text = "Reservations",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-        ) {
+                .padding(start = 24.dp, top = 22.dp, bottom = 24.dp),
+            color = AppColors.TextOnPrimary,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            fontSize = 24.sp
+        )
 
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 20.dp)
-                    .size(38.dp)
-                    .background(
-                        Color(0xFF292E2B),
-                        CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(21.dp)
-                )
-            }
-
-            Text(
-                text = "My Reservations",
-                color = Color.White,
-                fontSize = 22.sp,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 24.dp)
-            )
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        // Active / Past / Cancelled tabs
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .height(44.dp)
+                .height(52.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(ownerCardBackground)
+                .background(AppColors.SurfaceDeep)
+                .border(1.dp, AppColors.OutlineSubtle, RoundedCornerShape(12.dp))
                 .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-
             OwnerReservationTab.values().forEach { tab ->
-
-                val isSelected = selectedTab == tab
-
+                val selected = selectedTab == tab
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(9.dp))
-                        .background(
-                            if (isSelected) {
-                                ownerSelectedGreen
-                            } else {
-                                Color.Transparent
-                            }
-                        )
-                        .clickable {
-                            selectedTab = tab
-                        },
+                        .background(if (selected) AppColors.Primary else AppColors.SurfaceDeep)
+                        .clickable { selectedTab = tab },
                     contentAlignment = Alignment.Center
                 ) {
-
                     Text(
                         text = tab.label,
-                        color = Color.White,
+                        color = if (selected) AppColors.TextOnPrimary else AppColors.TextSecondary,
                         fontSize = 12.sp,
-                        fontWeight = if (isSelected) {
-                            FontWeight.Bold
-                        } else {
-                            FontWeight.Medium
-                        }
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                     )
                 }
             }
@@ -210,366 +135,191 @@ fun OwnerReservationsScreen(
 
         Spacer(Modifier.height(18.dp))
 
-        // Scrollable reservation list
         LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentPadding = PaddingValues(
-                start = 24.dp,
-                end = 24.dp,
-                bottom = 24.dp
-            ),
+                .weight(1f)
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-
-            // Section heading changes with selected tab
-            item {
-                Text(
-                    text = selectedTab.heading,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(
-                        bottom = 2.dp
-                    )
-                )
-            }
-
             if (filteredReservations.isEmpty()) {
-
                 item {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 60.dp),
+                            .padding(top = 56.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = selectedTab.emptyMessage,
-                            color = ownerTextGray,
+                            color = AppColors.TextSecondary,
                             fontSize = 14.sp
                         )
                     }
                 }
-
             } else {
-
-                items(
-                    items = filteredReservations,
-                    key = { it.id }
-                ) { reservation ->
-
+                items(filteredReservations, key = { it.id }) { reservation ->
                     OwnerReservationCard(
-                        reservation = reservation,
-                        onRejectClick = {
-                            reservationToReject = reservation
-                        }
+                        campsiteName = reservation.campsiteName,
+                        location = reservation.location,
+                        status = when (reservation.status) {
+                            OwnerReservationTab.ACTIVE -> OwnerReservationCardStatus.ACTIVE
+                            OwnerReservationTab.PAST -> OwnerReservationCardStatus.PAST
+                            OwnerReservationTab.CANCELLED -> OwnerReservationCardStatus.CANCELLED
+                        },
+                        pricePerNight = reservation.pricePerNight,
+                        rating = reservation.rating,
+                        confirmed = reservation.confirmed,
+                        imageResId = reservation.imageResId,
+                        guestName = reservation.guestName,
+                        guestCount = reservation.guestCount,
+                        dateRange = reservation.dateRange,
+                        nights = reservation.nights,
+                        cancelledByGuest = reservation.cancelledByGuest,
+                        onRejectClick = { reservationToReject = reservation }
                     )
                 }
             }
         }
+
+        if (showBottomNavigation) {
+            OwnerReservationsBottomBar(onBottomNavigationSelected)
+        }
     }
 
-    // Confirmation dialog before rejecting a reservation
-    val pendingReservation = reservationToReject
-
-    if (pendingReservation != null) {
-
+    val pending = reservationToReject
+    if (pending != null) {
         AlertDialog(
-            onDismissRequest = {
-                reservationToReject = null
-            },
-            containerColor = ownerCardBackground,
+            onDismissRequest = { reservationToReject = null },
+            containerColor = AppColors.Surface,
             title = {
                 Text(
-                    text = "Reject Reservation?",
-                    color = Color.White,
+                    "Reject reservation?",
+                    color = AppColors.TextOnPrimary,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = "Are you sure you want to reject this reservation?",
-                    color = ownerTextGray
+                    "Are you sure you want to reject this reservation?",
+                    color = AppColors.TextSecondary
                 )
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        reservationToReject = null
-                        onRejectReservation(pendingReservation)
-                    }
-                ) {
-                    Text(
-                        text = "Reject",
-                        color = ownerRed
-                    )
+                TextButton(onClick = {
+                    reservationToReject = null
+                    onRejectReservation(pending)
+                }) {
+                    Text("Reject", color = AppColors.Danger)
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        reservationToReject = null
-                    }
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = Color.White
-                    )
+                TextButton(onClick = { reservationToReject = null }) {
+                    Text("Cancel", color = AppColors.TextOnPrimary)
                 }
             }
         )
     }
 }
 
-/**
- * Reusable reservation card.
- *
- * Accepts real reservation information.
- */
+/** Bottom bar from the owner Figma screens, using only existing AppIcons. */
 @Composable
-private fun OwnerReservationCard(
-    reservation: OwnerReservationUi,
-    onRejectClick: () -> Unit
+private fun OwnerReservationsBottomBar(
+    onSelected: (OwnerReservationNavTab) -> Unit
 ) {
-
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(13.dp))
-            .border(
-                width = 1.dp,
-                color = Color(0xFF424A40),
-                shape = RoundedCornerShape(13.dp)
-            )
-            .background(ownerCardBackground)
+            .background(AppColors.SurfaceDeep)
+            .border(1.dp, AppColors.OutlineSubtle)
+            .height(65.dp)
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
-        // Campsite image / empty image placeholder
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF38553F),
-                            Color(0xFF17281F)
-                        )
-                    )
-                )
-        ) {
-
-            if (reservation.imageResId != null) {
-
-                Image(
-                    painter = painterResource(
-                        reservation.imageResId
-                    ),
-                    contentDescription = "Campsite image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+        OwnerReservationNavTab.values().forEach { tab ->
+            val selected = tab == OwnerReservationNavTab.RESERVATIONS
+            val icon = when (tab) {
+                OwnerReservationNavTab.MY_SITES -> AppIcons.Campsite
+                OwnerReservationNavTab.RESERVATIONS -> AppIcons.Reservation
+                OwnerReservationNavTab.MESSAGES -> AppIcons.Chat
+                OwnerReservationNavTab.NOTIFICATIONS -> AppIcons.BellIcon
+                OwnerReservationNavTab.LOTTERIES -> AppIcons.LotteryTicket
             }
-
-            // Confirmed status for active reservations
-            if (
-                reservation.status == OwnerReservationTab.ACTIVE &&
-                reservation.confirmed
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) AppColors.SurfaceDisabled else AppColors.SurfaceDeep)
+                    .clickable { onSelected(tab) }
+                    .padding(horizontal = 2.dp, vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-
-                Text(
-                    text = "Confirmed",
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(10.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF345B44))
-                        .padding(
-                            horizontal = 9.dp,
-                            vertical = 5.dp
-                        )
+                Icon(
+                    imageVector = icon,
+                    contentDescription = tab.label,
+                    tint = if (selected) AppColors.TextOnPrimary else AppColors.Secondary,
+                    modifier = Modifier.size(20.dp)
                 )
-            }
-        }
-
-        // Campsite details
-        Column(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 10.dp
-            )
-        ) {
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                Text(
-                    text = reservation.campsiteName,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-
-                if (reservation.rating != null) {
-
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Rating",
-                        tint = ownerGold,
-                        modifier = Modifier.size(15.dp)
-                    )
-
-                    Spacer(Modifier.width(3.dp))
-
-                    Text(
-                        text = reservation.rating.toString(),
-                        color = ownerTextGray,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(3.dp))
-
-            Text(
-                text = reservation.location,
-                fontSize = 14.sp,
-                color = ownerTextGray
-            )
-
-            if (reservation.pricePerNight != null) {
-
                 Spacer(Modifier.height(3.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Text(
-                        text = "$${reservation.pricePerNight}",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = " / night",
-                        color = ownerTextGray,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-
-            // Reject button only for active reservations
-            if (reservation.status == OwnerReservationTab.ACTIVE) {
-
-                Spacer(Modifier.height(12.dp))
-
-
-                OutlinedButton(
-                    onClick = onRejectClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = ownerRed
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color(0xFF39352F),
-                        contentColor = ownerRed
-                    )
-                ) {
-
-                    // Square outline surrounding the X icon
-                    Box(
-                        modifier = Modifier
-                            .size(18.dp)
-                            .border(
-                                width = 1.7.dp,
-                                color = ownerRed,
-                                shape = RoundedCornerShape(5.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            tint = ownerRed,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.width(12.dp))
-
-                    Text(
-                        text = "Reject reservation",
-                        fontFamily = FontFamily.Serif,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ownerRed
-                    )
-                }
+                Text(
+                    tab.label,
+                    color = if (selected) AppColors.TextOnPrimary else AppColors.Secondary,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                    softWrap = false
+                )
             }
         }
     }
 }
-
-/**
- * Preview data exists only for Android Studio Preview.
- * Production uses the list supplied to OwnerReservationsScreen.
- */
-@Preview(
-    showBackground = true,
-    widthDp = 390,
-    heightDp = 844
-)
+@Preview(name = "Owner reservations - Active", widthDp = 390, heightDp = 844)
 @Composable
-private fun OwnerReservationsScreenPreview() {
-
+private fun PreviewOwnerReservationsActive() {
     val previewReservations = listOf(
         OwnerReservationUi(
             id = "preview-active",
-            campsiteName = "Campsite name",
-            location = "Campsite location",
+            campsiteName = "Campsite Name",
+            location = "Campsite Location",
             status = OwnerReservationTab.ACTIVE,
+            guestName = "Guest Name",
+            guestCount = 2,
+            dateRange = "16 – 18 Oct",
+            nights = 2,
             pricePerNight = 45,
             rating = 4.9,
             confirmed = true
         ),
         OwnerReservationUi(
             id = "preview-past",
-            campsiteName = "Campsite name",
-            location = "Campsite location",
+            campsiteName = "Campsite Name",
+            location = "Campsite Location",
             status = OwnerReservationTab.PAST,
+            guestName = "Guest Name",
+            guestCount = 2,
+            dateRange = "2 – 4 Oct",
+            nights = 2,
             pricePerNight = 45,
             rating = 4.9
         ),
         OwnerReservationUi(
             id = "preview-cancelled",
-            campsiteName = "Campsite name",
-            location = "Campsite location",
+            campsiteName = "Campsite Name",
+            location = "Campsite Location",
             status = OwnerReservationTab.CANCELLED,
+            guestName = "Guest Name",
+            guestCount = 2,
+            dateRange = "19 – 29 Oct",
+            nights = 10,
             pricePerNight = 45,
-            rating = 4.9
+            rating = 4.9,
+            cancelledByGuest = true
         )
     )
 
     MaterialTheme {
-        OwnerReservationsScreen(
-            reservations = previewReservations
-        )
+        OwnerReservationsScreen(reservations = previewReservations)
     }
 }
