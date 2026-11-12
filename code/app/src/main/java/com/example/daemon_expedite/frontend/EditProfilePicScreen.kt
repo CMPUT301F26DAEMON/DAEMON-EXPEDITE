@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.ui_components.*
 
 /**
@@ -51,7 +50,7 @@ fun EditProfilePhotoScreen(
             if (name.isNotBlank()) {
                 Text(
                     text = name,
-                    style = AppTextStyles.PageTitle.copy(fontSize = 22.sp),
+                    style = AppTextStyles.PageTitleSmall,
                     color = AppColors.TextPrimary,
                     textAlign = TextAlign.Center,
                 )
@@ -59,7 +58,7 @@ fun EditProfilePhotoScreen(
             }
             Text(
                 text = "Campsite owners and other campers see this photo.",
-                style = AppTextStyles.BodySmall.copy(lineHeight = 18.sp),
+                style = AppTextStyles.BodySmallMultiline,
                 color = AppColors.TextMuted,
                 textAlign = TextAlign.Center,
             )

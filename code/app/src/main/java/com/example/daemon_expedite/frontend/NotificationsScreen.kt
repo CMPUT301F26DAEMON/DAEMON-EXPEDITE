@@ -15,14 +15,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.NotificationCard
 
 /**
@@ -94,10 +92,8 @@ fun NotificationsScreen(
 
             Text(
                 text = "Notifications",
-                color = AppColors.TextPrimary,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Serif
+                style = AppTextStyles.PageTitle,
+                color = AppColors.TextPrimary
             )
         }
 
@@ -106,8 +102,8 @@ fun NotificationsScreen(
         if (notifications.isEmpty()) {
             Text(
                 text = "No notifications yet",
+                style = AppTextStyles.BodyMedium,
                 color = AppColors.TextSecondary,
-                fontSize = 14.sp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 48.dp),

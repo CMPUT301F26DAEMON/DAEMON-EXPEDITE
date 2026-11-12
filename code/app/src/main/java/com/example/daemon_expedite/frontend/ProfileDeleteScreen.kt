@@ -16,18 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
-import com.example.daemon_expedite.ui_components.AppFonts
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.ProfileImage
@@ -237,11 +233,7 @@ private fun AdminProfileSearchBar(  //Search bar
         onValueChange = onQueryChange,
         singleLine = true,
 
-        textStyle = TextStyle(
-            color = AppColors.TextOnPrimary,
-            fontFamily = AppFonts.Inter,
-            fontSize = 14.sp
-        ),
+        textStyle = AppTextStyles.BodyMedium.copy(color = AppColors.TextOnPrimary),
         cursorBrush = SolidColor(AppColors.TextOnPrimary),
         modifier = Modifier
             .fillMaxWidth()
@@ -278,9 +270,8 @@ private fun AdminProfileSearchBar(  //Search bar
                     if (query.isEmpty()) {
                         Text(
                             text = "Search profiles",
-                            color = AppColors.TextSecondary,
-                            fontFamily = AppFonts.Inter,
-                            fontSize = 12.sp
+                            style = AppTextStyles.Caption,
+                            color = AppColors.TextSecondary
                         )
                     }
 
@@ -312,7 +303,7 @@ private fun AdminProfileRow(  //Display 1 profile
             .border(
                 width = 1.dp,
                 color = if (isSelected) {
-                    AppColors.Danger.copy(alpha = 0.7f)
+                    AppColors.DangerBorder
                 } else {
                     Color.Transparent
                 },
@@ -343,9 +334,7 @@ private fun AdminProfileRow(  //Display 1 profile
 
             Text(
                 text = profile.name,
-                fontFamily = AppFonts.Inter,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
+                style = AppTextStyles.LabelMedium,
                 color = AppColors.TextOnPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -353,8 +342,7 @@ private fun AdminProfileRow(  //Display 1 profile
 
             Text(
                 text = profile.phone,
-                fontFamily = AppFonts.Inter,
-                fontSize = 12.sp,
+                style = AppTextStyles.Caption,
                 color = AppColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -362,8 +350,7 @@ private fun AdminProfileRow(  //Display 1 profile
 
             Text(
                 text = profile.email,
-                fontFamily = AppFonts.Inter,
-                fontSize = 12.sp,
+                style = AppTextStyles.Caption,
                 color = AppColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -469,9 +456,7 @@ private fun AdminDeleteProfileDialog(
                     )
                 ) {Text(
                         text = "Yes, delete profile",
-                        fontFamily = AppFonts.Inter,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        style = AppTextStyles.LabelMedium
                     )
                 }
                 // Keep profile
@@ -493,8 +478,7 @@ private fun AdminDeleteProfileDialog(
 
                     Text(
                         text = "Keep profile",
-                        fontFamily = AppFonts.Inter,
-                        fontSize = 14.sp
+                        style = AppTextStyles.BodyMedium
                     )
                 }
             }

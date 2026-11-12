@@ -98,12 +98,12 @@ fun EntrantHomeScreen(
                 ) {
                     Text(
                         text = "Find your next hideaway",
-                        style = AppTextStyles.PageTitle.copy(fontSize = 22.sp, lineHeight = 28.sp),
+                        style = AppTextStyles.PageTitleSmall,
                         color = AppColors.TextPrimary,
                     )
                     Text(
                         text = greeting(userName, openLotteryCount),
-                        style = AppTextStyles.BodySmall.copy(lineHeight = 18.sp),
+                        style = AppTextStyles.BodySmallMultiline,
                         color = AppColors.TextMuted,
                     )
                 }

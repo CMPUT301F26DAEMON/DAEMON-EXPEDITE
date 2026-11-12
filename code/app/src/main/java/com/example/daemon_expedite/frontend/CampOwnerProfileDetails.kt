@@ -200,11 +200,12 @@ fun ProfileDetailsScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete owner profile?") },
+            title = { Text("Delete owner profile?", style = AppTextStyles.HeadingSmall) },
             text = {
                 Text(
                     "Your campsites and their lotteries and reservations will be deleted. " +
-                        "Your entrant profile stays, and you can become an owner again later."
+                        "Your entrant profile stays, and you can become an owner again later.",
+                    style = AppTextStyles.Body
                 )
             },
             confirmButton = {
@@ -212,11 +213,11 @@ fun ProfileDetailsScreen(
                     showDeleteDialog = false
                     onDeleteProfile?.invoke()
                 }) {
-                    Text(text = "Delete", color = AppColors.Danger)
+                    Text(text = "Delete", style = AppTextStyles.ButtonLabel, color = AppColors.Danger)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel", style = AppTextStyles.ButtonLabel) }
             },
             containerColor = AppColors.SurfaceDeep,
             titleContentColor = AppColors.TextPrimary,
