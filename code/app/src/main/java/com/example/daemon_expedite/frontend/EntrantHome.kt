@@ -22,7 +22,7 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.ProfileImage
 import com.example.daemon_expedite.ui_components.SearchBar
 import java.time.LocalDate
@@ -35,8 +35,7 @@ import androidx.compose.foundation.clickable
 * The main Entrant Home screen.
 * Displays a search bar with a QR code scanner, filter and profile buttons
 * Includes a list of recommended campsites.
-* Includes a bottom navigation bar for accessing reservations, lotteries,
-* and messages.
+* Leaves room at the bottom for the shared navigation bar, which AppNavigation draws.
 *
 * The screen only displays what it is given; [HomeViewModel] does the loading and searching.
 *
@@ -51,10 +50,6 @@ import androidx.compose.foundation.clickable
  * @param onFilterClick Called when the user applies or resets filters,
  * with the location, stay dates, and guest count.
  * @param onProfileClick Called when the profile picture is tapped.
- * @param onReservationsClick Called when the Reservations tab is tapped.
- * @param onLotteriesClick Called when the Lotteries tab is tapped.
- * @param onMessagesClick Called when the Messages tab is tapped.
- * @param onExploreClick Called when the Explore tab is tapped.
 */
 @Composable
 fun EntrantHomeScreen(
@@ -67,10 +62,6 @@ fun EntrantHomeScreen(
     onCampsiteClick: (Id) -> Unit = {},
     onFilterClick: (location: String, startDate: LocalDate?, endDate: LocalDate?, guestCount: Int) -> Unit = { _, _, _, _ -> },
     onProfileClick: () -> Unit = {},
-    onReservationsClick: () -> Unit = {},
-    onLotteriesClick: () -> Unit = {},
-    onMessagesClick: () -> Unit = {},
-    onExploreClick: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
     var filterLocation by remember { mutableStateOf("") }
@@ -119,7 +110,7 @@ fun EntrantHomeScreen(
                 // Profile picture (falls back to a default image when the user has none)
                 ProfileImage(
                     imageUrl = profileImageUrl,
-                    size = 42.dp,
+                    size = 44.dp,
                     contentDescription = "Profile",
                     modifier = Modifier
                         .clip(CircleShape)
@@ -202,30 +193,8 @@ fun EntrantHomeScreen(
                     .weight(1f)
                     .fillMaxWidth(),
         )
-        BottomNavBar(
-            labels =
-                listOf(
-                    "Explore",
-                    "Reservations",
-                    "Lotteries",
-                    "Messages",
-                ),
-            icons =
-                listOf(
-                    AppIcons.Home,
-                    AppIcons.Reservation,
-                    AppIcons.LotteryTicket,
-                    AppIcons.Chat,
-                ),
-            onClicks =
-                listOf(
-                    onExploreClick,
-                    onReservationsClick,
-                    onLotteriesClick,
-                    onMessagesClick,
-                ),
-            selectedIndex = 0
-        )
+        // Room for the shared bottom bar AppNavigation draws on top.
+        BottomNavBarSpacer()
     }
 
     if (showFilterSheet) {
