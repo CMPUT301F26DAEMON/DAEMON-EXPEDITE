@@ -117,7 +117,7 @@ fun BookingScreen(
             Text(
                 "Tap your first night, then your check-out day. Greyed-out days are taken or outside the lottery's dates.",
                 style = AppTextStyles.CaptionMultiline,
-                color = AppColors.TextSecondary,
+                color = AppColors.TextMuted,
             )
             if (campsite != null) {
                 DateRangeCalendar(

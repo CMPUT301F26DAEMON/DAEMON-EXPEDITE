@@ -48,6 +48,8 @@ data class CampsiteSummary(
     val imageUrl: String?,
     /** Who registered it. Used to hide your own campsites on entrant home. */
     val ownerId: Id? = null,
+    /** The lottery open for entries at this campsite, if any. Only filled in on entrant home. */
+    val openLotteryId: Id? = null,
 )
 
 /**

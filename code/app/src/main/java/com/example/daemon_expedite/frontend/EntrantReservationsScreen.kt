@@ -218,6 +218,7 @@ private fun ReservationList(
                 imageUrl = campsite.imageUrl,
                 rating = campsite.rating,
                 containerColor = AppColors.Surface,
+                borderColor = AppColors.OutlineAccent,
                 pill = { CampsitePill(tab.pillText, variant = tab.pillVariant) },
                 action = {
                     ReservationActions(

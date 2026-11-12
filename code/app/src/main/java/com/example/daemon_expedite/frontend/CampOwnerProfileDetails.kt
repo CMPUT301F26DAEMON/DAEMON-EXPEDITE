@@ -222,7 +222,7 @@ fun ProfileDetailsScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             },
-            containerColor = AppColors.Surface,
+            containerColor = AppColors.SurfaceDeep,
             titleContentColor = AppColors.TextPrimary,
             textContentColor = AppColors.TextSecondary
         )

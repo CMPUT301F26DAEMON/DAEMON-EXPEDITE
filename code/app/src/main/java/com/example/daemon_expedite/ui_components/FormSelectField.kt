@@ -57,7 +57,7 @@ fun FormSelectField(
 ) {
     val shape = RoundedCornerShape(16.dp)
     val borderColor = if (error != null) AppColors.Danger else AppColors.OutlineField
-    val contentAlpha = if (enabled) 1f else 0.5f
+    val contentColor = if (enabled) AppColors.TextOnPrimary else AppColors.TextDisabled
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(
@@ -73,11 +73,11 @@ fun FormSelectField(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (icon != null) {
-                Icon(icon, contentDescription = null, tint = AppColors.TextOnPrimary.copy(alpha = contentAlpha), modifier = Modifier.size(20.dp))
+                Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(20.dp))
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (value == null) {
-                    Text(label.uppercase(), style = AppTextStyles.FieldContent, color = AppColors.OutlineField.copy(alpha = 0.7f * contentAlpha))
+                    Text(label.uppercase(), style = AppTextStyles.FieldContent, color = if (enabled) AppColors.TextMuted else AppColors.TextDisabled)
                 } else {
                     Text(label.uppercase(), style = AppTextStyles.FieldLabel, color = AppColors.Secondary)
                     Text(
@@ -90,7 +90,7 @@ fun FormSelectField(
                 }
             }
             if (trailingIcon != null) {
-                Icon(trailingIcon, contentDescription = null, tint = AppColors.TextOnPrimary.copy(alpha = contentAlpha), modifier = Modifier.size(24.dp))
+                Icon(trailingIcon, contentDescription = null, tint = contentColor, modifier = Modifier.size(24.dp))
             }
         }
         if (!error.isNullOrEmpty()) {

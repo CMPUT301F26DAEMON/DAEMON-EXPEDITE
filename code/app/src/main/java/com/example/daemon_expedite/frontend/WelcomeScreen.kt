@@ -80,7 +80,7 @@ fun WelcomeScreen(
                 y = size.height * 0.29f
             )
 
-            val circleColor = Color(0xFF303330)
+            val circleColor = AppColors.Contour
 
             listOf(220.dp, 280.dp, 340.dp).forEach { radius ->
                 drawCircle(
@@ -114,7 +114,7 @@ fun WelcomeScreen(
                         topEnd = 32.dp
                     )
                 )
-                .background(AppColors.SurfaceDeep)
+                .background(AppColors.SurfaceSheet)
         ) {
             Column(
                 modifier = Modifier
@@ -160,7 +160,7 @@ fun WelcomeScreen(
                         onCheckedChange = { agreedToPolicies = it },
                         colors = CheckboxDefaults.colors(
                             checkedColor = AppColors.Primary,
-                            uncheckedColor = AppColors.TextSecondary
+                            uncheckedColor = AppColors.OutlineControl
                         )
                     )
 

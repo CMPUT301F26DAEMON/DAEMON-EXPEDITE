@@ -130,7 +130,7 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.FULL -> CardFrame(
-            border = AppColors.OutlineStrong,
+            border = AppColors.OutlineButton,
             icon = AppIcons.LotteryTicket,
             title = "The waiting list is full",
             subtitle = ends,
@@ -140,7 +140,7 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.DRAWING -> CardFrame(
-            border = AppColors.OutlineStrong,
+            border = AppColors.OutlineButton,
             icon = AppIcons.Clock,
             title = "Drawing winners…",
             subtitle = "Entries are closed. Your result will show here soon.",
@@ -161,7 +161,7 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.LOST -> CardFrame(
-            border = AppColors.OutlineStrong,
+            border = AppColors.OutlineButton,
             icon = AppIcons.LotteryTicket,
             title = "Not selected this time",
             subtitle = "You weren't drawn in this lottery. Keep an eye out for the next one.",
@@ -180,7 +180,7 @@ fun LotteryStatusCard(
         )
 
         LotteryStatus.DECLINED -> CardFrame(
-            border = AppColors.OutlineStrong,
+            border = AppColors.OutlineButton,
             icon = AppIcons.CancelCircle,
             title = "You declined this win",
             subtitle = "Your spot was released for other winners.",
@@ -190,7 +190,7 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.MISSED -> CardFrame(
-            border = AppColors.OutlineStrong,
+            border = AppColors.OutlineButton,
             icon = AppIcons.Clock,
             title = "Booking has closed",
             subtitle = "You didn't book before the first night, so your win was released.",
@@ -200,7 +200,7 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.UPCOMING -> CardFrame(
-            border = AppColors.OutlineStrong,
+            border = AppColors.OutlineButton,
             icon = AppIcons.Clock,
             title = "A lottery is coming",
             subtitle = opensText?.let { "Entries open $it." },
@@ -210,7 +210,7 @@ fun LotteryStatusCard(
         }
 
         LotteryStatus.NONE -> CardFrame(
-            border = AppColors.OutlineStrong,
+            border = AppColors.OutlineButton,
             icon = AppIcons.Clock,
             title = "No lottery is open",
             subtitle = "The owner hasn't opened a lottery yet.",

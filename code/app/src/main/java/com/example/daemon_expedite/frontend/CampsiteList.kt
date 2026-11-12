@@ -16,11 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
+import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.CampsiteCard
+import com.example.daemon_expedite.ui_components.CampsitePill
+import com.example.daemon_expedite.ui_components.PillVariant
 
 /**
  * A scrolling list of campsite cards that also handles loading, error and empty states.
@@ -31,6 +35,7 @@ import com.example.daemon_expedite.ui_components.CampsiteCard
  * @param emptyText Shown when the list loaded but has no campsites.
  * @param onRetry Called when the error message is tapped.
  * @param onCampsiteClick Called with the id of the tapped campsite.
+ * @param horizontalPadding Space on each side of the cards.
  */
 @Composable
 fun CampsiteList(
@@ -39,6 +44,7 @@ fun CampsiteList(
     onRetry: () -> Unit,
     onCampsiteClick: (Id) -> Unit,
     modifier: Modifier = Modifier,
+    horizontalPadding: Dp = 20.dp,
 ) {
     when (state) {
         UiState.Loading -> CenteredBox(modifier) {
@@ -67,7 +73,7 @@ fun CampsiteList(
         } else {
             LazyColumn(
                 modifier = modifier,
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+                contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(state.data, key = { it.id.value.toString() }) { campsite ->
@@ -78,6 +84,9 @@ fun CampsiteList(
                         imageUrl = campsite.imageUrl,
                         rating = campsite.rating,
                         maxOccupancy = campsite.maxOccupancy,
+                        pill = if (campsite.openLotteryId != null) {
+                            { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket) }
+                        } else null,
                         onClick = { onCampsiteClick(campsite.id) },
                     )
                 }

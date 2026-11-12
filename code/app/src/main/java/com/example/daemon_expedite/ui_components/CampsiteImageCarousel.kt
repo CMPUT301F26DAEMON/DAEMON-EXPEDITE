@@ -131,7 +131,7 @@ private fun CarouselArrow(icon: ImageVector, label: String, onClick: () -> Unit)
             .size(48.dp)
             .clip(CircleShape)
             .background(AppColors.SurfaceDeep)
-            .border(BorderStroke(1.dp, AppColors.OutlineStrong), CircleShape)
+            .border(BorderStroke(1.dp, AppColors.OutlineCard), CircleShape)
             .clickable(role = Role.Button, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -150,7 +150,7 @@ private fun PageDots(count: Int, current: Int, modifier: Modifier = Modifier) {
                     .height(5.dp)
                     .width(if (selected) 24.dp else 5.dp)
                     .clip(CircleShape)
-                    .background(if (selected) AppColors.TextPrimary else AppColors.TextPrimary.copy(alpha = 0.5f)),
+                    .background(if (selected) AppColors.TextPrimary else AppColors.TextDisabled),
             )
         }
     }

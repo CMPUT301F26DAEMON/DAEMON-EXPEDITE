@@ -52,10 +52,10 @@ fun StepperButton(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(AppColors.FillSubtle)
+            .background(AppColors.FillTrack)
             .border(
                 1.dp,
-                AppColors.OutlineStrong,
+                AppColors.OutlineButton,
                 CircleShape
             )
             .clickable(enabled = enabled, onClick = onClick),
@@ -65,7 +65,7 @@ fun StepperButton(
             imageVector = icon,
             contentDescription = description,
             tint = if (enabled) AppColors.TextPrimary
-            else AppColors.TextSecondary.copy(alpha = 0.5f),
+            else AppColors.TextDisabled,
             modifier = Modifier.size(18.dp)
         )
     }

@@ -221,7 +221,7 @@ private fun SectionHeading(text: String) {
 
 @Composable
 private fun Caption(text: String) {
-    Text(text, style = AppTextStyles.CaptionMultiline, color = AppColors.TextSecondary)
+    Text(text, style = AppTextStyles.CaptionMultiline, color = AppColors.TextMuted)
 }
 
 @Preview(widthDp = 412, heightDp = 1900)

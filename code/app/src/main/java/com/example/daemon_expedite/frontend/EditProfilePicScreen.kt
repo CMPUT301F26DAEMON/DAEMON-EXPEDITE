@@ -156,7 +156,7 @@ fun EditProfilePhotoScreen(
             Text(
                 text = "Maximum file size 1 MB",
                 style = AppTextStyles.Caption,
-                color = AppColors.TextSecondary
+                color = AppColors.TextMuted
             )
         }
     }

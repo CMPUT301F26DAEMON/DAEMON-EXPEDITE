@@ -291,9 +291,9 @@ fun SelectLocationScreen(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            0f to Color(0x66161D15),
-                            0.35f to Color(0x00161D15),
-                            1f to Color(0xA6071008),
+                            0f to AppColors.MapGradientTop,
+                            0.35f to AppColors.MapGradientClear,
+                            1f to AppColors.MapGradientBottom,
                         )
                     ),
             )
@@ -333,7 +333,7 @@ fun SelectLocationScreen(
             Text(
                 text = SATELLITE_MAP_ATTRIBUTION,
                 style = AppTextStyles.FieldLabel,
-                color = AppColors.TextOnPrimary.copy(alpha = 0.6f),
+                color = AppColors.MapLabel,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = with(density) { bottomClear.toDp() } + 4.dp),
@@ -385,7 +385,7 @@ private fun MapGuidance(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .height(62.dp)
-            .shadow(28.dp, RoundedCornerShape(16.dp), ambientColor = Color(0x80071008), spotColor = Color(0x80071008))
+            .shadow(28.dp, RoundedCornerShape(16.dp), ambientColor = AppColors.MapControlShadow, spotColor = AppColors.MapControlShadow)
             .background(AppColors.SurfaceMapControl, RoundedCornerShape(16.dp))
             .border(1.dp, AppColors.OutlineStrong, RoundedCornerShape(16.dp))
             .padding(horizontal = 15.dp),
@@ -423,7 +423,7 @@ private fun LocationSheet(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(40.dp, shape, ambientColor = Color(0x99071008), spotColor = Color(0x99071008))
+            .shadow(40.dp, shape, ambientColor = AppColors.MapSheetShadow, spotColor = AppColors.MapSheetShadow)
             .background(AppColors.SurfaceOverlay, shape)
             .border(1.dp, AppColors.OutlineStrong, shape)
             .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 18.dp),
@@ -457,7 +457,7 @@ private fun LocationSheet(
                 Row(
                     modifier = Modifier
                         .height(28.dp)
-                        .background(Color(0x33437657), CircleShape)
+                        .background(AppColors.PrimarySelection, CircleShape)
                         .border(1.dp, AppColors.Primary, CircleShape)
                         .padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -550,12 +550,12 @@ private fun CoordinateField(
     val borderColor = when {
         isError -> AppColors.Danger
         focused -> AppColors.Secondary
-        else -> Color(0x24FFFFFF)
+        else -> AppColors.OutlineField
     }
     Column(
         modifier = modifier
             .height(60.dp)
-            .background(Color(0x12FFFFFF), RoundedCornerShape(16.dp))
+            .background(AppColors.FillField, RoundedCornerShape(16.dp))
             .border(1.dp, borderColor, RoundedCornerShape(16.dp))
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),

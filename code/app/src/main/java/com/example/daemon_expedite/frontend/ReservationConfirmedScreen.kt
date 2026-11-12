@@ -77,6 +77,7 @@ fun ReservationConfirmedScreen(
             Box(
                 modifier = Modifier
                     .size(68.dp)
+                    .background(AppColors.PrimaryTint, CircleShape)
                     .border(
                         width = 1.dp,
                         color = AppColors.Primary,
@@ -120,7 +121,7 @@ fun ReservationConfirmedScreen(
                     .fillMaxWidth()
                     .height(89.dp)
                     .clip(RoundedCornerShape(15.dp))
-                    .background(Color(0xFF171E17))
+                    .background(AppColors.SurfaceDeep)
                     .padding(
                         horizontal = 15.dp,
                         vertical = 14.dp
@@ -136,7 +137,7 @@ fun ReservationConfirmedScreen(
                     Text(
                         text = "YOUR STAY",
                         style = AppTextStyles.SectionLabel,
-                        color = AppColors.TextSecondary
+                        color = AppColors.Secondary
                     )
 
                     Text(
@@ -193,7 +194,7 @@ fun ReservationConfirmedScreen(
                     .border(
                         BorderStroke(
                             width = 1.dp,
-                            color = Color(0xFF303431)
+                            color = AppColors.OutlineButton
                         ),
                         RoundedCornerShape(15.dp)
                     )

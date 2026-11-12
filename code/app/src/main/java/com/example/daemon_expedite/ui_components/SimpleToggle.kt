@@ -49,7 +49,7 @@ fun SimpleToggle(
             modifier = Modifier
                 .offset(x = togglePosition)
                 .size(24.dp)
-                .background(AppColors.TextOnPrimary, CircleShape)
+                .background(AppColors.TextPrimary, CircleShape)
                 .align(Alignment.CenterStart)
         )
     }

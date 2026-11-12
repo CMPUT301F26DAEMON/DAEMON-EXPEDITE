@@ -16,12 +16,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 
 /**
@@ -33,11 +33,6 @@ import com.example.daemon_expedite.ui_components.AppIcons
  * TODO: Connect to the notification backend.
  * TODO: Connect notification clicks to navigation.
  */
-
-private val BackgroundColor = Color(0xFF111512)
-private val CardColor = Color(0xFF141916)
-private val SeparatorColor = Color(0xFF414641)
-private val SecondaryTextColor = Color(0xFF9BA8A0)
 
 data class NotificationEntry(
     val sender: String,
@@ -55,7 +50,7 @@ fun NotificationsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(AppColors.Background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
@@ -74,10 +69,10 @@ fun NotificationsScreen(
                 modifier = Modifier
                     .size(43.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF222824))
+                    .background(AppColors.FillSubtle)
                     .border(
                         width = 1.dp,
-                        color = Color(0xFF303733),
+                        color = AppColors.OutlineSubtle,
                         shape = CircleShape
                     )
                     .clickable { onBackClick() },
@@ -86,7 +81,7 @@ fun NotificationsScreen(
                 Icon(
                     imageVector = AppIcons.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White,
+                    tint = AppColors.TextPrimary,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -95,7 +90,7 @@ fun NotificationsScreen(
 
             Text(
                 text = "Notifications",
-                color = Color.White,
+                color = AppColors.TextPrimary,
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Serif
@@ -118,7 +113,7 @@ fun NotificationsScreen(
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 1.dp,
-                color = SeparatorColor
+                color = AppColors.Divider
             )
 
             Spacer(Modifier.height(5.dp))
@@ -140,10 +135,10 @@ private fun NotificationCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(CardColor)
+            .background(AppColors.FillDeepTint)
             .border(
                 width = 0.5.dp,
-                color = Color(0xFF1C261F),
+                color = AppColors.SurfaceDeep,
                 shape = shape
             )
             .clickable(onClick = onClick)
@@ -154,7 +149,7 @@ private fun NotificationCard(
     ) {
         Text(
             text = notification.sender,
-            color = Color.White,
+            color = AppColors.TextPrimary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -163,7 +158,7 @@ private fun NotificationCard(
 
         Text(
             text = notification.message,
-            color = Color(0xFFD3D8D3),
+            color = AppColors.TextPrimary,
             fontSize = 12.sp,
             lineHeight = 17.sp
         )
@@ -172,7 +167,7 @@ private fun NotificationCard(
 
         Text(
             text = notification.timestamp,
-            color = SecondaryTextColor,
+            color = AppColors.Secondary,
             fontSize = 11.sp
         )
     }

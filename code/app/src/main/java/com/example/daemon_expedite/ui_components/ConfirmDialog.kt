@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -74,8 +75,8 @@ fun ConfirmDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(AppColors.SurfaceOverlay)
-                .border(BorderStroke(1.dp, AppColors.OutlineStrong), shape)
+                .background(AppColors.SurfaceDeep)
+                .border(BorderStroke(1.dp, AppColors.OutlineField), shape)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -90,7 +91,7 @@ fun ConfirmDialog(
             ) {
                 Icon(icon, contentDescription = null, tint = AppColors.Danger, modifier = Modifier.size(28.dp))
             }
-            Text(title, style = AppTextStyles.PageTitle, color = AppColors.TextOnPrimary, textAlign = TextAlign.Center)
+            Text(title, style = AppTextStyles.PageTitle, color = AppColors.TextPrimary, textAlign = TextAlign.Center)
             Text(message, style = AppTextStyles.Body, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
 
             BoxWithConstraints(Modifier.padding(top = 8.dp)) {
@@ -103,10 +104,10 @@ fun ConfirmDialog(
                             .fillMaxWidth()
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, AppColors.OutlineStrong),
+                        border = BorderStroke(1.dp, AppColors.OutlineButton),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = AppColors.SurfaceDeep,
-                            contentColor = AppColors.TextOnPrimary,
+                            containerColor = Color.Transparent,
+                            contentColor = AppColors.TextPrimary,
                         ),
                     ) {
                         Text(dismissText, style = AppTextStyles.ButtonLabel)

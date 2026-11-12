@@ -21,7 +21,7 @@ import com.example.daemon_expedite.ui_components.AppColors.Danger
 import androidx.compose.material3.Icon
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
-import com.example.daemon_expedite.ui_components.AppColors.LowOpacityDanger
+import com.example.daemon_expedite.ui_components.AppColors.DangerTint
 import com.example.daemon_expedite.ui_components.AppFonts.Fraunces
 
 
@@ -53,7 +53,7 @@ fun RedButton(
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = Danger,
-            containerColor = LowOpacityDanger
+            containerColor = DangerTint
 
         )
     ) {

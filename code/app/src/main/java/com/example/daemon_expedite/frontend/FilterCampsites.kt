@@ -84,7 +84,8 @@ fun FilterCampsitesSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = AppColors.SurfaceOverlay,
+        containerColor = AppColors.SurfaceDeep,
+        scrimColor = AppColors.Scrim,
         shape = RoundedCornerShape(
             topStart = 24.dp,
             topEnd = 24.dp
@@ -193,7 +194,7 @@ fun FilterCampsitesSheet(
                     Text(
                         text = "GUESTS",
                         style = AppTextStyles.FieldLabel,
-                        color = AppColors.TextSecondary
+                        color = AppColors.Secondary
                     )
 
                     Text(
@@ -250,7 +251,7 @@ fun FilterCampsitesSheet(
                 shape = RoundedCornerShape(12.dp),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    AppColors.OutlineStrong
+                    AppColors.OutlineButton
                 ),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.Transparent,
@@ -277,7 +278,7 @@ private fun FilterCampsitesPreview() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f))
+            .background(AppColors.Scrim)
     ) {
         Surface(
             modifier = Modifier
@@ -288,7 +289,7 @@ private fun FilterCampsitesPreview() {
                 topStart = 24.dp,
                 topEnd = 24.dp
             ),
-            color = AppColors.SurfaceOverlay
+            color = AppColors.SurfaceDeep
         ) {
             Column(
                 modifier = Modifier
@@ -384,7 +385,7 @@ private fun FilterCampsitesPreview() {
                         Text(
                             text = "GUESTS",
                             style = AppTextStyles.FieldLabel,
-                            color = AppColors.TextSecondary
+                            color = AppColors.Secondary
                         )
 
                         Text(
@@ -433,7 +434,7 @@ private fun FilterCampsitesPreview() {
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        AppColors.OutlineStrong
+                        AppColors.OutlineButton
                     ),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Transparent,

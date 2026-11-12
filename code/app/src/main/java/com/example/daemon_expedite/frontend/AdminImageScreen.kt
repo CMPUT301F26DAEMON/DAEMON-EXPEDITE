@@ -312,7 +312,7 @@ private fun AdminImageThumbnail(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        AppColors.Primary.copy(alpha = 0.35f)
+                        AppColors.PrimarySelected
                     )
                     .border(
                         width = 2.dp,
@@ -333,7 +333,7 @@ private fun AdminImageThumbnail(
                         color = if (isSelected) {
                             AppColors.Primary
                         } else {
-                            Color(0x66000000)
+                            AppColors.FillIndicator
                         },
                         shape = CircleShape
                     )
@@ -342,7 +342,7 @@ private fun AdminImageThumbnail(
                         color = if (isSelected) {
                             AppColors.Primary
                         } else {
-                            AppColors.TextOnPrimary
+                            AppColors.OutlineControl
                         },
                         shape = CircleShape
                     ),
@@ -376,7 +376,7 @@ private fun AdminImagePreviewOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.Scrim),
+            .background(AppColors.ScrimStrong),
         contentAlignment = Alignment.Center
     ) {
 

@@ -29,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
@@ -103,7 +104,7 @@ fun DateRangesPicker(
                 else -> "${start!!.short()} → ${end!!.short()} · ${nightsText(nights)}"
             },
             style = AppTextStyles.CaptionMultiline,
-            color = if (overlaps) AppColors.Accent else AppColors.TextSecondary,
+            color = if (overlaps) AppColors.Accent else AppColors.TextMuted,
         )
 
         OutlinedButton(
@@ -117,12 +118,12 @@ fun DateRangesPicker(
                 .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, if (canAdd) AppColors.Secondary else AppColors.OutlineStrong),
+            border = BorderStroke(1.dp, AppColors.OutlineButton),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = AppColors.Surface,
+                containerColor = Color.Transparent,
                 contentColor = AppColors.TextPrimary,
-                disabledContainerColor = AppColors.Surface,
-                disabledContentColor = AppColors.TextSecondary,
+                disabledContainerColor = Color.Transparent,
+                disabledContentColor = AppColors.TextDisabled,
             ),
         ) {
             Icon(AppIcons.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -168,7 +169,7 @@ private fun RangeChip(range: ClosedRange<LocalDate>, onRemove: (() -> Unit)?) {
     ) {
         Text(text, style = AppTextStyles.TabLabel, color = AppColors.TextOnPrimary)
         if (onRemove != null) {
-            Icon(AppIcons.Cross, contentDescription = null, tint = AppColors.TextOnPrimary.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+            Icon(AppIcons.Cross, contentDescription = null, tint = AppColors.TextDim, modifier = Modifier.size(14.dp))
         }
     }
 }

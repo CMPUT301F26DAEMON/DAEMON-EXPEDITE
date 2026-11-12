@@ -50,7 +50,7 @@ fun OwnerCard(
             .fillMaxWidth()
             .clip(shape)
             .background(AppColors.FillField)
-            .border(BorderStroke(1.dp, AppColors.OutlineField), shape)
+            .border(BorderStroke(1.dp, AppColors.OutlineButton), shape)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

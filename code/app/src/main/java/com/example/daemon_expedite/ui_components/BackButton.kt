@@ -1,5 +1,6 @@
 package com.example.daemon_expedite.ui_components
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,8 +32,9 @@ fun BackButton(
         shape = CircleShape,
         colors = IconButtonDefaults.iconButtonColors(
             contentColor = AppColors.TextOnPrimary,
-            containerColor = AppColors.OutlineStrong
-        )
+            containerColor = AppColors.FillSubtle
+        ),
+        modifier = Modifier.border(1.dp, AppColors.OutlineSubtle, CircleShape),
 
     ) {
         Icon(

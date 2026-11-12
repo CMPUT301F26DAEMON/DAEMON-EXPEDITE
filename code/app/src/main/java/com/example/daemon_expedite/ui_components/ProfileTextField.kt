@@ -35,9 +35,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Field background from the Figma design (white at 7%). */
-private val FieldBackground = Color(0x12FFFFFF)
-
 /**
  * Editable profile field from the Edit Profile screen: a leading icon, a small uppercase
  * label, the editable value, and a pencil on the right.
@@ -85,8 +82,8 @@ fun ProfileTextField(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 72.dp)
-            .background(FieldBackground, shape)
-            .border(BorderStroke(1.dp, AppColors.Secondary), shape)
+            .background(AppColors.FillField, shape)
+            .border(BorderStroke(1.dp, AppColors.OutlineField), shape)
             .padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -128,7 +125,7 @@ fun ProfileTextField(
                         Text(
                             text = placeholder,
                             style = AppTextStyles.ValueMedium,
-                            color = AppColors.TextSecondary.copy(alpha = 0.5f),
+                            color = AppColors.TextMuted,
                         )
                     }
                     innerTextField()

@@ -99,8 +99,8 @@ fun Togglebutton(
         modifier = modifier
             .then(if (width.isSpecified) Modifier.width(width) else Modifier.fillMaxWidth())
             .height(height)
-            .background(AppColors.Surface, trackShape)
-            .border(BorderStroke(1.dp, AppColors.OutlineSubtle), trackShape)
+            .background(AppColors.FillTrack, trackShape)
+            .border(BorderStroke(1.dp, AppColors.OutlineField), trackShape)
             .padding(4.dp)
     ) {
         val segmentWidth = maxWidth / options.size
@@ -122,14 +122,13 @@ fun Togglebutton(
                 .width(segmentWidth)
                 .fillMaxHeight()
                 .background(AppColors.Primary, indicatorShape)
-                .border(BorderStroke(1.dp, AppColors.OutlineStrong), indicatorShape)
         )
 
         // Tappable labels drawn on top of the pill.
         Row(Modifier.fillMaxSize()) {
             options.forEachIndexed { index, label ->
                 val textColor by animateColorAsState(
-                    targetValue = if (index == selectedIndex) AppColors.TextOnPrimary else AppColors.TextPrimary,
+                    targetValue = if (index == selectedIndex) AppColors.TextOnPrimary else AppColors.TextMuted,
                     label = "textColor"
                 )
                 Box(

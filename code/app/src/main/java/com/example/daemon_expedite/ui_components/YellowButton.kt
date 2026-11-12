@@ -48,7 +48,7 @@ fun YellowButton(
             .height(customHeight.dp),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = AppColors.Scrim,
+            contentColor = AppColors.TextOnAccent,
             containerColor = AppColors.Accent
 
         )

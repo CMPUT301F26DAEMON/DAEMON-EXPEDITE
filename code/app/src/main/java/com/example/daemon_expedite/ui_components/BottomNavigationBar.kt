@@ -13,9 +13,12 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -39,16 +42,21 @@ fun BottomNavBar(
     }
 
     Surface(
-        color = AppColors.Background,
+        modifier = Modifier.drawBehind {
+            // Figma: 1px top-only border, drawn inside the bar.
+            val stroke = 1.dp.toPx()
+            drawLine(AppColors.OutlineNav, Offset(0f, stroke / 2), Offset(size.width, stroke / 2), stroke)
+        },
+        color = AppColors.SurfaceDeep,
         contentColor = AppColors.TextPrimary
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .height(66.dp)
+                .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             labels.indices.forEach { i ->
                 val isSelected = i == selectedIndex
@@ -56,17 +64,16 @@ fun BottomNavBar(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(76.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(
                             color = if (isSelected) {
-                                AppColors.Surface
+                                AppColors.PrimaryNavSelected
                             } else {
                                 Color.Transparent
                             }
                         )
-                        .clickable(onClick = onClicks[i])
-                        .padding(vertical = 10.dp),
+                        .clickable(onClick = onClicks[i]),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -74,22 +81,22 @@ fun BottomNavBar(
                         imageVector = icons[i],
                         contentDescription = labels[i],
                         tint = if (isSelected) {
-                            AppColors.TextPrimary
+                            AppColors.TextOnPrimary
                         } else {
-                            AppColors.TextSecondary
+                            AppColors.TextMuted
                         },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
                         text = labels[i],
-                        style = AppTextStyles.NavLabel,
+                        style = if (isSelected) AppTextStyles.NavLabel else AppTextStyles.NavLabel.copy(fontWeight = FontWeight.Normal),
                         color = if (isSelected) {
-                            AppColors.TextPrimary
+                            AppColors.TextOnPrimary
                         } else {
-                            AppColors.TextSecondary
+                            AppColors.TextMuted
                         },
                         maxLines = 1
                     )
