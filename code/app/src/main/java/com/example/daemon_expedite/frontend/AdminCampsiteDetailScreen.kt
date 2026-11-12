@@ -67,6 +67,7 @@ fun AdminCampsiteDetailScreen(
 
         OwnerCard(
             name = ownerName,
+            photoUrl = details.ownerPhotoUrl,
             onDeleteClick = { if (!isDeleting) askDeleteOwner = true },
         )
 

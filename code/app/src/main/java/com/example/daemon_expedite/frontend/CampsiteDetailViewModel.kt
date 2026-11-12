@@ -68,6 +68,8 @@ data class CampsiteDetails(
     val pricePerNight: String,
     val imageUrls: List<String>,
     val ownerName: String?,
+    /** Download URL of the owner's profile photo, or null when they have none (or it couldn't load). */
+    val ownerPhotoUrl: String? = null,
     val latitude: Double,
     val longitude: Double,
     val lotteryStatus: LotteryStatus,
@@ -197,7 +199,7 @@ internal fun String?.toIdOrNull(): Id? = this?.let { runCatching { Id(Uuid.parse
 internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: LotteryStatus, viewer: Id? = null): CampsiteDetails =
     coroutineScope {
         val urls = async { imageUrls() }
-        val owner = async { ownerName() }
+        val owner = async { ownerInfo() }
         val booking = async { lottery?.bookings?.firstOrNull { it.user == viewer }?.let { describeBooking(it) } }
         val zone = ZoneId.systemDefault()
         CampsiteDetails(
@@ -211,7 +213,8 @@ internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: Lotter
             maxOccupancy = maxOccupancy,
             pricePerNight = "$$pricePerNight",
             imageUrls = urls.await(),
-            ownerName = owner.await(),
+            ownerName = owner.await().first,
+            ownerPhotoUrl = owner.await().second,
             latitude = location.latitude,
             longitude = location.longitude,
             lotteryStatus = lotteryStatus,
@@ -245,9 +248,18 @@ internal suspend fun Campsite.imageUrls(): List<String> = coroutineScope {
     }.awaitAll().filterNotNull()
 }
 
-private suspend fun Campsite.ownerName(): String? =
-    quietly("Couldn't load owner $ownerId") { Database.fetchUser(ownerId)["name"] }
-        ?.takeIf { it.isNotBlank() }
+/** The owner's name and profile photo URL. Either is null if it's missing or couldn't be loaded. */
+private suspend fun Campsite.ownerInfo(): Pair<String?, String?> {
+    val user = quietly("Couldn't load owner $ownerId") { Database.fetchUser(ownerId) } ?: return null to null
+    val name = user["name"]?.takeIf { it.isNotBlank() }
+    // The user document stores the photo's image id; its record holds the Storage path.
+    val photoUrl = user["profileImage"].toIdOrNull()?.let { imageId ->
+        quietly("Couldn't load profile photo of owner $ownerId") {
+            Database.getImage(Database.fetchImage(imageId).path)
+        }
+    }
+    return name to photoUrl
+}
 
 /**
  * The lottery this campsite is in that isn't finished or cancelled, or null. A campsite is in

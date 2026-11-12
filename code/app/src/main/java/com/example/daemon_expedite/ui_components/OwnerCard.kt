@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
  *
  * @param name Owner's name.
  * @param modifier [Modifier] applied to the card.
+ * @param photoUrl Download URL of the owner's profile photo. When null, a green circle with a
+ *   person icon is shown instead.
  * @param onMessageClick Called when the message button is tapped. Null hides the button.
  * @param onDeleteClick Called when the red delete button is tapped. Null hides the button.
  */
@@ -41,28 +43,33 @@ import androidx.compose.ui.unit.dp
 fun OwnerCard(
     name: String,
     modifier: Modifier = Modifier,
+    photoUrl: String? = null,
     onMessageClick: (() -> Unit)? = null,
     onDeleteClick: (() -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(AppColors.FillField)
             .border(BorderStroke(1.dp, AppColors.OutlineButton), shape)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(AppColors.Primary),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(AppIcons.Profile, contentDescription = null, tint = AppColors.TextOnPrimary, modifier = Modifier.size(20.dp))
+        if (photoUrl != null) {
+            ProfileImage(imageUrl = photoUrl, size = 48.dp, contentDescription = "Photo of $name")
+        } else {
+            // No photo uploaded: the green circle with a person icon from the Figma.
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(AppColors.Primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(AppIcons.Profile, contentDescription = null, tint = AppColors.TextOnPrimary, modifier = Modifier.size(20.dp))
+            }
         }
         Column(
             modifier = Modifier.weight(1f),

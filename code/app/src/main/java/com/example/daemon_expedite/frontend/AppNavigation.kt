@@ -377,6 +377,8 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onPoliciesClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
                     },
+                    // TODO: open the campsite reviews page (Figma "Pine Creek Hideaway · Reviews (v2)") once it's built.
+                    onReviewsClick = { showComingSoon("Reviews") },
                     onJoinLotteryClick = { lotteryAction(join = true) },
                     onLeaveLotteryClick = { lotteryAction(join = false) },
                     onBookClick = {
