@@ -177,10 +177,10 @@ private fun <T> AdminNameDropdown(
                     .fillMaxWidth()
                     .height(38.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(AppColors.SurfaceDeep)
+                    .background(AppColors.FillField)
                     .border(
                         1.dp,
-                        AppColors.OutlineSubtle,
+                        AppColors.OutlineField,
                         RoundedCornerShape(12.dp)
                     )
                     .clickable(enabled = options.isNotEmpty()) {
@@ -254,9 +254,9 @@ private fun MessageDateLabel(date: LocalDate) {
 private fun AdminMessageCard( //Card for message can be used again
     message: AdminMessageUi
 ) {val bubbleColor = if (message.fromOwner) {
-        AppColors.SurfaceDeep
+        AppColors.FillField
     } else {
-        AppColors.Primary.copy(alpha = 0.24f)
+        AppColors.Primary
     }
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -285,7 +285,7 @@ private fun AdminMessageCard( //Card for message can be used again
             Text(
                 text = message.text,
                 style = AppTextStyles.BodyMedium,
-                color = AppColors.TextPrimary
+                color = if (message.fromOwner) AppColors.TextPrimary else AppColors.TextOnPrimary
             )
         }
     }

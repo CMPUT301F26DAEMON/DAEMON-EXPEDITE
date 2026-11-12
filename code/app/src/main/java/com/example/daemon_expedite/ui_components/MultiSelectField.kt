@@ -114,7 +114,7 @@ fun <T> MultiSelectField(
                             Text(
                                 optionLabel(option),
                                 style = AppTextStyles.ValueMedium,
-                                color = AppColors.TextPrimary.copy(alpha = if (optionEnabled) 1f else 0.5f),
+                                color = if (optionEnabled) AppColors.TextPrimary else AppColors.TextDisabled,
                             )
                         },
                         onClick = { onToggle(option) },
@@ -127,7 +127,7 @@ fun <T> MultiSelectField(
                                     checkedColor = AppColors.Primary,
                                     uncheckedColor = AppColors.Secondary,
                                     checkmarkColor = AppColors.TextOnPrimary,
-                                    disabledCheckedColor = AppColors.Primary.copy(alpha = 0.5f),
+                                    disabledCheckedColor = AppColors.PrimaryMuted,
                                 ),
                             )
                         },

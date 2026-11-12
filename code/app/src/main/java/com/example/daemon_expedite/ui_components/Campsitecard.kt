@@ -79,25 +79,25 @@ fun CampsitePill(
     val iconTint: Color
     when (variant) {
         PillVariant.Highlight -> {
-            background = AppColors.SurfaceDeep.copy(alpha = 0.55f)
+            background = AppColors.SurfaceBadge
             borderColor = AppColors.Accent
             borderWidth = 1.5f
             iconTint = AppColors.Accent
         }
         PillVariant.Muted -> {
-            background = AppColors.SurfaceDeep.copy(alpha = 0.8f)
+            background = AppColors.SurfaceDeep
             borderColor = AppColors.OutlineSubtle
             borderWidth = 1f
             iconTint = AppColors.TextSecondary
         }
         PillVariant.Outlined -> {
-            background = AppColors.SurfaceDeep.copy(alpha = 0.7f)
-            borderColor = AppColors.OutlineAccent
+            background = AppColors.SurfaceDeep
+            borderColor = AppColors.Secondary
             borderWidth = 1f
             iconTint = AppColors.TextPrimary
         }
         PillVariant.Danger -> {
-            background = AppColors.SurfaceDeep.copy(alpha = 0.7f)
+            background = AppColors.SurfaceDeep
             borderColor = AppColors.Danger
             borderWidth = 1f
             iconTint = AppColors.Danger
@@ -162,8 +162,10 @@ fun CampsitePill(
  * @param action Optional slot drawn at the bottom of the card, full width.
  * @param onClick Called when the card is tapped. When null the card is not
  * clickable and the arrow is hidden.
- * @param containerColor Background of the details area. Use a darker color for
- * browse cards and [AppColors.Surface] for reservation cards.
+ * @param containerColor Background of the details area. Defaults to the Explore card fill;
+ * use [AppColors.Surface] for reservation cards.
+ * @param borderColor Card border. Defaults to the Explore card border; use
+ * [AppColors.OutlineAccent] for reservation cards.
  * @param imageAspectRatio Width to height ratio of the photo.
  */
 @Composable
@@ -179,7 +181,8 @@ fun CampsiteCard(
     pill: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
-    containerColor: Color = AppColors.FillField,
+    containerColor: Color = AppColors.FillCard,
+    borderColor: Color = AppColors.OutlineCard,
     imageAspectRatio: Float = 2.8f,
 ) {
     val shape = RoundedCornerShape(16.dp)
@@ -189,7 +192,7 @@ fun CampsiteCard(
             .fillMaxWidth()
             .clip(shape)
             .background(containerColor)
-            .border(BorderStroke(1.dp, AppColors.OutlineSubtle), shape)
+            .border(BorderStroke(1.dp, borderColor), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         // Photo with optional pill

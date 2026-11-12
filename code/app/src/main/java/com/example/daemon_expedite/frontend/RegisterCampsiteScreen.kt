@@ -155,7 +155,6 @@ fun RegisterCampsiteScreen(
                     onValueChange = onAddressChange,
                     icon = AppIcons.MapPin,
                     error = errors.address,
-                    containerColor = AppColors.Surface,
                 )
                 LocationPicker(draft = draft, error = errors.location, onClick = onChooseOnMapClick)
                 // endregion
@@ -253,8 +252,7 @@ private fun LocationPicker(draft: CampsiteDraft, error: String?, onClick: () -> 
                 .fillMaxWidth()
                 .height(64.dp)
                 .clip(shape)
-                .background(AppColors.FillField)
-                .border(1.dp, if (error != null) AppColors.Danger else AppColors.OutlineField, shape)
+                .border(1.dp, if (error != null) AppColors.Danger else AppColors.OutlineButton, shape)
                 .clickable(onClick = onClick)
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -273,7 +271,7 @@ private fun LocationPicker(draft: CampsiteDraft, error: String?, onClick: () -> 
                     Text(
                         text = "CHOOSE ON MAP",
                         style = AppTextStyles.Overline,
-                        color = AppColors.TextOnPrimary.copy(alpha = 0.7f),
+                        color = AppColors.TextDim,
                     )
                 }
             }
@@ -330,15 +328,15 @@ private fun StepperButton(icon: ImageVector, description: String, enabled: Boole
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(if (enabled) AppColors.Primary else AppColors.FillSubtle)
-            .border(1.dp, if (enabled) AppColors.Primary else AppColors.OutlineStrong, CircleShape)
+            .background(AppColors.FillTrack)
+            .border(1.dp, AppColors.OutlineButton, CircleShape)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             icon,
             contentDescription = description,
-            tint = if (enabled) AppColors.TextOnPrimary else AppColors.TextSecondary.copy(alpha = 0.5f),
+            tint = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
             modifier = Modifier.size(18.dp),
         )
     }
@@ -397,7 +395,7 @@ private fun AmenitiesEditor(
                 ) {
                     Icon(AppIcons.Tick, contentDescription = null, tint = AppColors.TextOnPrimary, modifier = Modifier.size(15.dp))
                     Text(text = tag, style = AppTextStyles.TabLabel, color = AppColors.TextOnPrimary)
-                    Icon(AppIcons.Cross, contentDescription = "Remove $tag", tint = AppColors.TextOnPrimary.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+                    Icon(AppIcons.Cross, contentDescription = "Remove $tag", tint = AppColors.TextDim, modifier = Modifier.size(14.dp))
                 }
             }
 
@@ -444,7 +442,7 @@ private fun AmenitiesEditor(
                     Icon(
                         AppIcons.Plus,
                         contentDescription = "Add amenity",
-                        tint = if (text.isNotBlank()) AppColors.Secondary else AppColors.TextSecondary.copy(alpha = 0.5f),
+                        tint = if (text.isNotBlank()) AppColors.Secondary else AppColors.TextDisabled,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -472,8 +470,7 @@ private fun PromoImageUpload(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(AppColors.Surface, RoundedCornerShape(16.dp))
-            .dashedBorder(AppColors.OutlineField, 16.dp)
+            .dashedBorder(AppColors.OutlineDashed, 16.dp)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -483,7 +480,7 @@ private fun PromoImageUpload(
                     .fillMaxWidth()
                     .height(150.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(AppColors.SecondaryTint)
+                    .background(AppColors.FillTrack)
                     .clickable(onClick = onAddPhotosClick),
                 verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -506,7 +503,7 @@ private fun PromoImageUpload(
             text = if (photos.isEmpty()) "Up to $MAX_PHOTOS images · Cover photo first"
             else "${photos.size} of $MAX_PHOTOS images · Cover photo first",
             style = AppTextStyles.BodySmallMultiline,
-            color = AppColors.TextOnPrimary,
+            color = AppColors.TextMuted,
         )
 
         OutlinedButton(
@@ -516,12 +513,12 @@ private fun PromoImageUpload(
                 .fillMaxWidth()
                 .height(58.dp),
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, if (canAddMore) AppColors.Secondary else AppColors.OutlineStrong),
+            border = BorderStroke(1.dp, AppColors.OutlineButton),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = AppColors.Surface,
+                containerColor = Color.Transparent,
                 contentColor = AppColors.TextPrimary,
-                disabledContainerColor = AppColors.Surface,
-                disabledContentColor = AppColors.TextSecondary,
+                disabledContainerColor = Color.Transparent,
+                disabledContentColor = AppColors.TextDisabled,
             ),
         ) {
             Text(
@@ -542,7 +539,7 @@ private fun PhotoThumbnail(uri: Uri, isCover: Boolean, onRemove: () -> Unit) {
         modifier = Modifier
             .size(width = 120.dp, height = 150.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(AppColors.SecondaryTint),
+            .background(AppColors.FillTrack),
     ) {
         AsyncImage(
             model = uri,

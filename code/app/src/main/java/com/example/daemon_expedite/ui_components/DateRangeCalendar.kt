@@ -108,8 +108,8 @@ fun DateRangeCalendar(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(AppColors.Surface)
-            .border(BorderStroke(1.dp, AppColors.OutlineBright), RoundedCornerShape(16.dp))
+            .background(AppColors.SurfaceDeep)
+            .border(BorderStroke(1.dp, AppColors.OutlineFaint), RoundedCornerShape(16.dp))
             .padding(10.dp)
     ) {
         MonthHeader(
@@ -289,7 +289,7 @@ private fun DayCell(
         Text(
             text = date.dayOfMonth.toString(),
             style = if (highlighted) AppTextStyles.CalendarDateSelected else AppTextStyles.BodyMedium,
-            color = if (enabled) AppColors.TextPrimary else AppColors.TextPrimary.copy(alpha = 0.3f),
+            color = if (enabled) AppColors.TextPrimary else AppColors.TextDisabled,
         )
     }
 }

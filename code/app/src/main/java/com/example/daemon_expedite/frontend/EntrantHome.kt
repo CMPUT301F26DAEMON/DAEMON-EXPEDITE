@@ -156,8 +156,8 @@ fun EntrantHomeScreen(
                 onClick = { showFilterSheet = true },
                 modifier = Modifier
                     .size(30.dp)
-                    .background(AppColors.SurfaceDeep, CircleShape)
-                    .border(1.dp, AppColors.OutlineStrong, CircleShape)
+                    .background(AppColors.FillField, CircleShape)
+                    .border(1.dp, AppColors.OutlineField, CircleShape)
 
             ) {
                 Icon( // Filter icon

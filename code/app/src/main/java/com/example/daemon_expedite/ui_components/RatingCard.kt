@@ -76,8 +76,8 @@ fun RatingCard(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
-        color = Color(0xFF181D1A),
-        border = BorderStroke(1.dp, AppColors.OutlineSubtle)
+        color = AppColors.SurfaceDeep,
+        border = BorderStroke(1.dp, AppColors.OutlineField)
     ) {
         Column(
             modifier = Modifier.padding(24.dp),

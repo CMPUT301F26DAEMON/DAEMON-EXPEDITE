@@ -173,7 +173,7 @@ fun EntrantProfileDetailsScreen(
                     Text("Cancel")
                 }
             },
-            containerColor = AppColors.Surface,
+            containerColor = AppColors.SurfaceDeep,
             titleContentColor = AppColors.TextPrimary,
             textContentColor = AppColors.TextSecondary
         )
@@ -333,7 +333,7 @@ private fun ProfileNotifications(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedTrackColor = AppColors.Primary,
-                checkedThumbColor = Color.White
+                checkedThumbColor = AppColors.TextPrimary
             )
         )
     }

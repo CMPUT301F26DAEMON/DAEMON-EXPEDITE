@@ -128,7 +128,7 @@ fun CampsiteMapScreen(
             Text(
                 text = SATELLITE_MAP_ATTRIBUTION,
                 style = AppTextStyles.FieldLabel,
-                color = AppColors.TextOnPrimary.copy(alpha = 0.6f),
+                color = AppColors.MapLabel,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 8.dp),

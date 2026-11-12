@@ -105,7 +105,7 @@ fun FormTextField(
                                 Text(
                                     text = label.uppercase(),
                                     style = AppTextStyles.FieldContent,
-                                    color = AppColors.OutlineField,
+                                    color = AppColors.TextMuted,
                                 )
                             }
                         } else {

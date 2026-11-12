@@ -95,7 +95,7 @@ fun DatePickerField(
             selectedYearContainerColor = AppColors.Primary,
             selectedYearContentColor = AppColors.TextOnPrimary,
             dayContentColor = AppColors.TextPrimary,
-            disabledDayContentColor = AppColors.TextPrimary.copy(alpha = 0.3f),
+            disabledDayContentColor = AppColors.TextDisabled,
             selectedDayContainerColor = AppColors.Primary,
             selectedDayContentColor = AppColors.TextOnPrimary,
             todayContentColor = AppColors.Accent,

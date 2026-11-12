@@ -39,7 +39,7 @@ fun BottomNavBar(
     }
 
     Surface(
-        color = AppColors.Background,
+        color = AppColors.SurfaceDeep,
         contentColor = AppColors.TextPrimary
     ) {
         Row(
@@ -60,7 +60,7 @@ fun BottomNavBar(
                         .clip(RoundedCornerShape(14.dp))
                         .background(
                             color = if (isSelected) {
-                                AppColors.Surface
+                                AppColors.PrimaryNavSelected
                             } else {
                                 Color.Transparent
                             }
@@ -74,9 +74,9 @@ fun BottomNavBar(
                         imageVector = icons[i],
                         contentDescription = labels[i],
                         tint = if (isSelected) {
-                            AppColors.TextPrimary
+                            AppColors.TextOnPrimary
                         } else {
-                            AppColors.TextSecondary
+                            AppColors.TextMuted
                         },
                         modifier = Modifier.size(24.dp)
                     )
@@ -87,9 +87,9 @@ fun BottomNavBar(
                         text = labels[i],
                         style = AppTextStyles.NavLabel,
                         color = if (isSelected) {
-                            AppColors.TextPrimary
+                            AppColors.TextOnPrimary
                         } else {
-                            AppColors.TextSecondary
+                            AppColors.TextMuted
                         },
                         maxLines = 1
                     )
