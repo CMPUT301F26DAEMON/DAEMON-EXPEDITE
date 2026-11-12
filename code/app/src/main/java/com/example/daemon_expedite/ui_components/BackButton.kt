@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 
 /**
- * A  back button
+ * Round back button from the Figma "Back action": 40dp, faint fill and hairline border.
  *
  * @param onClick Action to perform when the button is clicked.
  */
@@ -31,16 +31,18 @@ fun BackButton(
         onClick = onClick,
         shape = CircleShape,
         colors = IconButtonDefaults.iconButtonColors(
-            contentColor = AppColors.TextOnPrimary,
+            contentColor = AppColors.TextPrimary,
             containerColor = AppColors.FillSubtle
         ),
-        modifier = Modifier.border(1.dp, AppColors.OutlineSubtle, CircleShape),
+        modifier = Modifier
+            .size(40.dp)
+            .border(1.dp, AppColors.OutlineSubtle, CircleShape),
 
     ) {
         Icon(
             imageVector = ArrowBack,
             contentDescription = "Go back",
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
     }
 }

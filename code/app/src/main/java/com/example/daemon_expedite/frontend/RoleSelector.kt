@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.Togglebutton
 import kotlinx.coroutines.delay
 
@@ -93,6 +94,10 @@ fun RoleSelector(
             }
         },
         modifier = modifier,
+        // Figma "Role Switch": 64dp tall, 14dp corners, 15sp labels.
+        height = 64.dp,
+        cornerRadius = 14.dp,
+        labelStyle = AppTextStyles.ValueEmphasis,
     )
 }
 

@@ -12,11 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 /**
- * The top row used by inner screens: a [BackButton] on the left and the page title on the right.
+ * The top row used by inner screens: a [BackButton] on the left and the page title centred.
  *
  * Built from the "App header" frame in the Expedite Figma file.
  *
@@ -41,9 +42,14 @@ fun ScreenHeader(
         }
         Text(
             text = title,
-            style = AppTextStyles.PageTitle,
-            color = AppColors.TextOnPrimary,
-            modifier = Modifier.align(Alignment.CenterEnd),
+            style = AppTextStyles.ScreenTitle,
+            color = AppColors.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            // Kept clear of the 40dp back button on both sides so it stays centred.
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 48.dp),
         )
     }
 }

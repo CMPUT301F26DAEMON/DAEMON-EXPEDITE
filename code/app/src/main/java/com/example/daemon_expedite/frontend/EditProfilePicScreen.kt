@@ -1,181 +1,98 @@
 package com.example.daemon_expedite.frontend
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.ui_components.*
 
+/**
+ * Profile photo screen, built from the "Edit Profile pic" Figma frame: the current photo with
+ * the user's name in the middle, and "Choose new photo" / "Remove photo" at the bottom.
+ */
 @Composable
 fun EditProfilePhotoScreen(
     profileImageUrl: String? = null,
+    name: String = "",
     onBackClick: () -> Unit = {},
     onChoosePhotoClick: () -> Unit = {},
-    onTakePhotoClick: () -> Unit = {},
     onDeletePhotoClick: () -> Unit = {}
 ) {
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Background)
             .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 28.dp)
-            .padding(top = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .navigationBarsPadding(),
     ) {
-        //Header with back button
-        Box(
+        ScreenHeader(title = "Profile photo", onBackClick = onBackClick)
+
+        // Photo, name and caption, centred in the space above the buttons.
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(52.dp)
+                .padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-
-            Box(
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                BackButton(
-                    onClick = onBackClick
+            ProfileImage(
+                imageUrl = profileImageUrl,
+                size = 176.dp,
+                showBorder = true,
+            )
+            Spacer(Modifier.height(20.dp))
+            if (name.isNotBlank()) {
+                Text(
+                    text = name,
+                    style = AppTextStyles.PageTitle.copy(fontSize = 22.sp),
+                    color = AppColors.TextPrimary,
+                    textAlign = TextAlign.Center,
                 )
+                Spacer(Modifier.height(6.dp))
             }
-
             Text(
-                text = "Profile photo",
-                style = AppTextStyles.PageTitle,
-                color = AppColors.TextOnPrimary,
-                modifier = Modifier.align(Alignment.Center)
+                text = "Campsite owners and other campers see this photo.",
+                style = AppTextStyles.BodySmall.copy(lineHeight = 18.sp),
+                color = AppColors.TextMuted,
+                textAlign = TextAlign.Center,
             )
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Current profile picture
-        ProfileImage(
-            imageUrl = profileImageUrl,
-            size = 168.dp,
-            onEditClick = null,
-            showBorder = true
-        )
-
-        Spacer(modifier = Modifier.height(36.dp))
-
-        //Buttons
         BoxWithConstraints(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 28.dp, bottom = 22.dp),
         ) {
-
-            val buttonWidth = minOf(maxWidth, 356.dp).value.toInt()
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                // Choose new photo button
+            val buttonWidth = maxWidth.value.toInt()
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 GreenButton(
                     onClick = onChoosePhotoClick,
-                    icon = AppIcons.EditPencil,
+                    icon = AppIcons.AddPhoto,
                     buttonText = "Choose new photo",
                     customHeight = 58,
                     customWidth = buttonWidth
                 )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Take new photo button
-                OutlinedButton(
-                    onClick = onTakePhotoClick,
-                    modifier = Modifier
-                        .width(buttonWidth.dp)
-                        .height(58.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = AppColors.OutlineStrong
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = AppColors.SurfaceDeep,
-                        contentColor = AppColors.TextOnPrimary
-                    )
-                ) {
-
-                    Icon(
-                        imageVector = AppIcons.Camera,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = "Take a photo",
-                        style = AppTextStyles.ButtonLabel,
-                        color = AppColors.TextOnPrimary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                //Delete current photo button
                 RedButton(
                     onClick = onDeletePhotoClick,
                     icon = AppIcons.Dustbin,
-                    buttonText = "Delete current picture",
-                    customHeight = 70,
+                    buttonText = "Remove photo",
+                    customHeight = 58,
                     customWidth = buttonWidth
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        Row(  //Max file size 1MB
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Icon(
-                imageVector = AppIcons.Info,
-                contentDescription = null,
-                tint = AppColors.Secondary,
-                modifier = Modifier.size(16.dp)
-            )
-
-            Text(
-                text = "Maximum file size 1 MB",
-                style = AppTextStyles.Caption,
-                color = AppColors.TextMuted
-            )
-        }
     }
 }
 
-
-@Preview(
-    showBackground = true,
-    backgroundColor = 0xFF121514,
-    widthDp = 402,
-    heightDp = 850
-)
+@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 412, heightDp = 917)
 @Composable
 private fun EditProfilePhotoScreenPreview() {
-    EditProfilePhotoScreen(
-        profileImageUrl = null,
-        onBackClick = {},
-        onChoosePhotoClick = {},
-        onTakePhotoClick = {},
-        onDeletePhotoClick = {}
-    )
+    EditProfilePhotoScreen(name = "Maya Bennett")
 }

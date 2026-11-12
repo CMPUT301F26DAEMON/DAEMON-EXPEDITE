@@ -538,12 +538,11 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     }
                 EditProfilePhotoScreen(
                     profileImageUrl = photoUrl,
+                    name = user?.name.orEmpty(),
                     onBackClick = { navController.popBackStack() },
                     onChoosePhotoClick = {
                         pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
-                    // TODO: taking a photo needs the camera permission and a file to save into.
-                    onTakePhotoClick = { showComingSoon("Taking a photo") },
                     onDeletePhotoClick = {
                         session.removeProfilePhoto { ok ->
                             if (ok) navController.popBackStack() else toast("Couldn't remove photo")

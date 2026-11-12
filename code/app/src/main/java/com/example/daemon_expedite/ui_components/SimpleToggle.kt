@@ -2,6 +2,9 @@ package com.example.daemon_expedite.ui_components
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.border
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -27,28 +30,32 @@ fun SimpleToggle(
     onStateChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Figma "Toggle": 67x32 track with a 26dp thumb, 3dp from the edges.
     val togglePosition by animateDpAsState(
-        targetValue = if (isOn) 22.dp else 2.dp,
+        targetValue = if (isOn) 35.dp else 0.dp,
         label = "Toggle Animation"
+    )
+    val trackColor by animateColorAsState(
+        targetValue = if (isOn) AppColors.Primary else AppColors.SurfaceDisabled,
+        label = "Toggle Track"
     )
 
     Box(
         modifier = modifier
-            .width(52.dp)
-            .height(28.dp)
+            .width(67.dp)
+            .height(32.dp)
             .clip(RoundedCornerShape(50))
-            .background(
-                if (isOn) AppColors.Primary else AppColors.Secondary
-            )
-            .clickable {
+            .background(trackColor)
+            .border(1.dp, AppColors.OutlineCard, RoundedCornerShape(50))
+            .clickable(role = Role.Switch) {
                 onStateChange(if (isOn) 0 else 1)
             }
-            .padding(2.dp)
+            .padding(3.dp)
     ) {
         Box(
             modifier = Modifier
                 .offset(x = togglePosition)
-                .size(24.dp)
+                .size(26.dp)
                 .background(AppColors.TextPrimary, CircleShape)
                 .align(Alignment.CenterStart)
         )

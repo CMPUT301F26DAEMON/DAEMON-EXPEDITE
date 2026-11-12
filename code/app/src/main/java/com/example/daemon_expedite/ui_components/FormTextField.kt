@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,7 +36,8 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Text field from the Register campsite form: a leading icon and an uppercase label that
- * sits where the text goes while the field is empty, then moves above the text once typed in.
+ * sits where the text goes while the field is empty, then slides above the text once the field
+ * is tapped or has text (see [FloatingLabel]).
  *
  * ```
  * var name by remember { mutableStateOf("") }
@@ -68,6 +70,7 @@ fun FormTextField(
 ) {
     val shape = RoundedCornerShape(16.dp)
     val borderColor = if (error != null) AppColors.Danger else AppColors.OutlineField
+    var focused by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(
@@ -96,30 +99,17 @@ fun FormTextField(
                 textStyle = AppTextStyles.ValueMedium.copy(color = AppColors.TextOnPrimary),
                 cursorBrush = SolidColor(AppColors.Secondary),
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { focused = it.isFocused },
                 decorationBox = { innerTextField ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (value.isEmpty()) {
-                            // Empty: the label takes the text's place, as in the Figma.
-                            Row {
-                                Text(
-                                    text = label.uppercase(),
-                                    style = AppTextStyles.FieldContent,
-                                    color = AppColors.TextMuted,
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = label.uppercase(),
-                                style = AppTextStyles.FieldLabel,
-                                color = AppColors.Secondary,
-                            )
-                        }
-                        // Always composed so the field keeps focus while the label moves.
-                        Row(modifier = Modifier.heightIn(min = if (value.isEmpty()) 0.dp else 20.dp)) {
-                            innerTextField()
-                        }
-                    }
+                    // Empty and not being typed in: the label takes the text's place, as in the Figma.
+                    FloatingLabel(
+                        label = label,
+                        floated = focused || value.isNotEmpty(),
+                        inlineStyle = AppTextStyles.ValueMedium,
+                        floatedStyle = AppTextStyles.FieldLabel,
+                    ) { innerTextField() }
                 },
             )
         }
