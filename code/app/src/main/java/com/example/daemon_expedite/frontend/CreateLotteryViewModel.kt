@@ -242,7 +242,8 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
      * Checks the form and, if it is fine, saves it. [onResult] says how it went; the form is
      * kept on failure so the owner can try again.
      *
-     * - Creating: saves with [Owner.addOwnerLottery], which also records it on the owner.
+     * - Creating: saves with [Database.createLottery], which also records it on the owner's
+     *   document, then records it on the in-memory owner with [Owner.addOwnerLottery].
      * - Editing: saves with [Database.updateLotterySettings], which checks the edit again
      *   against the latest copy of the lottery. If that fails (for example more entrants joined
      *   than the new limit allows) the problems are shown and the result is INVALID.
@@ -260,7 +261,9 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
             val editing = original
             val result = if (editing == null) {
                 val ok = runCatchingAll("Creating lottery failed") {
-                    owner.addOwnerLottery(draft.toLottery(owner.id))
+                    val lottery = draft.toLottery(owner.id)
+                    Database.createLottery(lottery)
+                    owner.addOwnerLottery(lottery)
                 }
                 if (ok) SubmitResult.SAVED else SubmitResult.FAILED
             } else {

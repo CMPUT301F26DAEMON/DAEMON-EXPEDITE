@@ -12,9 +12,8 @@ package com.example.daemon_expedite.backend
  * An owner is a user who has registered campsites, so the owner's id, name, email,
  * phone number, notification setting and profile image are the user's own.
  *
- * Mutating methods are `suspend` because they write to the database through [Database]
- * before updating the in-memory state. If the database call throws, the in-memory
- * state is left unchanged.
+ * Methods here only change the in-memory state. Saving is up to the caller (a ViewModel),
+ * through [Database].
  *
  * @param id Id. The id of the owner. Same as the user id.
  * @param name String. The name of the owner. Same as the username.
@@ -77,76 +76,51 @@ open class Owner(
     val ownerChats: List<Id> get() = _ownerChats
 
     /**
-     * Registers a new campsite for this owner.
+     * Records [campsite] on this owner in memory. Save the owner with [Database.addOwner]
+     * afterwards (the campsite itself must already be saved with [Database.addCampsite]);
+     * if that fails, take it off again with [removeCampsite].
      *
-     * Records the campsite's id on this owner, then saves the updated owner. The campsite itself
-     * must already be saved with [Database.addCampsite] (see RegisterCampsiteViewModel).
-     * Does nothing if the campsite is already registered to this owner. If saving the owner
-     * fails, the id is taken off again.
-     *
-     * @param campsite Campsite. The campsite to register.
+     * @return false if the campsite was already recorded.
      */
-    suspend fun addCampsite(campsite: Campsite) {
-        if (campsite.id in _ownerCampsites) return
-        _ownerCampsites.add(campsite.id)
-        try {
-            Database.addOwner(this)
-        } catch (e: Exception) {
-            _ownerCampsites.remove(campsite.id)
-            throw e
-        }
+    fun addCampsite(campsite: Campsite): Boolean {
+        if (campsite.id in _ownerCampsites) return false
+        return _ownerCampsites.add(campsite.id)
     }
 
+    /** Forgets [campsite] in memory. Returns false if it wasn't recorded. */
+    fun removeCampsite(campsite: Campsite): Boolean = _ownerCampsites.remove(campsite.id)
+
     /**
-     * Saves a new lottery created by this owner and records its id on the owner.
+     * Records a lottery created by this owner in memory. Call it after [Database.createLottery],
+     * which saves the lottery and records it on the owner in one write.
      *
-     * [Database.createLottery] saves both in one write, so a lottery is never left without its
-     * owner knowing about it. Does nothing if the lottery is already recorded.
-     *
-     * @param lottery Lottery. The lottery to add. Its [Lottery.ownerId] must be this owner.
+     * @param lottery Lottery. Its [Lottery.ownerId] must be this owner.
+     * @return false if the lottery was already recorded.
      */
-    suspend fun addOwnerLottery(lottery: Lottery) {
-        if (lottery.id in _ownerLotteries) return
+    fun addOwnerLottery(lottery: Lottery): Boolean {
+        if (lottery.id in _ownerLotteries) return false
         require(lottery.ownerId == id) { "Lottery ${lottery.id} belongs to another owner" }
-        Database.createLottery(lottery)
-        _ownerLotteries.add(lottery.id)
+        return _ownerLotteries.add(lottery.id)
     }
 
     /**
-     * Records a reservation made at one of this owner's campsites.
+     * Records a reservation made at one of this owner's campsites, in memory. Save it with
+     * [Database.addReservation] and the owner with [Database.addOwner].
      *
-     * Saves the reservation to the database, records its id on this owner, then saves
-     * the updated owner. Does nothing if the reservation is already recorded. If saving the
-     * owner fails, the id is taken off again.
-     *
-     * @param reservation Reservation. The reservation to add.
+     * @return false if the reservation was already recorded.
      */
-    suspend fun addOwnerReservation(reservation: Reservation) {
-        if (reservation.id in _ownerReservations) return
-        Database.addReservation(reservation)
-        _ownerReservations.add(reservation.id)
-        try {
-            Database.addOwner(this)
-        } catch (e: Exception) {
-            _ownerReservations.remove(reservation.id)
-            throw e
-        }
+    fun addOwnerReservation(reservation: Reservation): Boolean {
+        if (reservation.id in _ownerReservations) return false
+        return _ownerReservations.add(reservation.id)
     }
 
     /**
      * Records a notification sent by this owner.
-     *
-     * Saves the notification to the database, records its id on this owner, then saves
-     * the updated owner. Does nothing if the notification is already recorded.
-     *
-     * @param notification Notification. The notification that was sent.
      */
     /**
-     suspend fun addSentNotification(notification: Notification) {
-     if (notification.id in _sentNotifications) return
-     Database.addNotification(notification)
-     _sentNotifications.add(notification.id)
-     Database.addOwner(this)
+     fun addSentNotification(notification: Notification): Boolean {
+     if (notification.id in _sentNotifications) return false
+     return _sentNotifications.add(notification.id)
      }
      */
 }

@@ -36,7 +36,7 @@ enum class LotteryPhase {
     /** Entry period is over, waiting for the Cloud Function to draw winners. */
     DRAWING,
 
-    /** Winners are drawn and can book, first come first served, until the first stay night. */
+    /** Winners are drawn and can book, first come, first served, until the first stay night. */
     BOOKING,
 
     /** Stays are under way. Nothing more can be booked. */
@@ -48,7 +48,7 @@ enum class LotteryPhase {
     /** The owner cancelled it. */
     CANCELLED;
 
-    /** True for lotteries that belong under "Past": finished or cancelled. */
+    /** True for lotteries that belong under "Past": finished or canceled. */
     val isPast: Boolean get() = this == FINISHED || this == CANCELLED
 
     /** True while the owner may still cancel: any time before the first stay night. */
@@ -63,7 +63,7 @@ enum class LotteryPhase {
  * 2. **Draw**: at [entryEnd] a Cloud Function picks [winnerCount] winners (everyone wins if
  *    fewer joined) and sets [drawn].
  * 3. **Booking window**: until the first night of [stayPeriods], each winner can book one
- *    campsite for one continuous range of nights, first come first served (see [bookings]).
+ *    campsite for one continuous range of nights, first come, first served (see [bookings]).
  * 4. **Stays**: the nights in [stayPeriods].
  *
  * A campsite can only be in one lottery that isn't past (see [LotteryPhase.isPast]).
@@ -78,9 +78,9 @@ enum class LotteryPhase {
  * @property waitingList Entrants who joined. Its capacity is the optional waitlist limit.
  * @property winners Entrants drawn. Empty until [drawn].
  * @property bookings Bookings made by winners, at most one per winner.
- * @property declined Winners who turned their win down. Final: they can't book any more.
+ * @property declined Winners who turned their win down. Final: they can't book anymore.
  * @property drawn Set by the Cloud Function once winners are picked.
- * @property cancelled Set when the owner cancels. Cancelled lotteries are kept so entrants
+ * @property cancelled Set when the owner cancels. Canceled lotteries are kept so entrants
  * can still see them under past lotteries.
  */
 class Lottery(
@@ -153,23 +153,23 @@ class Lottery(
         }
 
     /**
-     * Adds [user] to the waiting list. The database checks again, inside a transaction, that
-     * the lottery is open and not full, so two entrants can't take the last spot.
+     * Adds [user] to the waiting list.
      *
      * @return false if the lottery isn't open, is full, or [user] already joined.
      */
-    suspend fun joinWaitingList(user: Id): Boolean {
+    fun joinWaitingList(user: Id): Boolean {
         if (phase() != LotteryPhase.OPEN) return false
         if (user in waitingList.users || waitingList.isFull()) return false
-        Database.addUserToLottery(id, user)
         return waitingList.add(user)
     }
 
-    /** Removes [user] from the waiting list. Returns false if the lottery isn't open or they weren't on it. */
-    suspend fun leaveWaitingList(user: Id): Boolean {
+    /**
+     * Removes [user] from the waiting list.
+     * Returns false if the lottery isn't open, or they weren't on it.
+     */
+    fun leaveWaitingList(user: Id): Boolean {
         if (phase() != LotteryPhase.OPEN) return false
         if (user !in waitingList.users) return false
-        Database.removeUserFromLottery(id, user)
         return waitingList.remove(user)
     }
 }
@@ -177,11 +177,10 @@ class Lottery(
 /** Midnight at the start of this day in [zone]. */
 internal fun LocalDate.startOfDay(zone: ZoneId): Instant = atStartOfDay(zone).toInstant().toKotlinInstant()
 
-/** What [Database.cancelLottery] did. */
 enum class CancelOutcome {
     /** It hadn't opened yet, so it was deleted. */
     DELETED,
 
-    /** It was marked cancelled and kept. */
+    /** It was marked canceled and kept. */
     CANCELLED,
 }

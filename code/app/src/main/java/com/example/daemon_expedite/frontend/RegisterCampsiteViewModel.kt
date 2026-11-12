@@ -214,7 +214,8 @@ class RegisterCampsiteViewModel : ViewModel() {
      * 1. Photos are uploaded first, under a new campsite id, because the campsite document
      *    stores their image ids.
      * 2. The campsite is saved with [Database.addCampsite].
-     * 3. Its id is added to the owner with [Owner.addCampsite], which saves the owner.
+     * 3. Its id is added to the owner with [Owner.addCampsite] and the owner is saved with
+     *    [Database.addOwner]. If that save fails, the id is taken off the owner again.
      *
      * If anything fails before the campsite is saved, the photos already uploaded are deleted
      * again so no unused files are left behind.
@@ -242,7 +243,14 @@ class RegisterCampsiteViewModel : ViewModel() {
                 val campsite = draft.toCampsite(campsiteId, owner.id, uploaded)
                 Database.addCampsite(campsite)
                 campsiteSaved = true
-                owner.addCampsite(campsite)
+                if (owner.addCampsite(campsite)) {
+                    try {
+                        Database.addOwner(owner)
+                    } catch (e: Throwable) {
+                        owner.removeCampsite(campsite) // keep the app in step with the database
+                        throw e
+                    }
+                }
             }
             if (!ok && !campsiteSaved) {
                 uploaded.forEach { image ->
