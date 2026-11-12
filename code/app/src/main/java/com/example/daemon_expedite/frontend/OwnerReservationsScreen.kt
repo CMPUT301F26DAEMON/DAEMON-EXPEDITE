@@ -14,13 +14,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.OwnerReservationCard
 import com.example.daemon_expedite.ui_components.OwnerReservationCardStatus
 
@@ -95,10 +93,8 @@ fun OwnerReservationsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 24.dp, top = 22.dp, bottom = 24.dp),
-            color = AppColors.TextOnPrimary,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp
+            style = AppTextStyles.PageTitle,
+            color = AppColors.TextOnPrimary
         )
 
         Row(
@@ -125,9 +121,8 @@ fun OwnerReservationsScreen(
                 ) {
                     Text(
                         text = tab.label,
-                        color = if (selected) AppColors.TextOnPrimary else AppColors.TextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                        style = if (selected) AppTextStyles.NavLabel else AppTextStyles.Caption,
+                        color = if (selected) AppColors.TextOnPrimary else AppColors.TextSecondary
                     )
                 }
             }
@@ -152,8 +147,8 @@ fun OwnerReservationsScreen(
                     ) {
                         Text(
                             text = selectedTab.emptyMessage,
-                            color = AppColors.TextSecondary,
-                            fontSize = 14.sp
+                            style = AppTextStyles.BodyMedium,
+                            color = AppColors.TextSecondary
                         )
                     }
                 }
@@ -195,13 +190,14 @@ fun OwnerReservationsScreen(
             title = {
                 Text(
                     "Reject reservation?",
-                    color = AppColors.TextOnPrimary,
-                    fontWeight = FontWeight.Bold
+                    style = AppTextStyles.HeadingSmall,
+                    color = AppColors.TextOnPrimary
                 )
             },
             text = {
                 Text(
                     "Are you sure you want to reject this reservation?",
+                    style = AppTextStyles.Body,
                     color = AppColors.TextSecondary
                 )
             },
@@ -210,12 +206,12 @@ fun OwnerReservationsScreen(
                     reservationToReject = null
                     onRejectReservation(pending)
                 }) {
-                    Text("Reject", color = AppColors.Danger)
+                    Text("Reject", style = AppTextStyles.ButtonLabel, color = AppColors.Danger)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { reservationToReject = null }) {
-                    Text("Cancel", color = AppColors.TextOnPrimary)
+                    Text("Cancel", style = AppTextStyles.ButtonLabel, color = AppColors.TextOnPrimary)
                 }
             }
         )
@@ -266,8 +262,8 @@ private fun OwnerReservationsBottomBar(
                 Spacer(Modifier.height(3.dp))
                 Text(
                     tab.label,
+                    style = AppTextStyles.FieldLabel,
                     color = if (selected) AppColors.TextOnPrimary else AppColors.Secondary,
-                    fontSize = 10.sp,
                     maxLines = 1,
                     softWrap = false
                 )

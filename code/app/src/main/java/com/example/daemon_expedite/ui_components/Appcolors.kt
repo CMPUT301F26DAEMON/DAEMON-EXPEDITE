@@ -72,6 +72,9 @@ object AppColors {
 
     /** [Danger] at 8%. Fill behind danger buttons and warning icons. */
     val DangerTint = Color(0x14D57A72)
+
+    /** [Danger] at 70%. Border around a selected (to be deleted) row in admin lists. */
+    val DangerBorder = Color(0xB3D57A72)
     // endregion
 
     // region Text

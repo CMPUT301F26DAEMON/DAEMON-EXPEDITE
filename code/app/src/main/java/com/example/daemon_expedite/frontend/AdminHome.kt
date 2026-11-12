@@ -14,13 +14,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
-import com.example.daemon_expedite.ui_components.AppFonts
+import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.ProfileImage
@@ -140,16 +138,12 @@ fun AdminHomeScreen(
             // Heading
             Text(
                 text = "Find your next hideaway",
-                fontFamily = AppFonts.Inter,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
+                style = AppTextStyles.PageTitle,
                 color = AppColors.TextPrimary,
             )
             Text(
                 text = "Campsites for you",
-                fontFamily = AppFonts.Inter,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
+                style = AppTextStyles.ValueEmphasis,
                 color = AppColors.TextPrimary,
                 modifier = Modifier.padding(top = 20.dp),
             )
