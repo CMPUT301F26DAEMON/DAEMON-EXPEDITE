@@ -121,8 +121,8 @@ object Routes {
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
     // const val LOTTERIES = "lotteries"
     // const val MESSAGES = "messages"
-    // const val NOTIFICATIONS = "notifications"
     const val POLICIES = "policies"
+    const val NOTIFICATIONS = "notifications" // opened from Owner home and Admin home
 }
 
 /**
@@ -506,6 +506,14 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 )
             }
 
+            composable(Routes.NOTIFICATIONS) {
+                // Empty until Database.fetchAllNotifications() is written; the screen says so.
+                NotificationsScreen(
+                    notifications = emptyList(),
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
             composable(Routes.EDIT_PROFILE) {
                 var saving by remember { mutableStateOf(false) }
                 EditProfileScreen(
@@ -573,7 +581,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onRegisterCampsiteClick = { navController.navigate(Routes.REGISTER_CAMPSITE) },
                     onReservationsClick = { showComingSoon("Reservations") },
                     onMessagesClick = { showComingSoon("Messages") },
-                    onNotificationsClick = { showComingSoon("Notifications") },
+                    onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
                     onLotteriesClick = { navController.navigate(Routes.OWNER_LOTTERIES) },
                 )
             }
@@ -835,7 +843,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onProfileClick = { navController.navigate(Routes.ADMIN_PROFILE) },
                     onMessagesClick = { showComingSoon("Messages") },
                     onProfilesClick = { showComingSoon("Profiles") },
-                    onNotificationsClick = { showComingSoon("Notifications") },
+                    onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
                     onImagesClick = { showComingSoon("Images") },
                 )
             }

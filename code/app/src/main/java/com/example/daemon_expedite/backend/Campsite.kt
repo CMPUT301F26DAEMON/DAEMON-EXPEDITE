@@ -79,7 +79,4 @@ class Campsite(
         return sum.toDouble() / _ratings.size
     }
 
-    fun generateQRCode(){
-       // generate QR Code library function
-    }
 }
