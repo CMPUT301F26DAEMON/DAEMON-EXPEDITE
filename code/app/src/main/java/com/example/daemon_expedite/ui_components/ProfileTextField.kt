@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,8 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Editable profile field from the Edit Profile screen: a leading icon, a small uppercase
- * label, the editable value, and a pencil on the right.
+ * Editable profile field from the Edit Profile screen: a leading icon, the label, the editable
+ * value, and a pencil on the right. While the field is empty and not focused the label sits where
+ * the text goes; it floats up as a small uppercase label once the field is tapped or has text.
  *
  * Tapping anywhere on the value, or on the pencil, starts editing.
  *
@@ -56,7 +58,6 @@ import androidx.compose.ui.unit.sp
  * @param onValueChange Called with the new text whenever the user types.
  * @param modifier [Modifier] applied to the field. It fills the available width by default.
  * @param icon Optional leading icon describing the field. Omit for no icon.
- * @param placeholder Text shown in place of the value while it is empty.
  * @param keyboardType Keyboard to show, for example [KeyboardType.Email] or [KeyboardType.Phone].
  * @param imeAction Action button on the keyboard. Use [ImeAction.Done] on the last field.
  * @param keyboardActions What happens when the keyboard action button is pressed.
@@ -69,7 +70,6 @@ fun ProfileTextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    placeholder: String = "",
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -97,41 +97,31 @@ fun ProfileTextField(
             )
         }
 
-        Column(
+        var focused by remember { mutableStateOf(false) }
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            singleLine = true,
+            textStyle = AppTextStyles.ValueEmphasis.copy(color = AppColors.TextPrimary),
+            cursorBrush = SolidColor(AppColors.Secondary),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+            keyboardActions = keyboardActions,
             modifier = Modifier
                 .weight(1f)
-                .padding(vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = label.uppercase(),
-                style = AppTextStyles.Overline.copy(letterSpacing = 0.sp),
-                color = AppColors.Secondary,
-            )
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                enabled = enabled,
-                singleLine = true,
-                textStyle = AppTextStyles.ValueEmphasis.copy(color = AppColors.TextPrimary),
-                cursorBrush = SolidColor(AppColors.Secondary),
-                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
-                keyboardActions = keyboardActions,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                decorationBox = { innerTextField ->
-                    if (value.isEmpty() && placeholder.isNotEmpty()) {
-                        Text(
-                            text = placeholder,
-                            style = AppTextStyles.ValueMedium,
-                            color = AppColors.TextMuted,
-                        )
-                    }
-                    innerTextField()
-                },
-            )
-        }
+                .padding(vertical = 12.dp)
+                .focusRequester(focusRequester)
+                .onFocusChanged { focused = it.isFocused },
+            decorationBox = { innerTextField ->
+                // Empty and not being typed in: the label sits where the text goes.
+                FloatingLabel(
+                    label = label,
+                    floated = focused || value.isNotEmpty(),
+                    inlineStyle = AppTextStyles.ValueMedium,
+                    floatedStyle = AppTextStyles.Overline.copy(letterSpacing = 0.sp),
+                ) { innerTextField() }
+            },
+        )
 
         if (enabled) {
             // 40dp touch target; with the Row's 4dp end padding the 17dp pencil lands where the design has it.

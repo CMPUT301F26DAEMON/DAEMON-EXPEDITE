@@ -72,15 +72,15 @@ fun InfoCard(
                 Spacer(Modifier.width(12.dp))
             }
 
-            Column(
+            // Same label behaviour as the editable fields: with no value, the label sits in line
+            // with the icon; with a value, it's the small label above it.
+            FloatingLabel(
+                label = label,
+                floated = value.isNotBlank(),
+                inlineStyle = AppTextStyles.ValueMedium,
+                floatedStyle = AppTextStyles.Overline.copy(letterSpacing = 0.sp),
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = label.uppercase(),
-                    style = AppTextStyles.Overline.copy(letterSpacing = 0.sp),
-                    color = AppColors.Secondary
-                )
                 Text(
                     text = value,
                     style = AppTextStyles.ValueEmphasis,
