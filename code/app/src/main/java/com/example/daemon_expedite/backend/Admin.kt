@@ -5,8 +5,7 @@ package com.example.daemon_expedite.backend
  * which lets an admin act as a user, an owner and an admin, switched by the UI
  * toggle. Adds no state of its own, only the functions to remove content and accounts.
  *
- * Mutating methods are `suspend` because they write to the database through [Database].
- * If the database call throws, nothing further is done.
+ * Like its parents, it only holds in-memory state; ViewModels save it through [Database].
  *
  * @param id Id. The id of the admin. Same as the user id.
  * @param name String. The name of the admin. Same as the username.
@@ -53,47 +52,4 @@ class Admin(
     ownerLotteries,
     sentNotifications,
     ownerChats,
-) {
-
-    /**
-     * Removes an image from the database.
-     *
-     * @param imageId Id. The id of the image to remove.
-     */
-    suspend fun removeImage(imageId: Id) {
-        Database.deleteImage(imageId)
-    }
-
-    /**
-     * Removes a campsite from the database.
-     *
-     * @param campsiteId Id. The id of the campsite to remove.
-     */
-    suspend fun removeCampsite(campsiteId: Id) {
-        // deleteCampsite needs the full campsite to also unlink it from its owner.
-        Database.deleteCampsite(Database.fetchCampsite(campsiteId))
-    }
-
-    /**
-     * Removes a user's profile from the database.
-     *
-     * @param userId Id. The id of the user whose profile should be removed.
-     */
-    suspend fun removeProfile(userId: Id) {
-        Database.deleteUser(userId)
-    }
-
-    /**
-     * Removes an owner and every campsite they have registered.
-     *
-     * Does nothing if the id does not belong to an owner.
-     *
-     * @param ownerId Id. The id of the owner to remove.
-     */
-
-
-    suspend fun removeOwner(ownerId: Id) {
-        Database.deleteOwner(ownerId)
-    }
-
-}
+)

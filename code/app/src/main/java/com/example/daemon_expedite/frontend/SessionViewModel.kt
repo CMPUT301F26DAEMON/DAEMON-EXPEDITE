@@ -147,7 +147,8 @@ class SessionViewModel : ViewModel() {
         viewModelScope.launch {
             val ok = runCatchingAll("Uploading profile photo failed") {
                 val image = Database.uploadProfileImage(user.id, uri)
-                user.updateProfileImage(image) // also saves the user with Database.updateUser
+                user.updateProfileImage(image)
+                Database.updateUser(user)
             }
             if (ok) {
                 // The user now points to the new photo, so the old one can go.
@@ -196,16 +197,31 @@ class SessionViewModel : ViewModel() {
 
     // region Lotteries
 
-    /** Joins [lotteryId]'s waiting list. See [User.joinLottery]. */
+    /**
+     * Joins [lotteryId]'s waiting list. [Database.addUserToLottery] saves both the lottery and
+     * the user in a transaction that checks the lottery is open and not full; only then is the
+     * lottery remembered on the in-memory user.
+     */
     fun joinLottery(lotteryId: Id, onResult: (LotteryActionResult) -> Unit) =
-        lotteryAction("Joining lottery $lotteryId failed", onResult) { it.joinLottery(lotteryId) }
-
-    /** Leaves [lotteryId]'s waiting list. See [User.leaveLottery]. */
-    fun leaveLottery(lotteryId: Id, onResult: (LotteryActionResult) -> Unit) =
-        lotteryAction("Leaving lottery $lotteryId failed", onResult) { it.leaveLottery(lotteryId) }
+        lotteryAction("Joining lottery $lotteryId failed", onResult) {
+            Database.addUserToLottery(lotteryId, it.id)
+            it.joinLottery(lotteryId)
+        }
 
     /**
-     * Books a lottery winner's stay. See [User.bookLotteryStay]. [onResult] gets null when it
+     * Leaves [lotteryId]'s waiting list. [Database.removeUserFromLottery] only allows it while
+     * entries are open; only then is the lottery forgotten on the in-memory user.
+     */
+    fun leaveLottery(lotteryId: Id, onResult: (LotteryActionResult) -> Unit) =
+        lotteryAction("Leaving lottery $lotteryId failed", onResult) {
+            Database.removeUserFromLottery(lotteryId, it.id)
+            it.leaveLottery(lotteryId)
+        }
+
+    /**
+     * Books a lottery winner's stay. [Database.bookLotteryStay] saves the booking, the
+     * reservation and the user's `reservations` in one transaction; then the reservation is
+     * remembered on the in-memory user too. [onResult] gets null when it
      * worked, or a message to show (for example "Some of those nights were just booked by
      * someone else").
      */
@@ -213,7 +229,8 @@ class SessionViewModel : ViewModel() {
         val user = user ?: return onResult(GENERIC_ERROR)
         viewModelScope.launch {
             val problem = try {
-                user.bookLotteryStay(lotteryId, campsiteId, period)
+                val reservation = Database.bookLotteryStay(lotteryId, user.id, campsiteId, period)
+                user.addReservation(reservation)
                 null
             } catch (e: CancellationException) {
                 throw e

@@ -49,27 +49,27 @@ class Campsite(
     private val _images = images.toMutableList()
     val images: List<Image> get() = _images
 
-    suspend fun updateDetails(newName: String, newRate: Int, newMaxOccupancy: Int) {
+    /** Changes the details */
+    fun updateDetails(newName: String, newRate: Int, newMaxOccupancy: Int) {
         this.name = newName
         this.pricePerNight = newRate
         this.maxOccupancy = newMaxOccupancy
-
-        Database.updateCampsite(this)
     }
 
-    suspend fun addImage(image: Image) {
-        if (image !in _images) {
-            Database.addImage(id, image)
-            _images.add(image)
-        }
+    /**
+     * Adds [image].
+     */
+    fun addImage(image: Image): Boolean {
+        if (image in _images) return false
+        return _images.add(image)
     }
 
     fun generateQRCode(){
        // generate QR Code library function
     }
 
-    suspend fun updateRating(rating: Int) {
+    /** Adds [rating]. */
+    fun updateRating(rating: Int) {
         this.rating.addRating(rating)
-        Database.updateCampsite(this)
     }
 }
