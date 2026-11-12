@@ -31,7 +31,6 @@ import androidx.compose.ui.window.DialogProperties
  * @param maxStars            Total number of stars displayed. Defaults to 5.
  * @param initialRating       Number of stars selected when the popup opens. Defaults to 0.
  * @param modifier            Optional [Modifier] applied to the popup card.
- * @param stayDetails         The stay dates and description shown below the title.
  * @param onSubmitWithReview  Optional callback returning the rating and written review.
  */
 @Composable
@@ -42,7 +41,6 @@ fun RatingPopup(
     maxStars: Int = 5,
     initialRating: Int = 0,
     modifier: Modifier = Modifier,
-    stayDetails: String = "16–18 Oct · 2 nights · How was your stay?",
     onSubmitWithReview: ((Int, String) -> Unit)? = null
 ) {
     Dialog(
@@ -57,7 +55,6 @@ fun RatingPopup(
             maxStars = maxStars,
             initialRating = initialRating,
             modifier = modifier.fillMaxWidth(0.86f),
-            stayDetails = stayDetails,
             onSubmitWithReview = onSubmitWithReview
         )
     }
@@ -72,7 +69,6 @@ fun RatingPopup(
  * @param maxStars            Total number of stars displayed. Defaults to 5.
  * @param initialRating       Number of stars selected initially. Defaults to 0.
  * @param modifier            Optional [Modifier] applied to the card.
- * @param stayDetails         The stay dates and description shown below the title.
  * @param onSubmitWithReview  Optional callback returning the rating and written review.
  */
 @Composable
@@ -82,7 +78,6 @@ fun RatingCard(
     maxStars: Int = 5,
     initialRating: Int = 0,
     modifier: Modifier = Modifier,
-    stayDetails: String = "16–18 Oct · 2 nights · How was your stay?",
     onSubmitWithReview: ((Int, String) -> Unit)? = null
 ) {var rating by rememberSaveable(title, maxStars) {mutableIntStateOf(initialRating.coerceIn(0, maxStars))}
 
@@ -110,13 +105,6 @@ fun RatingCard(
                 fontSize = 18.sp,
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = stayDetails,
-                color = AppColors.TextSecondary,
-                fontSize = 11.sp,
-                lineHeight = 15.sp
             )
             Spacer(modifier = Modifier.height(14.dp))
             Row(
@@ -174,7 +162,7 @@ fun RatingCard(
                         ) {
                             if (reviewText.isEmpty()) {
                                 Text(
-                                    text = "What was your stay like? (optional)",
+                                    text = "What was your stay like? (Optional)",
                                     color = AppColors.TextSecondary,
                                     fontSize = 12.sp
                                 )

@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,6 +30,9 @@ import com.example.daemon_expedite.ui_components.NotificationCard
  *
  * Displays notifications from lotteries, reservations,
  * cancellations, and campsite owners.
+ *
+ * Opened from the Notifications tab on Owner home and Admin home ([Routes.NOTIFICATIONS]).
+ * Shows "No notifications yet" when [notifications] is empty.
  *
  * TODO: Connect to the notification backend.
  * TODO: Connect notification clicks to navigation.
@@ -98,6 +102,18 @@ fun NotificationsScreen(
         }
 
         Spacer(Modifier.height(24.dp))
+
+        if (notifications.isEmpty()) {
+            Text(
+                text = "No notifications yet",
+                color = AppColors.TextSecondary,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp),
+                textAlign = TextAlign.Center
+            )
+        }
 
         // Notification list
         notifications.forEach { notification ->
