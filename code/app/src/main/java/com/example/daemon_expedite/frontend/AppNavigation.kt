@@ -41,6 +41,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.example.daemon_expedite.R
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
@@ -327,7 +328,12 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 )
             }
 
-            composable(Routes.CAMPSITE_DETAIL) {
+            composable(
+                route = Routes.CAMPSITE_DETAIL,
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "expedite://campsite/{${Routes.CAMPSITE_ID_ARG}}" },
+                ),
+            ) {
                 // Reads the campsite id from the route through its SavedStateHandle.
                 val detail: CampsiteDetailViewModel = viewModel()
                 // Runs each time the page comes back (for example after booking), and keeps the old
@@ -631,7 +637,12 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 )
             }
 
-            composable(Routes.OWNER_LOTTERY_DETAIL) {
+            composable(
+                route = Routes.OWNER_LOTTERY_DETAIL,
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "expedite://lottery/{${Routes.LOTTERY_ID_ARG}}" },
+                ),
+            ) {
                 val detail: OwnerLotteryDetailViewModel = viewModel()
                 // Runs each time the page comes back, so edits show up.
                 LaunchedEffect(Unit) { detail.load() }
