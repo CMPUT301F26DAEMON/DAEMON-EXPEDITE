@@ -121,8 +121,8 @@ fun AdminImagesScreen(
                 // Centered title
                 Text(
                     text = "Images",
-                    style = AppTextStyles.PageTitle,
-                    color = AppColors.TextOnPrimary,
+                    style = AppTextStyles.ScreenTitle,
+                    color = AppColors.TextPrimary,
                     modifier = Modifier.align(Alignment.Center)
                 )
 

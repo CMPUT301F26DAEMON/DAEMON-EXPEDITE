@@ -75,7 +75,7 @@ fun ProfileTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     enabled: Boolean = true,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     val focusRequester = remember { FocusRequester() }
 
     Row(
@@ -83,7 +83,7 @@ fun ProfileTextField(
             .fillMaxWidth()
             .heightIn(min = 72.dp)
             .background(AppColors.FillField, shape)
-            .border(BorderStroke(1.dp, AppColors.OutlineField), shape)
+            .border(BorderStroke(1.dp, AppColors.OutlineStrong), shape)
             .padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -92,7 +92,7 @@ fun ProfileTextField(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = AppColors.TextOnPrimary,
+                tint = AppColors.TextPrimary,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -113,7 +113,7 @@ fun ProfileTextField(
                 onValueChange = onValueChange,
                 enabled = enabled,
                 singleLine = true,
-                textStyle = AppTextStyles.ValueMedium.copy(color = AppColors.TextOnPrimary),
+                textStyle = AppTextStyles.ValueEmphasis.copy(color = AppColors.TextPrimary),
                 cursorBrush = SolidColor(AppColors.Secondary),
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
                 keyboardActions = keyboardActions,

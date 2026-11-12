@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -76,6 +77,8 @@ import androidx.compose.foundation.lazy.items
  * @param width Total width of the toggle. When left as [Dp.Unspecified] (the
  * default) the toggle fills the available width. Segments share the width equally.
  * @param height Total height of the toggle, including its inner padding.
+ * @param cornerRadius Corner radius of the track. The pill uses 4dp less.
+ * @param labelStyle Text style of the option labels.
  * @throws IllegalArgumentException if [options] is empty.
  *
  * @see SegmentedToggleWithContent for a variant that also animates content
@@ -89,11 +92,14 @@ fun Togglebutton(
     modifier: Modifier = Modifier,
     width: Dp = Dp.Unspecified,
     height: Dp = 48.dp,
+    cornerRadius: Dp = 20.dp,
+    labelStyle: TextStyle = AppTextStyles.TabLabel,
 ) {
     require(options.isNotEmpty()) { "options must not be empty" }
 
-    val trackShape = RoundedCornerShape(20.dp)
-    val indicatorShape = RoundedCornerShape(16.dp)
+    val trackShape = RoundedCornerShape(cornerRadius)
+    // The pill sits 4dp inside the track, so its corners are 4dp tighter to stay parallel.
+    val indicatorShape = RoundedCornerShape((cornerRadius - 4.dp).coerceAtLeast(0.dp))
 
     BoxWithConstraints(
         modifier = modifier
@@ -144,7 +150,7 @@ fun Togglebutton(
                     Text(
                         text = label,
                         color = textColor,
-                        style = AppTextStyles.TabLabel,
+                        style = labelStyle,
                     )
                 }
             }

@@ -105,6 +105,9 @@ object AppTextStyles {
     /** Multi-line version of [Caption] with a 1.4 line height. */
     val CaptionMultiline = Caption.copy(lineHeight = 1.4.em)
 
+    /** Centred title in the screen header. Inter SemiBold 17. */
+    val ScreenTitle = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+
     /** Status bar clock. Inter Medium 14. */
     val StatusBar = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.Medium, fontSize = 14.sp)
 

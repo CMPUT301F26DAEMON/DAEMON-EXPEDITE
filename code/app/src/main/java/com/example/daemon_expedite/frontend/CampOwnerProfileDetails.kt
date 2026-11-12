@@ -71,23 +71,19 @@ fun ProfileDetailsScreen(
         ) {
 
             // Header
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .height(64.dp),
             ) {
-
-                BackButton(
-                    onClick = onBackClick
-                )
-                Spacer(
-                    modifier = Modifier.weight(1f)
-                )
+                Box(Modifier.align(Alignment.CenterStart)) {
+                    BackButton(onClick = onBackClick)
+                }
                 Text(
                     text = "Profile",
-                    style = AppTextStyles.PageTitle,
-                    color = AppColors.TextOnPrimary
+                    style = AppTextStyles.ScreenTitle,
+                    color = AppColors.TextPrimary,
+                    modifier = Modifier.align(Alignment.Center)
                 )
             }
 

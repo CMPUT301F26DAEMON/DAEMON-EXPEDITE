@@ -25,6 +25,7 @@ import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BackButton
+import com.example.daemon_expedite.ui_components.ScreenHeader
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -69,25 +70,8 @@ fun AdminMessagesScreen(
             .background(AppColors.Background)
             .statusBarsPadding()
             .navigationBarsPadding()
-    ) {Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 20.dp,
-                    end = 24.dp,
-                    top = 16.dp,
-                    bottom = 12.dp
-                ),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BackButton(onClick = onBackClick)
-            Text(
-                text = "Messages",
-                style = AppTextStyles.PageTitleLarge,
-                color = AppColors.TextPrimary
-            )
-        }
+    ) {
+        ScreenHeader(title = "Messages", onBackClick = onBackClick)
         Row(
             modifier = Modifier
                 .fillMaxWidth()

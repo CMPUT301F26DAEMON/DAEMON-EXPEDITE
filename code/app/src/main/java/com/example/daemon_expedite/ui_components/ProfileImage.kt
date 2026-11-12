@@ -101,7 +101,7 @@ fun ProfileImage(
                     .offset(x = buttonOffset, y = buttonOffset)
                     .size(buttonSize)
                     .clip(CircleShape)
-                    .background(AppColors.Background) // dark ring separating button from photo
+                    .background(AppColors.SurfaceDeep) // dark ring separating button from photo
                     .clickable(role = Role.Button, onClickLabel = "Edit profile picture", onClick = onEditClick)
                     .padding(buttonRingWidth)
                     .background(AppColors.Primary, CircleShape),
