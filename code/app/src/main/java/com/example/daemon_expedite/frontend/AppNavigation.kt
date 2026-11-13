@@ -108,7 +108,7 @@ object Routes {
 
     const val OWNER_LOTTERY_WAITLIST = "owner_lottery/{$LOTTERY_ID_ARG}/waitlist"
 
-    fun ownerLotteryWaitlist(id: Id) = "owner_lottery/${id.value}"
+    fun ownerLotteryWaitlist(id: Id) = "owner_lottery/${id.value}/waitlist"
 
     fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
 
@@ -117,10 +117,13 @@ object Routes {
     const val SELECT_LOCATION = "select_location" // opened from Register / Edit campsite only
     const val OWNER_CAMPSITE_DETAIL = "owner_campsite/{$CAMPSITE_ID_ARG}"
     const val EDIT_CAMPSITE = "owner_campsite/{$CAMPSITE_ID_ARG}/edit"
+    const val CAMPSITE_QR = "campsite_qr/{$CAMPSITE_ID_ARG}"
 
     fun ownerCampsiteDetail(id: Id) = "owner_campsite/${id.value}"
 
     fun editCampsite(id: Id) = "owner_campsite/${id.value}/edit"
+
+    fun campsiteQr(id: Id) = "campsite_qr/${id.value}"
 
     // Admin (only reachable for users in the "admins" collection)
     const val ADMIN_HOME = "admin_home"
@@ -341,7 +344,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                                     toast("Entries for this lottery are closed, so you can't leave now.")
                                 }
 
-                                LotteryActionResult.FULL, LotteryActionResult.FAILED -> {
+                                LotteryActionResult.FULL, LotteryActionResult.FAILED, LotteryActionResult.IS_OWNER -> {
                                     toast("Something went wrong. Check your connection and try again.")
                                 }
                             }
@@ -404,6 +407,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
                             LotteryActionResult.CLOSED -> {
                                 toast("Entries for this lottery are closed.")
+                            }
+
+                            LotteryActionResult.IS_OWNER -> {
+                                toast("You own this campsite and cannot join your own lottery.")
                             }
 
                             LotteryActionResult.FAILED -> {
@@ -757,8 +764,12 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onRetry = detail::load,
                     onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
                     onJoinClick = {
-                        detail.joinLottery {
-                            toast("You're on the waiting list")
+                        detail.joinLottery { result ->
+                            when (result) {
+                                LotteryActionResult.DONE -> toast("You're on the waiting list")
+                                LotteryActionResult.IS_OWNER -> toast("You own this lottery and cannot join your own waiting list.")
+                                else -> toast("Couldn't join lottery")
+                            }
                         }
                     },
                     onLeaveClick = {
@@ -843,6 +854,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onEditClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.editCampsite(it.data.id)) }
                     },
+                    onShowQrCodeClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteQr(it.data.id)) }
+                    },
                     onDeleteConfirmed = {
                         detail.delete { result ->
                             when (result) {
@@ -863,6 +877,20 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                             }
                         }
                     },
+                )
+            }
+
+            composable(Routes.CAMPSITE_QR) { entry ->
+                val campsiteId = entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).orEmpty()
+                val detailEntry = remember(entry) { runCatching { navController.getBackStackEntry(Routes.OWNER_CAMPSITE_DETAIL) }.getOrNull() }
+                val detailVM: OwnerCampsiteDetailViewModel? = detailEntry?.let { viewModel(it) }
+                val detailState = detailVM?.details?.collectAsState()?.value
+                val campsiteTitle = (detailState as? UiState.Content)?.data?.name ?: "Campsite QR Code"
+
+                CampsiteQrCodeScreen(
+                    campsiteId = campsiteId,
+                    campsiteTitle = campsiteTitle,
+                    onBackClick = { navController.popBackStack() },
                 )
             }
 

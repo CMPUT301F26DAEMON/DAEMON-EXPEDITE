@@ -35,6 +35,9 @@ enum class LotteryActionResult {
     /** Entries closed (or haven't opened) since the page loaded. */
     CLOSED,
 
+    /** The signed-in user owns this campsite/lottery and cannot join. */
+    IS_OWNER,
+
     /** Usually no connection. */
     FAILED,
 }
@@ -267,6 +270,7 @@ class SessionViewModel : ViewModel() {
                 when {
                     causes.any { it is LotteryFullException } -> LotteryActionResult.FULL
                     causes.any { it is LotteryClosedException } -> LotteryActionResult.CLOSED
+                    causes.any { it.message?.contains("owner", ignoreCase = true) == true } -> LotteryActionResult.IS_OWNER
                     else -> {
                         Log.e(TAG, logMessage, e)
                         LotteryActionResult.FAILED

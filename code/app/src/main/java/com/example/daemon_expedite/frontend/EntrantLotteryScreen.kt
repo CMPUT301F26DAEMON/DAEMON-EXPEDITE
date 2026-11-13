@@ -48,6 +48,7 @@ import com.example.daemon_expedite.ui_components.LotteryStatusCard
 import com.example.daemon_expedite.ui_components.PillVariant
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -101,18 +102,28 @@ class EntrantLotteryDetailViewModel(
         }
     }
 
-    fun joinLottery(onDone: () -> Unit = {}) {
-        val id = lotteryId ?: return
+    fun joinLottery(onResult: (LotteryActionResult) -> Unit = {}) {
+        val id = lotteryId ?: return onResult(LotteryActionResult.FAILED)
         if (_isBusy.value) return
         _isBusy.value = true
         viewModelScope.launch {
-            runCatching {
+            val result = try {
                 val userId = Database.fetchOwnUser().id
                 Database.addUserToLottery(id, userId)
+                LotteryActionResult.DONE
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val causes = generateSequence<Throwable>(e) { it.cause }.toList()
+                if (causes.any { it.message?.contains("owner", ignoreCase = true) == true }) {
+                    LotteryActionResult.IS_OWNER
+                } else {
+                    LotteryActionResult.FAILED
+                }
             }
             _isBusy.value = false
+            onResult(result)
             load()
-            onDone()
         }
     }
 
