@@ -4,22 +4,29 @@
 
 package com.example.daemon_expedite.ui_components
 
+import android.R.attr.onClick
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -91,107 +98,138 @@ fun LotteryStatusCard(
     onJoinClick: () -> Unit = {},
     onLeaveClick: () -> Unit = {},
     onBookClick: () -> Unit = {},
+    onReservationClick: () -> Unit = {},
 ) {
     val ends = endsText?.let { "Lottery ends $it" }
     when (status) {
-        LotteryStatus.OPEN -> CardFrame(
-            title = "Your next adventure awaits",
-            subtitle = ends,
-            modifier = modifier,
-        ) { width ->
-            YellowButton(
-                onClick = { if (!busy) onJoinClick() },
-                icon = AppIcons.LotteryTicket,
-                buttonText = if (busy) "Joining…" else "Join Lottery!",
-                customWidth = width,
-                customHeight = 58,
-            )
+        LotteryStatus.OPEN -> {
+            CardFrame(
+                title = "Your next adventure awaits",
+                subtitle = ends,
+                modifier = modifier,
+            ) { width ->
+                YellowButton(
+                    onClick = { if (!busy) onJoinClick() },
+                    icon = AppIcons.LotteryTicket,
+                    buttonText = if (busy) "Joining…" else "Join Lottery!",
+                    customWidth = width,
+                    customHeight = 58,
+                )
+            }
         }
 
-        LotteryStatus.JOINED -> CardFrame(
-            title = "You’re on the waiting list",
-            subtitle = ends,
-            modifier = modifier,
-        ) { width ->
-            RedButton(
-                onClick = { if (!busy) onLeaveClick() },
-                icon = AppIcons.LeaveList,
-                buttonText = if (busy) "Leaving…" else "Leave waiting list",
-                customWidth = width,
-                customHeight = 58,
-            )
+        LotteryStatus.JOINED -> {
+            CardFrame(
+                title = "You’re on the waiting list",
+                subtitle = ends,
+                modifier = modifier,
+            ) { width ->
+                RedButton(
+                    onClick = { if (!busy) onLeaveClick() },
+                    icon = AppIcons.LeaveList,
+                    buttonText = if (busy) "Leaving…" else "Leave waiting list",
+                    customWidth = width,
+                    customHeight = 58,
+                )
+            }
         }
 
-        LotteryStatus.FULL -> CardFrame(
-            title = "The waiting list is full",
-            subtitle = ends,
-            modifier = modifier,
-        ) {
-            DisabledButton("Waiting List Full")
+        LotteryStatus.FULL -> {
+            CardFrame(
+                title = "The waiting list is full",
+                subtitle = ends,
+                modifier = modifier,
+            ) {
+                DisabledButton("Waiting List Full")
+            }
         }
 
-        LotteryStatus.DRAWING -> CardFrame(
-            title = "Drawing winners…",
-            subtitle = "Entries are closed. Your result will show here soon.",
-            modifier = modifier,
-        ) {
-            DisabledButton("Results Coming Soon")
+        LotteryStatus.DRAWING -> {
+            CardFrame(
+                title = "Drawing winners…",
+                subtitle = "Entries are closed. Your result will show here soon.",
+                modifier = modifier,
+            ) {
+                DisabledButton("Results Coming Soon")
+            }
         }
 
-        LotteryStatus.WON -> CardFrame(
-            title = "You won!",
-            subtitle = "Book your nights" + (bookByText?.let { " before $it" } ?: "") +
-                ". It's first come, first served among winners.",
-            modifier = modifier,
-        ) { width ->
-            YellowButton(onClick = onBookClick, icon = AppIcons.Calendar, buttonText = "Book your stay", customWidth = width, customHeight = 58)
+        LotteryStatus.WON -> {
+            CardFrame(
+                title = "You won!",
+                subtitle =
+                    "Book your nights" + (bookByText?.let { " before $it" } ?: "") +
+                        ". It's first come, first served among winners.",
+                modifier = modifier,
+            ) { width ->
+                YellowButton(
+                    onClick = onBookClick,
+                    icon = AppIcons.Calendar,
+                    buttonText = "Book your stay",
+                    customWidth = width,
+                    customHeight = 58,
+                )
+            }
         }
 
-        LotteryStatus.LOST -> CardFrame(
-            title = "Not selected this time",
-            subtitle = "You weren't drawn in this lottery. Keep an eye out for the next one.",
-            modifier = modifier,
-        ) {
-            DisabledButton("Not Selected")
+        LotteryStatus.LOST -> {
+            CardFrame(
+                title = "Not selected this time",
+                subtitle = "You weren't drawn in this lottery. Keep an eye out for the next one.",
+                modifier = modifier,
+            ) {
+                DisabledButton("Not Selected")
+            }
         }
 
-        LotteryStatus.BOOKED -> CardFrame(
-            title = "You're booked",
-            subtitle = bookingText,
-            modifier = modifier,
-            button = null,
-        )
-
-        LotteryStatus.DECLINED -> CardFrame(
-            title = "You declined this win",
-            subtitle = "Your spot was released for other winners.",
-            modifier = modifier,
-        ) {
-            DisabledButton("Declined")
+        LotteryStatus.BOOKED -> {
+            CardFrame(
+                title = "You're booked",
+                subtitle = bookingText,
+                modifier = modifier,
+            ) {
+                blackButtonWitWhiteText("View Reservation")
+            }
         }
 
-        LotteryStatus.MISSED -> CardFrame(
-            title = "Booking has closed",
-            subtitle = "You didn't book before the first night, so your win was released.",
-            modifier = modifier,
-        ) {
-            DisabledButton("Booking Closed")
+        LotteryStatus.DECLINED -> {
+            CardFrame(
+                title = "You declined this win",
+                subtitle = "Your spot was released for other winners.",
+                modifier = modifier,
+            ) {
+                DisabledButton("Declined")
+            }
         }
 
-        LotteryStatus.UPCOMING -> CardFrame(
-            title = "A lottery is coming",
-            subtitle = opensText?.let { "Entries open $it." },
-            modifier = modifier,
-        ) {
-            DisabledButton(opensText?.let { "Opens $it" } ?: "Opening Soon")
+        LotteryStatus.MISSED -> {
+            CardFrame(
+                title = "Booking has closed",
+                subtitle = "You didn't book before the first night, so your win was released.",
+                modifier = modifier,
+            ) {
+                DisabledButton("Booking Closed")
+            }
         }
 
-        LotteryStatus.NONE -> CardFrame(
-            title = "No lottery is open",
-            subtitle = "The owner hasn't opened a lottery yet.",
-            modifier = modifier,
-        ) {
-            DisabledButton("No Active Lottery Yet")
+        LotteryStatus.UPCOMING -> {
+            CardFrame(
+                title = "A lottery is coming",
+                subtitle = opensText?.let { "Entries open $it." },
+                modifier = modifier,
+            ) {
+                DisabledButton(opensText?.let { "Opens $it" } ?: "Opening Soon")
+            }
+        }
+
+        LotteryStatus.NONE -> {
+            CardFrame(
+                title = "No lottery is open",
+                subtitle = "The owner hasn't opened a lottery yet.",
+                modifier = modifier,
+            ) {
+                DisabledButton("No Active Lottery Yet")
+            }
         }
     }
 }
@@ -211,10 +249,11 @@ private fun CardFrame(
     // Figma "Expedite/Card/Lottery": outlined, no fill, title then a muted detail line.
     val shape = RoundedCornerShape(14.dp)
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(BorderStroke(1.dp, AppColors.OutlineButton), shape)
-            .padding(16.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .border(BorderStroke(1.dp, AppColors.OutlineButton), shape)
+                .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(title, style = AppTextStyles.TitleMedium, color = AppColors.TextPrimary)
@@ -233,12 +272,13 @@ private fun CardFrame(
 private fun DisabledButton(text: String) {
     val shape = RoundedCornerShape(16.dp)
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(58.dp)
-            .clip(shape)
-            .background(AppColors.SurfaceDisabled)
-            .border(BorderStroke(1.dp, AppColors.OutlineStrong), shape),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(58.dp)
+                .clip(shape)
+                .background(AppColors.SurfaceDisabled)
+                .border(BorderStroke(1.dp, AppColors.OutlineStrong), shape),
         contentAlignment = Alignment.Center,
     ) {
         Text(text, style = AppTextStyles.ButtonLabel, color = AppColors.TextSecondary)
@@ -257,5 +297,30 @@ private fun LotteryStatusCardPreview() {
         LotteryStatusCard(LotteryStatus.LOST)
         LotteryStatusCard(LotteryStatus.BOOKED, bookingText = "Pine Creek · 16 Oct → 18 Oct · 2 nights")
         LotteryStatusCard(LotteryStatus.NONE)
+    }
+}
+
+@Composable
+fun blackButtonWitWhiteText(
+    text: String = "",
+    onclick: () -> Unit = {},
+    leftIcon: ImageVector = AppIcons.Reservation,
+    rightIcon: ImageVector = AppIcons.ChevronRight
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .border(1.dp, AppColors.OutlineButton, shape)
+                .clickable(role = Role.Button, onClick = onclick)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(leftIcon, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(19.dp))
+        Text(text, style = AppTextStyles.TitleSmall, color = AppColors.TextPrimary, modifier = Modifier.weight(1f))
+        Icon(rightIcon, contentDescription = null, tint = AppColors.TextMuted, modifier = Modifier.size(18.dp))
     }
 }

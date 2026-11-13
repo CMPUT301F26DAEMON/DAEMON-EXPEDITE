@@ -15,6 +15,7 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.LotteryNotCancellableException
 import com.example.daemon_expedite.backend.LotteryPhase
+import com.example.daemon_expedite.ui_components.LotteryStatus
 import com.example.daemon_expedite.ui_components.PillVariant
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -56,6 +58,11 @@ data class LotteryDetails(
     val canEdit: Boolean,
     val canCancel: Boolean,
     val deletesOnCancel: Boolean,
+    val lotteryStatus: LotteryStatus = LotteryStatus.NONE,
+    val endsText: String? = null,
+    val opensText: String? = null,
+    val bookByText: String? = null,
+    val bookingText: String? = null,
 )
 
 /** Outcome of [OwnerLotteryDetailViewModel.cancel]. */
@@ -146,6 +153,7 @@ internal fun Lottery.toLotteryDetails(
     campsiteNames: Map<Id, String>,
     now: Instant = Clock.System.now(),
     zone: ZoneId = ZoneId.systemDefault(),
+    viewerId: Id? = null,
 ): LotteryDetails {
     val phase = phase(now, zone)
     val thisYear = now.toJavaInstant().atZone(zone).year
@@ -155,6 +163,9 @@ internal fun Lottery.toLotteryDetails(
     val opens = entryFirstDay(zone).shortDate(thisYear)
     val closes = entryLastDay(zone).shortDate(thisYear)
     val firstNight = firstStayNight.shortDate(thisYear)
+
+    val statusEnum = viewerId?.let { entrantStatus(it, now) } ?: phase.defaultLotteryStatus()
+    val ends = java.time.Instant.ofEpochMilli(entryEnd.toEpochMilliseconds()).atZone(zone).format(DateTimeFormatter.ofPattern("d MMM yyyy · h:mm a z"))
 
     val phaseNote = when (phase) {
         LotteryPhase.UPCOMING -> "Entrants can join from $opens. Winners are drawn when entries close."
@@ -190,5 +201,19 @@ internal fun Lottery.toLotteryDetails(
         canEdit = phase == LotteryPhase.UPCOMING || phase == LotteryPhase.OPEN,
         canCancel = phase.canCancel,
         deletesOnCancel = phase == LotteryPhase.UPCOMING,
+        lotteryStatus = statusEnum,
+        endsText = ends,
+        opensText = opens,
+        bookByText = firstNight,
+        bookingText = viewerId?.let { v -> bookings.firstOrNull { it.user == v }?.let { "Booked · ${it.period.start.shortDate(thisYear)} → ${it.period.end.shortDate(thisYear)}" } },
     )
+}
+
+internal fun LotteryPhase.defaultLotteryStatus(): LotteryStatus = when (this) {
+    LotteryPhase.UPCOMING -> LotteryStatus.UPCOMING
+    LotteryPhase.OPEN -> LotteryStatus.OPEN
+    LotteryPhase.DRAWING -> LotteryStatus.DRAWING
+    LotteryPhase.BOOKING -> LotteryStatus.WON
+    LotteryPhase.STAYS -> LotteryStatus.MISSED
+    else -> LotteryStatus.NONE
 }
