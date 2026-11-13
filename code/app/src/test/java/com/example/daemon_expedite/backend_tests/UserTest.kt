@@ -25,7 +25,6 @@ import kotlin.time.Instant
  * SessionViewModel through Database, so no database mock is needed here.
  */
 class UserTest {
-
     private val stay = DatePeriod(LocalDate.of(2026, 10, 16), LocalDate.of(2026, 10, 18))
 
     private fun user(
@@ -45,15 +44,16 @@ class UserTest {
         chats = chats,
     )
 
-    private fun lottery(id: Id = Id()) = Lottery(
-        id = id,
-        ownerId = Id(),
-        campsites = listOf(Id()),
-        entryStart = Instant.fromEpochSeconds(0),
-        entryEnd = Instant.fromEpochSeconds(1),
-        stayPeriods = listOf(stay),
-        winnerCount = 1,
-    )
+    private fun lottery(id: Id = Id()) =
+        Lottery(
+            id = id,
+            ownerId = Id(),
+            campsites = listOf(Id()),
+            entryStart = Instant.fromEpochSeconds(0),
+            entryEnd = Instant.fromEpochSeconds(1),
+            stayPeriods = listOf(stay),
+            winnerCount = 1,
+        )
 
     // region Profile
 
@@ -148,7 +148,7 @@ class UserTest {
     @Test
     fun addChat_newIsAddedDuplicateIgnored() {
         val user = user()
-        val chat = Chat(Id(), user.id, Id(), mutableListOf(), mutableListOf())
+        val chat = Chat(Id(), user.id, Id(), mutableListOf())
 
         assertTrue(user.addChat(chat))
         assertFalse(user.addChat(chat))
@@ -207,13 +207,14 @@ class UserTest {
 
     @Test
     fun deleteProfile_clearsLists() {
-        val user = User(
-            notificationsEnabled = true,
-            lotteries = listOf(Id()),
-            reservations = listOf(Id()),
-            chats = listOf(Id()),
-            receivedNotifications = listOf(Id()),
-        )
+        val user =
+            User(
+                notificationsEnabled = true,
+                lotteries = listOf(Id()),
+                reservations = listOf(Id()),
+                chats = listOf(Id()),
+                receivedNotifications = listOf(Id()),
+            )
         user.deleteProfile()
 
         assertTrue(user.lotteryIds.isEmpty())
