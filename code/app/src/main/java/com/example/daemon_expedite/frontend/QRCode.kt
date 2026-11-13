@@ -9,7 +9,6 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -34,7 +33,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -91,11 +89,12 @@ fun QrCodeScreen(
     val context = LocalContext.current
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(AppColors.Background)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(AppColors.Background)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
     ) {
         ScreenHeader(
             title = "QR Code",
@@ -103,11 +102,12 @@ fun QrCodeScreen(
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -140,11 +140,12 @@ fun QrCodeScreen(
             GreenButton(
                 onClick = {
                     val success = saveQrCodeToDevice(context, target)
-                    val message = if (success) {
-                        "QR Code saved to Pictures/Expedite"
-                    } else {
-                        "Couldn't save QR Code"
-                    }
+                    val message =
+                        if (success) {
+                            "QR Code saved to Pictures/Expedite"
+                        } else {
+                            "Couldn't save QR Code"
+                        }
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 },
                 buttonText = "Download QR Code",
@@ -198,16 +199,18 @@ fun QrCodeCard(
     val qrBitmap = rememberQrCodeBitmap(content = "expedite://${target.formattedContent}")
 
     Column(
-        modifier = modifier
-            .background(Color.White, shape = RoundedCornerShape(20.dp))
-            .border(1.dp, AppColors.OutlineStrong, shape = RoundedCornerShape(20.dp))
-            .padding(12.dp),
+        modifier =
+            modifier
+                .background(Color.White, shape = RoundedCornerShape(20.dp))
+                .border(1.dp, AppColors.OutlineStrong, shape = RoundedCornerShape(20.dp))
+                .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(282.dp)
-                .background(Color.White, shape = RoundedCornerShape(16.dp)),
+            modifier =
+                Modifier
+                    .size(282.dp)
+                    .background(Color.White, shape = RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center,
         ) {
             if (qrBitmap != null) {
@@ -251,14 +254,13 @@ fun rememberQrCodeBitmap(
     sizePx: Int = 512,
     foregroundColor: Color = Color.Black,
     backgroundColor: Color = Color.White,
-): ImageBitmap? {
-    return remember(content, sizePx, foregroundColor, backgroundColor) {
+): ImageBitmap? =
+    remember(content, sizePx, foregroundColor, backgroundColor) {
         runCatching {
             val bitmap = generateQrCodeBitmap(content, sizePx, foregroundColor.toArgb(), backgroundColor.toArgb())
             bitmap.asImageBitmap()
         }.getOrNull()
     }
-}
 
 /**
  * Generates a high-resolution QR code [Bitmap] from string content.
@@ -295,14 +297,16 @@ fun saveQrCodeToDevice(
         val fileName = "Expedite_QR_${target.type}_${target.id}"
 
         val resolver = context.contentResolver
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.jpg")
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-            put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Expedite")
-        }
+        val contentValues =
+            ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.jpg")
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/Expedite")
+            }
 
-        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-            ?: return false
+        val uri =
+            resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                ?: return false
 
         resolver.openOutputStream(uri)?.use { stream ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
@@ -330,7 +334,7 @@ private fun CampsiteQrCodePreview() {
 @Composable
 private fun LotteryQrCodePreview() {
     LotteryQrCodeScreen(
-        lotteryId = "01a1d0b5-7ba4-72dc-be86-5bc077a3ad10",
+        lotteryId = "01a1d34d-ed61-7353-9e20-23bbf0693a7c ",
         lotteryTitle = "Summer Weekend Lottery",
         onBackClick = {},
     )

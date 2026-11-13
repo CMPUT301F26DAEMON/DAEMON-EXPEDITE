@@ -44,9 +44,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.example.daemon_expedite.R
 import com.example.daemon_expedite.backend.Database
+import com.example.daemon_expedite.backend.Database.isAdmin
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import java.util.Map.entry
 
 /** Route names for every screen in the app. Add new screens here. */
 object Routes {
@@ -89,17 +91,20 @@ object Routes {
     const val BOOK_LOTTERY_STAY = "lottery/{$LOTTERY_ID_ARG}/book/{$CAMPSITE_ID_ARG}"
     fun bookLotteryStay(lotteryId: Id, campsiteId: Id) = "lottery/${lotteryId.value}/book/${campsiteId.value}"
 
+    const val ENTRANT_LOTTERY_DETAIL = "lottery/{$LOTTERY_ID_ARG}"
     const val OWNER_LOTTERY_DETAIL = "owner_lottery/{$LOTTERY_ID_ARG}"
+    const val RESERVATION_DETAIL = "reservation_detail"
+
+    fun entrantLotteryDetail(id: Id) = "lottery/${id.value}"
+    fun ownerLotteryDetail(id: Id) = "owner_lottery/${id.value}"
 
     const val EDIT_LOTTERY = "owner_lottery/{$LOTTERY_ID_ARG}/edit"
 
     const val OWNER_LOTTERY_WAITLIST = "owner_lottery/{$LOTTERY_ID_ARG}/waitlist"
 
-    fun ownerLotteryDetail(id: Id) = "owner_lottery/${id.value}"
+    fun ownerLotteryWaitlist(id: Id) = "owner_lottery/${id.value}"
 
     fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
-
-    fun ownerLotteryWaitlist(id: Id) = "owner_lottery/${id.value}/waitlist"
 
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
@@ -652,7 +657,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             composable(
                 route = Routes.OWNER_LOTTERY_DETAIL,
                 deepLinks = listOf(
-                    navDeepLink { uriPattern = "expedite://lottery/{${Routes.LOTTERY_ID_ARG}}" },
+                    navDeepLink { uriPattern = "expedite://owner_lottery/{${Routes.LOTTERY_ID_ARG}}" },
                 ),
             ) {
                 val detail: OwnerLotteryDetailViewModel = viewModel()
@@ -687,7 +692,6 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
                                 CancelResult.TOO_LATE -> {
                                     toast("Stays have started, so this lottery can't be cancelled any more.")
-                                    detail.load()
                                 }
 
                                 CancelResult.FAILED -> {
@@ -696,6 +700,57 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                             }
                         }
                     },
+                )
+            }
+
+            composable(
+                route = Routes.ENTRANT_LOTTERY_DETAIL,
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "expedite://lottery/{${Routes.LOTTERY_ID_ARG}}" },
+                ),
+            ) {
+                val detail: EntrantLotteryDetailViewModel = viewModel()
+                LaunchedEffect(Unit) { detail.load() }
+                val state by detail.details.collectAsState()
+                val isBusy by detail.isBusy.collectAsState()
+                EntrantLotteryDetailScreen(
+                    state = state,
+                    isBusy = isBusy,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = detail::load,
+                    onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
+                    onJoinClick = {
+                        detail.joinLottery {
+                            toast("You're on the waiting list")
+                        }
+                    },
+                    onLeaveClick = {
+                        detail.leaveLottery {
+                            toast("You left the waiting list")
+                        }
+                    },
+                    onBookClick = {
+                        (state as? UiState.Content)?.let { content ->
+                            val lotteryId = content.data.id
+                            val campsiteId = content.data.campsites.firstOrNull()?.id
+                            if (campsiteId != null) {
+                                navController.navigate(Routes.bookLotteryStay(lotteryId, campsiteId))
+                            }
+                        }
+                    },
+                    onViewReservationClick = {
+                        navController.navigate(Routes.RESERVATION_DETAIL)
+                    },
+                )
+            }
+
+            composable(Routes.RESERVATION_DETAIL) {
+                ReservationDetailScreen(
+                    campsiteName = "Pine Creek Campground",
+                    stayDates = "16 Oct → 18 Oct",
+                    nights = 2,
+                    totalPrice = "$90",
+                    onBackClick = { navController.popBackStack() },
                 )
             }
 
