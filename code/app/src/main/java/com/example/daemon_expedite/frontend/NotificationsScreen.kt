@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.NotificationCard
 
 /**
@@ -29,8 +30,10 @@ import com.example.daemon_expedite.ui_components.NotificationCard
  * Displays notifications from lotteries, reservations,
  * cancellations, and campsite owners.
  *
- * Opened from the Notifications tab on Owner home and Admin home ([Routes.NOTIFICATIONS]).
- * Shows "No notifications yet" when [notifications] is empty.
+ * Opened from the Notifications tab of the entrant, owner and admin bottom bars
+ * ([Routes.ENTRANT_NOTIFICATIONS], [Routes.OWNER_NOTIFICATIONS], [Routes.ADMIN_NOTIFICATIONS]).
+ * The bar is drawn on top by AppNavigation. Shows "No notifications yet" when
+ * [notifications] is empty.
  *
  * TODO: Connect to the notification backend.
  * TODO: Connect notification clicks to navigation.
@@ -46,7 +49,8 @@ data class NotificationEntry(
 @Composable
 fun NotificationsScreen(
     notifications: List<NotificationEntry> = emptyList(),
-    onBackClick: () -> Unit = {},
+    // Null hides the back button: the entrant opens this as a tab, like Reservations.
+    onBackClick: (() -> Unit)? = {},
     onNotificationClick: (NotificationEntry) -> Unit = {}
 ) {
     Column(
@@ -54,7 +58,6 @@ fun NotificationsScreen(
             .fillMaxSize()
             .background(AppColors.Background)
             .statusBarsPadding()
-            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 22.dp)
     ) {
@@ -67,28 +70,30 @@ fun NotificationsScreen(
                 .height(52.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(43.dp)
-                    .clip(CircleShape)
-                    .background(AppColors.FillSubtle)
-                    .border(
-                        width = 1.dp,
-                        color = AppColors.OutlineSubtle,
-                        shape = CircleShape
+            if (onBackClick != null) {
+                Box(
+                    modifier = Modifier
+                        .size(43.dp)
+                        .clip(CircleShape)
+                        .background(AppColors.FillSubtle)
+                        .border(
+                            width = 1.dp,
+                            color = AppColors.OutlineSubtle,
+                            shape = CircleShape
+                        )
+                        .clickable(onClick = onBackClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = AppIcons.ArrowBack,
+                        contentDescription = "Back",
+                        tint = AppColors.TextPrimary,
+                        modifier = Modifier.size(22.dp)
                     )
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = AppIcons.ArrowBack,
-                    contentDescription = "Back",
-                    tint = AppColors.TextPrimary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+                }
 
-            Spacer(Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
+            }
 
             Text(
                 text = "Notifications",
@@ -132,6 +137,9 @@ fun NotificationsScreen(
 
             Spacer(Modifier.height(5.dp))
         }
+
+        // Room for the shared bottom bar AppNavigation draws on top.
+        BottomNavBarSpacer()
     }
 }
 

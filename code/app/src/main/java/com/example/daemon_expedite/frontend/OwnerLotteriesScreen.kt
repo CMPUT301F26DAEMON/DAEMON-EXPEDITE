@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,21 +33,20 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.LotteryCard
 import com.example.daemon_expedite.ui_components.PillVariant
-import com.example.daemon_expedite.ui_components.ScreenHeader
 import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
 import com.example.daemon_expedite.ui_components.YellowButton
 
 /**
  * The owner's lotteries, with Active and Past tabs and a "Create New Lottery" button.
- * Opened from the Lotteries button on Owner Home.
+ * Opened from the Lotteries tab of the owner's bottom bar, which AppNavigation draws on top.
  *
  * Based on the "Lotteries · Active" owner frame in the Figma file, with lottery cards in place
  * of the placeholder campsite cards and a Past tab for finished and cancelled lotteries.
  *
  * @param state The lotteries, or loading / error.
- * @param onBackClick Called when the back button is tapped.
  * @param onRetry Called when the error message is tapped.
  * @param onLotteryClick Called with the id of the tapped lottery.
  * @param onCreateClick Called when "Create New Lottery" is tapped.
@@ -56,7 +54,6 @@ import com.example.daemon_expedite.ui_components.YellowButton
 @Composable
 fun OwnerLotteriesScreen(
     state: UiState<OwnerLotteries>,
-    onBackClick: () -> Unit,
     onRetry: () -> Unit,
     onLotteryClick: (Id) -> Unit,
     onCreateClick: () -> Unit,
@@ -67,10 +64,19 @@ fun OwnerLotteriesScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Background)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+            .statusBarsPadding(),
     ) {
-        ScreenHeader(title = "My Lotteries", onBackClick = onBackClick)
+        // Top-left title, matching the other bottom bar tabs (e.g. the entrant's My Lotteries).
+        Text(
+            text = "My Lotteries",
+            style = AppTextStyles.PageTitle,
+            color = AppColors.TextPrimary,
+            modifier = Modifier.padding(
+                start = 28.dp,
+                top = 24.dp,
+                bottom = 20.dp
+            )
+        )
 
         ToggleButtonWithContent(
             options = listOf("Active", "Past"),
@@ -117,6 +123,9 @@ fun OwnerLotteriesScreen(
                 customWidth = maxWidth.value.toInt(),
             )
         }
+
+        // Room for the shared bottom bar AppNavigation draws on top.
+        BottomNavBarSpacer()
     }
 }
 
@@ -176,7 +185,6 @@ private fun OwnerLotteriesScreenPreview() {
                 past = emptyList(),
             )
         ),
-        onBackClick = {},
         onRetry = {},
         onLotteryClick = {},
         onCreateClick = {},

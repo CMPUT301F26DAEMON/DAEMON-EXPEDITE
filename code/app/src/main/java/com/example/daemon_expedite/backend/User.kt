@@ -14,6 +14,7 @@ open class User(
     lotteries: List<Id> = emptyList(),
     reservations: List<Id> = emptyList(),
     chats: List<Id> = emptyList(),
+    receivedNotifications: List<Id> = emptyList(),
 ) {
     var name: String = name
         private set
@@ -29,10 +30,14 @@ open class User(
     private val _lotteries = lotteries.toMutableList()
     private val _reservations = reservations.toMutableList()
     private val _chats = chats.toMutableList()
+    private val _receivedNotifications = receivedNotifications.toMutableList()
 
     val lotteryIds: List<Id> get() = _lotteries
     val reservationIds: List<Id> get() = _reservations
     val chatIds: List<Id> get() = _chats
+
+    /** Ids of the notifications sent to this user, oldest first (read-only view). */
+    val receivedNotifications: List<Id> get() = _receivedNotifications
 
     /** Changes the profile details. */
     fun updateProfile(
@@ -92,10 +97,22 @@ open class User(
         return _chats.add(chat.id)
     }
 
+    /**
+     * Records a notification sent to this user, in memory. Save the user with
+     * [Database.updateUser] afterwards.
+     *
+     * @return false if the notification was already recorded.
+     */
+    fun addReceivedNotification(notification: Notification): Boolean {
+        if (notification.id in _receivedNotifications) return false
+        return _receivedNotifications.add(notification.id)
+    }
+
     /** Clears the in-memory lists. */
     fun deleteProfile() {
         _lotteries.clear()
         _reservations.clear()
         _chats.clear()
+        _receivedNotifications.clear()
     }
 }

@@ -6,9 +6,8 @@ package com.example.daemon_expedite.frontend
 
 import android.widget.Toast
 import com.example.daemon_expedite.ui_components.BottomNavBar
-import com.example.daemon_expedite.ui_components.AppIcons
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.SideEffect
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.slideInVertically
@@ -63,6 +62,7 @@ object Routes {
     const val CAMPSITE_DETAIL = "campsite/{$CAMPSITE_ID_ARG}"
     const val RESERVATIONS = "reservations"
     const val ENTRANT_LOTTERIES = "entrant_lotteries"
+    const val ENTRANT_NOTIFICATIONS = "entrant_notifications"
 
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
 
@@ -85,6 +85,7 @@ object Routes {
     const val OWNER_HOME = "owner_home"
     const val OWNER_PROFILE = "owner_profile"
     const val OWNER_LOTTERIES = "owner_lotteries"
+    const val OWNER_NOTIFICATIONS = "owner_notifications"
     const val LOTTERY_ID_ARG = "lotteryId"
 
     // A lottery winner's booking screen. The campsite is the one picked first.
@@ -119,6 +120,7 @@ object Routes {
     // Admin (only reachable for users in the "admins" collection)
     const val ADMIN_HOME = "admin_home"
     const val ADMIN_PROFILE = "admin_profile"
+    const val ADMIN_NOTIFICATIONS = "admin_notifications"
     const val ADMIN_CAMPSITE_DETAIL = "admin_campsite/{$CAMPSITE_ID_ARG}"
 
     fun adminCampsiteDetail(id: Id) = "admin_campsite/${id.value}"
@@ -128,7 +130,6 @@ object Routes {
     // const val LOTTERIES = "lotteries"
     // const val MESSAGES = "messages"
     const val POLICIES = "policies"
-    const val NOTIFICATIONS = "notifications" // opened from Owner home and Admin home
 }
 
 /**
@@ -147,16 +148,19 @@ object Routes {
  *                 │                     └─► Campsite policies
  *                 ├─► My reservations
  *                 ├─► My lotteries
+ *                 ├─► Notifications
  *                 └─► Entrant profile ─┬─► Edit profile ─► Edit photo
  *                                      ├─► Edit photo
  *                                      ├─► Owner home ─┬─► Owner profile (role toggle: Entrant / Owner / Admin*)
  *                                      │               ├─► Owner campsite details ─┬─► Map view
  *                                      │               │                           └─► Edit campsite ─► Select location
+ *                                      │               ├─► Notifications
  *                                      │               ├─► My lotteries ─┬─► Lottery details ─┬─► Owner campsite details
  *                                      │               │                 │                   └─► Edit lottery
  *                                      │               │                 └─► Create lottery
  *                                      │               └─► Register campsite ─► Select location (map)
  *                                      └─► Admin home* ─┬─► Admin profile (role toggle)
+ *                                                       ├─► Notifications
  *                                                       └─► Admin campsite details ─┬─► Map view
  *                                                                                   └─► Campsite policies
  * ```
@@ -211,27 +215,28 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         }
 
     /**
-     * Opens entrant tab [index] (see [EntrantTabRoutes]). Explore is always at the bottom of the
-     * back stack, so it pops back there; the other tabs sit directly above it, so moving between
-     * tabs never builds up a stack.
+     * Opens tab [index] of [tabs]. Each role's home is at the bottom of that role's part of the
+     * back stack, so a tab that is the home pops back there; the other tabs sit directly above
+     * it, so moving between tabs never builds up a stack.
      */
-    fun openEntrantTab(index: Int) {
-        val route = EntrantTabRoutes.getOrNull(index) ?: return showComingSoon("Messages")
+    fun openTab(tabs: RoleTabs, index: Int) {
+        val route = tabs.routes.getOrNull(index) ?: return showComingSoon(tabs.labels[index])
         // Already there. Navigating anyway would pop this tab and open a fresh copy (popUpTo
         // runs before launchSingleTop checks the top), replaying the slide.
         if (navController.currentDestination?.route == route) return
-        if (route == Routes.HOME) {
-            navController.popBackStack(Routes.HOME, inclusive = false)
+        if (route == tabs.home) {
+            navController.popBackStack(tabs.home, inclusive = false)
         } else {
             navController.navigate(route) {
-                popUpTo(Routes.HOME)
+                popUpTo(tabs.home)
                 launchSingleTop = true
             }
         }
     }
 
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    val entrantTab = EntrantTabRoutes.indexOf(currentRoute)
+    // The role whose bar belongs on this screen, or null for screens without one.
+    val barTabs = RoleTabs.forRoute(currentRoute)
 
     Box(modifier = Modifier.fillMaxSize().background(AppColors.Background)) {
         NavHost(
@@ -521,12 +526,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 )
             }
 
-            composable(Routes.NOTIFICATIONS) {
+            composable(Routes.ENTRANT_NOTIFICATIONS) {
+                // A tab, like the other entrant tabs, so it has no back button.
                 // Empty until Database.fetchAllNotifications() is written; the screen says so.
-                NotificationsScreen(
-                    notifications = emptyList(),
-                    onBackClick = { navController.popBackStack() },
-                )
+                NotificationsScreen(notifications = emptyList(), onBackClick = null)
             }
 
             composable(Routes.EDIT_PROFILE) {
@@ -594,11 +597,12 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
                     onProfileClick = { navController.navigate(Routes.OWNER_PROFILE) },
                     onRegisterCampsiteClick = { navController.navigate(Routes.REGISTER_CAMPSITE) },
-                    onReservationsClick = { showComingSoon("Reservations") },
-                    onMessagesClick = { showComingSoon("Messages") },
-                    onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onLotteriesClick = { navController.navigate(Routes.OWNER_LOTTERIES) },
                 )
+            }
+
+            composable(Routes.OWNER_NOTIFICATIONS) {
+                // A tab: the bar's Home tab goes home, so there's no back button.
+                NotificationsScreen(notifications = emptyList(), onBackClick = null)
             }
 
             composable(Routes.OWNER_PROFILE) {
@@ -634,7 +638,6 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 val state by lotteries.lotteries.collectAsState()
                 OwnerLotteriesScreen(
                     state = state,
-                    onBackClick = { navController.popBackStack() },
                     onRetry = lotteries::retry,
                     onLotteryClick = { id -> navController.navigate(Routes.ownerLotteryDetail(id)) },
                     onCreateClick = { navController.navigate(Routes.CREATE_LOTTERY) },
@@ -911,11 +914,12 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onCampsiteClick = { id -> navController.navigate(Routes.adminCampsiteDetail(id)) },
                     onFilterClick = home::onFilterClick,
                     onProfileClick = { navController.navigate(Routes.ADMIN_PROFILE) },
-                    onMessagesClick = { showComingSoon("Messages") },
-                    onProfilesClick = { showComingSoon("Profiles") },
-                    onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onImagesClick = { showComingSoon("Images") },
                 )
+            }
+
+            composable(Routes.ADMIN_NOTIFICATIONS) {
+                // A tab: the bar's Home tab goes home, so there's no back button.
+                NotificationsScreen(notifications = emptyList(), onBackClick = null)
             }
 
             composable(Routes.ADMIN_PROFILE) {
@@ -978,15 +982,15 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             // endregion
         }
 
-        // One bar for all entrant tabs, drawn over the NavHost so it stays put while the tab
-        // screens slide underneath it. It slides away when a non-tab screen opens on top.
+        // One bar for every role, drawn over the NavHost so it stays put while that role's home
+        // and tab screens slide underneath it. It slides away when a screen without a bar opens.
         AnimatedVisibility(
-            visible = entrantTab >= 0,
+            visible = barTabs != null,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(tween(TAB_BAR_MS)) { it },
             exit = slideOutVertically(tween(TAB_BAR_MS)) { it },
         ) {
-            EntrantBottomNavBar(selectedIndex = entrantTab, onTabClick = ::openEntrantTab)
+            RoleBottomNavBar(tabs = barTabs, selectedIndex = barTabs?.indexOf(currentRoute) ?: -1, onTabClick = ::openTab)
         }
     }
 }
@@ -1182,21 +1186,29 @@ private fun CenteredMessage(
  * screens for a profile that no longer exists. Used after deleting the profile.
  */
 /**
- * The entrant's bottom bar: Explore, Reservations, Lotteries and Messages.
+ * The bottom bar for [tabs]' role (see [RoleTabs]).
  *
- * Keeps showing the last tab while it slides away (when [selectedIndex] is -1), so the
- * highlight doesn't jump as the bar leaves.
+ * While the bar slides away, [tabs] is null; it keeps showing the last role and tab until it's
+ * gone, so the bar doesn't empty out or its highlight jump as it leaves.
  */
 @Composable
-private fun EntrantBottomNavBar(selectedIndex: Int, onTabClick: (Int) -> Unit) {
-    var shownIndex by remember { mutableIntStateOf(selectedIndex.coerceAtLeast(0)) }
-    SideEffect { if (selectedIndex >= 0) shownIndex = selectedIndex }
-    BottomNavBar(
-        labels = listOf("Explore", "Reservations", "Lotteries", "Messages"),
-        icons = listOf(AppIcons.Home, AppIcons.Reservation, AppIcons.LotteryTicket, AppIcons.Chat),
-        onClicks = List(4) { index -> { onTabClick(index) } },
-        selectedIndex = if (selectedIndex >= 0) selectedIndex else shownIndex,
-    )
+private fun RoleBottomNavBar(
+    tabs: RoleTabs?,
+    selectedIndex: Int,
+    onTabClick: (RoleTabs, Int) -> Unit,
+) {
+    var shown by remember { mutableStateOf(tabs?.let { it to selectedIndex }) }
+    SideEffect { if (tabs != null) shown = tabs to selectedIndex }
+    val (shownTabs, shownIndex) = shown ?: return
+    // A fresh bar per role, so the highlight doesn't slide over from another role's tab.
+    key(shownTabs) {
+        BottomNavBar(
+            labels = shownTabs.labels,
+            icons = shownTabs.icons,
+            onClicks = shownTabs.labels.indices.map { index -> { onTabClick(shownTabs, index) } },
+            selectedIndex = shownIndex,
+        )
+    }
 }
 
 private fun NavHostController.restartAtSplash() {
