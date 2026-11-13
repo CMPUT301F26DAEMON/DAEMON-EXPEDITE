@@ -81,4 +81,5 @@ dependencies {
     implementation(libs.osmdroid.android)
     implementation(libs.geofire.android.common)
     implementation(libs.zxing.core)
+    implementation(libs.play.services.code.scanner)
 }

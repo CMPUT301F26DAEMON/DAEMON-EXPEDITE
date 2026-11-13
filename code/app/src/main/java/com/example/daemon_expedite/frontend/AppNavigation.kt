@@ -5,17 +5,13 @@
 package com.example.daemon_expedite.frontend
 
 import android.widget.Toast
-import com.example.daemon_expedite.ui_components.BottomNavBar
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.compose.runtime.key
-import androidx.compose.runtime.SideEffect
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,8 +21,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -39,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.example.daemon_expedite.R
@@ -47,6 +46,7 @@ import com.example.daemon_expedite.backend.Database.isAdmin
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.BottomNavBar
 import java.util.Map.entry
 
 /** Route names for every screen in the app. Add new screens here. */
@@ -90,13 +90,18 @@ object Routes {
 
     // A lottery winner's booking screen. The campsite is the one picked first.
     const val BOOK_LOTTERY_STAY = "lottery/{$LOTTERY_ID_ARG}/book/{$CAMPSITE_ID_ARG}"
-    fun bookLotteryStay(lotteryId: Id, campsiteId: Id) = "lottery/${lotteryId.value}/book/${campsiteId.value}"
+
+    fun bookLotteryStay(
+        lotteryId: Id,
+        campsiteId: Id,
+    ) = "lottery/${lotteryId.value}/book/${campsiteId.value}"
 
     const val ENTRANT_LOTTERY_DETAIL = "lottery/{$LOTTERY_ID_ARG}"
     const val OWNER_LOTTERY_DETAIL = "owner_lottery/{$LOTTERY_ID_ARG}"
     const val RESERVATION_DETAIL = "reservation_detail"
 
     fun entrantLotteryDetail(id: Id) = "lottery/${id.value}"
+
     fun ownerLotteryDetail(id: Id) = "owner_lottery/${id.value}"
 
     const val EDIT_LOTTERY = "owner_lottery/{$LOTTERY_ID_ARG}/edit"
@@ -219,7 +224,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
      * back stack, so a tab that is the home pops back there; the other tabs sit directly above
      * it, so moving between tabs never builds up a stack.
      */
-    fun openTab(tabs: RoleTabs, index: Int) {
+    fun openTab(
+        tabs: RoleTabs,
+        index: Int,
+    ) {
         val route = tabs.routes.getOrNull(index) ?: return showComingSoon(tabs.labels[index])
         // Already there. Navigating anyway would pop this tab and open a fresh copy (popUpTo
         // runs before launchSingleTop checks the top), replaying the slide.
@@ -234,7 +242,12 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
         }
     }
 
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val currentRoute =
+        navController
+            .currentBackStackEntryAsState()
+            .value
+            ?.destination
+            ?.route
     // The role whose bar belongs on this screen, or null for screens without one.
     val barTabs = RoleTabs.forRoute(currentRoute)
 
@@ -281,6 +294,24 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     campsites = campsites,
                     onRetry = home::retry,
                     onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
+                    onQrCodeScanned = { scanned ->
+                        val clean = scanned.removePrefix("expedite://").trim()
+                        when {
+                            clean.startsWith("campsite/") -> {
+                                clean.removePrefix("campsite/").toIdOrNull()?.let { id ->
+                                    navController.navigate(Routes.campsiteDetail(id))
+                                }
+                            }
+
+                            clean.startsWith("lottery/") -> {
+                                clean.removePrefix("lottery/").toIdOrNull()?.let { id ->
+                                    navController.navigate(Routes.entrantLotteryDetail(id))
+                                }
+                            }
+
+                            else -> {}
+                        }
+                    },
                     onFilterClick = home::onFilterClick,
                     onProfileClick = { navController.navigate(Routes.ENTRANT_PROFILE) },
                 )
@@ -296,7 +327,6 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     state = state,
                     leavingId = leavingId,
                     onRetry = lotteries::retry,
-
                     onLeaveConfirmed = { lotteryId ->
                         leavingId = lotteryId
                         session.leaveLottery(lotteryId) { result ->
@@ -332,7 +362,6 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     cancellingId = cancellingId,
                     ratingId = ratingId,
                     onRetry = reservations::retry,
-
                     onCancelConfirmed = { id ->
                         reservations.cancel(id) { problem -> toast(problem ?: "Reservation cancelled") }
                     },
@@ -344,9 +373,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
             composable(
                 route = Routes.CAMPSITE_DETAIL,
-                deepLinks = listOf(
-                    navDeepLink { uriPattern = "expedite://campsite/{${Routes.CAMPSITE_ID_ARG}}" },
-                ),
+                deepLinks =
+                    listOf(
+                        navDeepLink { uriPattern = "expedite://campsite/{${Routes.CAMPSITE_ID_ARG}}" },
+                    ),
             ) {
                 // Reads the campsite id from the route through its SavedStateHandle.
                 val detail: CampsiteDetailViewModel = viewModel()
@@ -424,9 +454,11 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 // Loads the campsite named in the route, so any screen can link to its policies.
                 val campsiteId = remember(entry) { entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).toIdOrNull() }
                 val policies by produceState<String?>(null, campsiteId) {
-                    value = campsiteId?.let { id ->
-                        quietly("Couldn't load policies for $id") { Database.fetchCampsite(id).policies }
-                    }.orEmpty()
+                    value =
+                        campsiteId
+                            ?.let { id ->
+                                quietly("Couldn't load policies for $id") { Database.fetchCampsite(id).policies }
+                            }.orEmpty()
                 }
                 CampsitePoliciesScreen(
                     policies = policies,
@@ -659,9 +691,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
             composable(
                 route = Routes.OWNER_LOTTERY_DETAIL,
-                deepLinks = listOf(
-                    navDeepLink { uriPattern = "expedite://owner_lottery/{${Routes.LOTTERY_ID_ARG}}" },
-                ),
+                deepLinks =
+                    listOf(
+                        navDeepLink { uriPattern = "expedite://owner_lottery/{${Routes.LOTTERY_ID_ARG}}" },
+                    ),
             ) {
                 val detail: OwnerLotteryDetailViewModel = viewModel()
                 // Runs each time the page comes back, so edits show up.
@@ -708,9 +741,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
             composable(
                 route = Routes.ENTRANT_LOTTERY_DETAIL,
-                deepLinks = listOf(
-                    navDeepLink { uriPattern = "expedite://lottery/{${Routes.LOTTERY_ID_ARG}}" },
-                ),
+                deepLinks =
+                    listOf(
+                        navDeepLink { uriPattern = "expedite://lottery/{${Routes.LOTTERY_ID_ARG}}" },
+                    ),
             ) {
                 val detail: EntrantLotteryDetailViewModel = viewModel()
                 LaunchedEffect(Unit) { detail.load() }
@@ -735,7 +769,10 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onBookClick = {
                         (state as? UiState.Content)?.let { content ->
                             val lotteryId = content.data.id
-                            val campsiteId = content.data.campsites.firstOrNull()?.id
+                            val campsiteId =
+                                content.data.campsites
+                                    .firstOrNull()
+                                    ?.id
                             if (campsiteId != null) {
                                 navController.navigate(Routes.bookLotteryStay(lotteryId, campsiteId))
                             }
@@ -968,7 +1005,13 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     },
                     onDeleteCampsiteConfirmed = {
                         detail.deleteCampsite { ok ->
-                            if (ok) onDeleted("Campsite deleted") else toast("Couldn't delete campsite. Check your connection and try again.")
+                            if (ok) {
+                                onDeleted(
+                                    "Campsite deleted",
+                                )
+                            } else {
+                                toast("Couldn't delete campsite. Check your connection and try again.")
+                            }
                         }
                     },
                     onDeleteOwnerConfirmed = {
@@ -1185,6 +1228,7 @@ private fun CenteredMessage(
  * Goes back to the splash screen and clears everything behind it, so back can't return to
  * screens for a profile that no longer exists. Used after deleting the profile.
  */
+
 /**
  * The bottom bar for [tabs]' role (see [RoleTabs]).
  *

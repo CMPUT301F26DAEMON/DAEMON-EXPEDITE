@@ -1,8 +1,24 @@
 package com.example.daemon_expedite.frontend
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -11,9 +27,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -25,11 +45,11 @@ import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.ProfileImage
 import com.example.daemon_expedite.ui_components.SearchBar
+import com.example.daemon_expedite.ui_components.scanQrCode
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.clickable
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
 * The main Entrant Home screen.
@@ -47,6 +67,7 @@ import androidx.compose.foundation.clickable
  * @param campsites Campsites to display, or a loading/error state.
  * @param onRetry Called when the user retries loading campsites.
  * @param onCampsiteClick Called with the ID of the selected campsite.
+ * @param onQrCodeScanned Called with the string content scanned from a QR code.
  * @param onFilterClick Called when the user applies or resets filters,
  * with the location, stay dates, and guest count.
  * @param onProfileClick Called when the profile picture is tapped.
@@ -60,9 +81,13 @@ fun EntrantHomeScreen(
     campsites: UiState<List<CampsiteSummary>> = UiState.Content(emptyList()),
     onRetry: () -> Unit = {},
     onCampsiteClick: (Id) -> Unit = {},
+    onQrCodeScanned: (String) -> Unit = {},
     onFilterClick: (location: String, startDate: LocalDate?, endDate: LocalDate?, guestCount: Int) -> Unit = { _, _, _, _ -> },
     onProfileClick: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var showFilterSheet by remember { mutableStateOf(false) }
     var filterLocation by remember { mutableStateOf("") }
     var filterStartDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -128,7 +153,20 @@ fun EntrantHomeScreen(
                         onQueryChange = onSearchQueryChange,
                         placeholderText = "Where do you want to go?",
                         showQrIcon = true,
-                        onQRCodeClicked = {},
+                        onQRCodeClicked = {
+                            scope.launch {
+                                try {
+                                    val scannedResult = scanQrCode(context)
+                                    if (!scannedResult.isNullOrBlank()) {
+                                        onQrCodeScanned(scannedResult)
+                                    }
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (e: Exception) {
+                                    Log.e("EntrantHomeScreen", "Failed to scan QR code", e)
+                                }
+                            }
+                        },
                     )
                 }
                 Box(
