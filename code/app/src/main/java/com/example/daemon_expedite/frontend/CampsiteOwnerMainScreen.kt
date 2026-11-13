@@ -25,8 +25,7 @@ import androidx.compose.ui.unit.dp
 
 
 
-import com.example.daemon_expedite.ui_components.BottomNavBar
-import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.GreenButton
 import com.example.daemon_expedite.ui_components.ProfileImage
@@ -44,8 +43,8 @@ import com.example.daemon_expedite.ui_components.SearchBar
  * Displays a search bar and profile button for accessing the owner's profile.
  * Includes a scrollable list of registered campsites and their details.
  * Provides a button for registering new campsites.
- * Includes a bottom navigation bar for accessing reservations, messages,
- * notifications, and lotteries.
+ * The bottom bar (reservations, messages, notifications and lotteries) is drawn over this
+ * screen by AppNavigation, so it stays put while the owner moves between screens.
  *
  * The screen only displays what it is given; [OwnerViewModel] loads the campsites.
  * The search bar filters the already-loaded list, so it doesn't hit the database.
@@ -60,10 +59,6 @@ fun CampsiteOwnerMainPage(
     onCampsiteClick: (Id) -> Unit = {},
     onProfileClick: () -> Unit = {},
     onRegisterCampsiteClick: () -> Unit = {},
-    onReservationsClick: () -> Unit = {},
-    onMessagesClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onLotteriesClick: () -> Unit = {},
 ) {
 
     Column(
@@ -154,29 +149,8 @@ fun CampsiteOwnerMainPage(
                 buttonText = "Register a campsite"
             )
         }
-        // Bottom navigation
-        BottomNavBar(
-            labels = listOf(
-                "Reservations",
-                "Messages",
-                "Notifications",
-                "Lotteries"
-            ),
-            icons = listOf(
-                AppIcons.Reservation,
-                AppIcons.Chat,
-                AppIcons.BellIcon,
-                AppIcons.LotteryTicket
-            ),
-            onClicks = listOf(
-                onReservationsClick,
-                onMessagesClick,
-                onNotificationsClick,
-                onLotteriesClick,
-            )
-
-
-        )
+        // Room for the shared bottom bar AppNavigation draws on top.
+        BottomNavBarSpacer()
     }
 }
 

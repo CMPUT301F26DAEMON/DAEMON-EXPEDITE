@@ -24,6 +24,7 @@ package com.example.daemon_expedite.backend
  * @param lotteries List<Id>. The lotteries the owner has joined when acting as a user.
  * @param reservations List<Id>. The reservations the owner has made when acting as a user.
  * @param chats List<Id>. The chats of the owner when acting as a user.
+ * @param receivedNotifications List<Id>. The notifications sent to the owner when acting as a user.
  * @param ownerCampsites List<Id>. The ids of the campsites the owner has registered.
  * @param ownerReservations List<Id>. The ids of reservations made at the owner's campsites.
  * @param ownerLotteries List<Id>. The ids of lotteries the owner has created.
@@ -40,6 +41,7 @@ open class Owner(
     lotteries: List<Id> = emptyList(),
     reservations: List<Id> = emptyList(),
     chats: List<Id> = emptyList(),
+    receivedNotifications: List<Id> = emptyList(),
     ownerCampsites: List<Id> = emptyList(),
     ownerReservations: List<Id> = emptyList(),
     ownerLotteries: List<Id> = emptyList(),
@@ -55,6 +57,7 @@ open class Owner(
         lotteries,
         reservations,
         chats,
+        receivedNotifications,
     ) {
     private val _ownerCampsites: MutableList<Id> = ownerCampsites.toMutableList()
     private val _ownerReservations: MutableList<Id> = ownerReservations.toMutableList()

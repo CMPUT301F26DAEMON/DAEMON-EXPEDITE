@@ -195,6 +195,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "lotteries" to user.lotteryIds.map { it.value.toString() },
                 "reservations" to user.reservationIds.map { it.value.toString() },
                 "chats" to user.chatIds.map { it.value.toString() },
+                "receivedNotifications" to user.receivedNotifications.map { it.value.toString() },
             )
         db
             .collection("users")
@@ -291,6 +292,11 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         for (item in chatsData) {
             chats.add(Id(Uuid.parse(item as String)))
         }
+        // Users saved before this field existed have none, so treat a missing list as empty.
+        val receivedNotifications =
+            (userData["receivedNotifications"] as? List<*>)
+                .orEmpty()
+                .map { Id(Uuid.parse(it as String)) }
         return User(
             id = Id(Uuid.parse(idData)),
             name = name,
@@ -301,6 +307,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             lotteries = lotteries,
             reservations = reservations,
             chats = chats,
+            receivedNotifications = receivedNotifications,
         )
     }
 
@@ -472,6 +479,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             lotteries = user.lotteryIds,
             reservations = user.reservationIds,
             chats = user.chatIds,
+            receivedNotifications = user.receivedNotifications,
             ownerCampsites = ownerCampsites,
             ownerReservations = ownerReservations,
             ownerLotteries = ownerLotteries,

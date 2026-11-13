@@ -20,7 +20,7 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.AppIcons
-import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.ProfileImage
 import com.example.daemon_expedite.ui_components.SearchBar
 import java.time.LocalDate
@@ -29,8 +29,8 @@ import java.time.LocalDate
  * The main Admin Home screen.
  * Displays a search bar with a QR code scanner, filter and profile buttons.
  * Includes a list of campsites.
- * Includes a bottom navigation bar for accessing messages, the profile list,
- * notifications, and images.
+ * The bottom bar (messages, the profile list, notifications and images) is drawn over this
+ * screen by AppNavigation, so it stays put while the admin moves between screens.
  *
  * Same layout as [EntrantHomeScreen]; only the bottom navigation tabs differ.
  * The screen only displays what it is given; [HomeViewModel] does the loading and searching.
@@ -43,10 +43,6 @@ import java.time.LocalDate
  * @param onCampsiteClick Called with the id of the tapped campsite.
  * @param onFilterClick Called when the filter button is tapped.
  * @param onProfileClick Called when the profile picture in the top bar is tapped.
- * @param onMessagesClick Called when the Messages tab is tapped.
- * @param onProfilesClick Called when the Profiles tab is tapped.
- * @param onNotificationsClick Called when the Notifications tab is tapped.
- * @param onImagesClick Called when the Images tab is tapped.
  */
 @Composable
 fun AdminHomeScreen(
@@ -58,10 +54,6 @@ fun AdminHomeScreen(
     onCampsiteClick: (Id) -> Unit = {},
     onFilterClick: (location: String, startDate: LocalDate?, endDate: LocalDate?, guestCount: Int) -> Unit = { _, _, _, _ -> },
     onProfileClick: () -> Unit = {},
-    onMessagesClick: () -> Unit = {},
-    onProfilesClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onImagesClick: () -> Unit = {},
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
     var filterLocation by remember { mutableStateOf("") }
@@ -165,29 +157,8 @@ fun AdminHomeScreen(
                     .weight(1f)
                     .fillMaxWidth(),
         )
-        BottomNavBar(
-            labels =
-                listOf(
-                    "Messages",
-                    "Profiles",
-                    "Notifications",
-                    "Images",
-                ),
-            icons =
-                listOf(
-                    AppIcons.Chat,
-                    AppIcons.Profile,
-                    AppIcons.BellIcon,
-                    AppIcons.AddPhoto,
-                ),
-            onClicks =
-                listOf(
-                    onMessagesClick,
-                    onProfilesClick,
-                    onNotificationsClick,
-                    onImagesClick,
-                ),
-        )
+        // Room for the shared bottom bar AppNavigation draws on top.
+        BottomNavBarSpacer()
     }
 
     if (showFilterSheet) {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /** Height of the bar's tab row, not counting the system navigation bar below it. */
 val BottomNavBarHeight = 66.dp
@@ -144,7 +146,14 @@ fun BottomNavBar(
                             text = labels[i],
                             style = if (isSelected) AppTextStyles.NavLabel else AppTextStyles.NavLabel.copy(fontWeight = FontWeight.Normal),
                             color = contentColor,
-                            maxLines = 1
+                            maxLines = 1,
+                            // With five tabs a long label like "Notifications" is wider than its
+                            // tab on narrow phones, so it shrinks to fit instead of being cut off.
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = AppTextStyles.NavLabel.fontSize,
+                                stepSize = 0.5.sp,
+                            ),
                         )
                     }
                 }

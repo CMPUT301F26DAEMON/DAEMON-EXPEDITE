@@ -9,6 +9,7 @@ import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Image
 import com.example.daemon_expedite.backend.Lottery
+import com.example.daemon_expedite.backend.Notification
 import com.example.daemon_expedite.backend.Reservation
 import com.example.daemon_expedite.backend.User
 import org.junit.Assert.assertEquals
@@ -154,6 +155,21 @@ class UserTest {
         assertEquals(listOf(chat.id), user.chatIds)
     }
 
+    @Test
+    fun addReceivedNotification_newIsAddedDuplicateIgnored() {
+        val user = user()
+        val notification = Notification(id = Id(), text = "You won!", receiversOfLottery = Id(), senderId = Id())
+
+        assertTrue(user.addReceivedNotification(notification))
+        assertFalse(user.addReceivedNotification(notification))
+        assertEquals(listOf(notification.id), user.receivedNotifications)
+    }
+
+    @Test
+    fun receivedNotifications_defaultsToEmpty() {
+        assertTrue(User(notificationsEnabled = true).receivedNotifications.isEmpty())
+    }
+
     // endregion
 
     // region Joining and leaving lotteries
@@ -191,12 +207,19 @@ class UserTest {
 
     @Test
     fun deleteProfile_clearsLists() {
-        val user = user(lotteries = listOf(Id()), reservations = listOf(Id()), chats = listOf(Id()))
+        val user = User(
+            notificationsEnabled = true,
+            lotteries = listOf(Id()),
+            reservations = listOf(Id()),
+            chats = listOf(Id()),
+            receivedNotifications = listOf(Id()),
+        )
         user.deleteProfile()
 
         assertTrue(user.lotteryIds.isEmpty())
         assertTrue(user.reservationIds.isEmpty())
         assertTrue(user.chatIds.isEmpty())
+        assertTrue(user.receivedNotifications.isEmpty())
     }
 
     // endregion

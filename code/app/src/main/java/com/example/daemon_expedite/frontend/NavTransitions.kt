@@ -31,11 +31,8 @@ private const val ROLE_SWITCH_MS = 400
 private const val FADE_MS = 250
 private const val TAB_MS = 350
 
-/** How long the entrant bottom bar takes to slide in or out, in step with the screens. */
+/** How long the bottom bar takes to slide in or out, in step with the screens. */
 internal const val TAB_BAR_MS = SLIDE_MS
-
-/** Entrant tab routes in bottom bar order. Messages (the 4th tab) has no screen yet. */
-internal val EntrantTabRoutes = listOf(Routes.HOME, Routes.RESERVATIONS, Routes.ENTRANT_LOTTERIES)
 
 /** How far the screen underneath moves (a fraction of the width): a slight parallax. */
 private const val PARALLAX = 4
@@ -66,13 +63,17 @@ private fun NavScope.isRoleSwitch(): Boolean {
 private fun NavScope.isFromSplash() = from(Routes.SPLASH)
 
 /**
- * For a move between two entrant tabs, the way the screens slide: toward the start when the
- * new tab is to the right of the old one, toward the end otherwise. Null for any other move.
+ * For a move between two tabs of the same role's bar ([RoleTabs]), the way the screens slide:
+ * toward the start when the new tab is to the right of the old one, toward the end otherwise.
+ * Null for any other move.
  */
 private fun NavScope.tabSlide(): SlideDirection? {
-    val from = EntrantTabRoutes.indexOf(initialState.destination.route)
-    val to = EntrantTabRoutes.indexOf(targetState.destination.route)
-    if (from < 0 || to < 0 || from == to) return null
+    val fromRoute = initialState.destination.route
+    val toRoute = targetState.destination.route
+    val tabs = RoleTabs.ALL.firstOrNull { it.indexOf(fromRoute) >= 0 && it.indexOf(toRoute) >= 0 } ?: return null
+    val from = tabs.indexOf(fromRoute)
+    val to = tabs.indexOf(toRoute)
+    if (from == to) return null
     return if (to > from) SlideDirection.Start else SlideDirection.End
 }
 
