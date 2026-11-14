@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
+import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.NotificationCard
 
 /**
@@ -32,25 +34,37 @@ import com.example.daemon_expedite.ui_components.NotificationCard
  *
  * Opened from the Notifications tab of the entrant, owner and admin bottom bars
  * ([Routes.ENTRANT_NOTIFICATIONS], [Routes.OWNER_NOTIFICATIONS], [Routes.ADMIN_NOTIFICATIONS]).
- * The bar is drawn on top by AppNavigation. Shows "No notifications yet" when
- * [notifications] is empty.
+ * The bar is drawn on top by AppNavigation. Notifications come from [NotificationsViewModel],
+ * newest first; unread ones show a green dot. Shows "No notifications yet" when there are none.
  *
- * TODO: Connect to the notification backend.
  * TODO: Connect notification clicks to navigation.
  */
 
+/**
+ * One notification, formatted for [NotificationCard].
+ *
+ * @property isNew True if the user hadn't read it before opening the page; shows a green dot.
+ */
 data class NotificationEntry(
     val sender: String,
     val message: String,
-    val timestamp: String
+    val timestamp: String,
+    val id: Id = Id(),
+    val title: String? = null,
+    val isNew: Boolean = false,
 )
 
-
+/**
+ * @param state The user's notifications, newest first, or loading / error.
+ * @param onBackClick Null hides the back button: the screen is opened as a tab.
+ * @param onRetry Called when the error message is tapped.
+ * @param onNotificationClick Called with the tapped notification.
+ */
 @Composable
 fun NotificationsScreen(
-    notifications: List<NotificationEntry> = emptyList(),
-    // Null hides the back button: the entrant opens this as a tab, like Reservations.
+    state: UiState<List<NotificationEntry>> = UiState.Content(emptyList()),
     onBackClick: (() -> Unit)? = {},
+    onRetry: () -> Unit = {},
     onNotificationClick: (NotificationEntry) -> Unit = {}
 ) {
     Column(
@@ -104,7 +118,29 @@ fun NotificationsScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        if (notifications.isEmpty()) {
+        val notifications = (state as? UiState.Content)?.data.orEmpty()
+
+        when (state) {
+            UiState.Loading -> Box(
+                Modifier.fillMaxWidth().padding(top = 48.dp),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator(color = AppColors.Primary) }
+
+            is UiState.Error -> Text(
+                text = "${state.message}. Tap to try again.",
+                style = AppTextStyles.BodyMedium,
+                color = AppColors.TextSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp)
+                    .clickable(onClick = onRetry)
+            )
+
+            is UiState.Content -> Unit
+        }
+
+        if (state is UiState.Content && notifications.isEmpty()) {
             Text(
                 text = "No notifications yet",
                 style = AppTextStyles.BodyMedium,
@@ -122,6 +158,8 @@ fun NotificationsScreen(
                 sender = notification.sender,
                 message = notification.message,
                 timestamp = notification.timestamp,
+                title = notification.title,
+                isNew = notification.isNew,
                 onClick = {
                     onNotificationClick(notification)
                 }
@@ -151,11 +189,13 @@ fun NotificationsScreen(
 @Composable
 private fun NotificationsScreenPreview() {
     NotificationsScreen(
-        notifications = listOf(
+        state = UiState.Content(listOf(
             NotificationEntry(
                 sender = "Pine Creek Hideaway",
                 message = "You won the lottery for Jun 12 - Jun 14. Accept your spot within 48 hours.",
-                timestamp = "2h ago"
+                timestamp = "2h ago",
+                title = "Lottery results",
+                isNew = true
             ),
             NotificationEntry(
                 sender = "Maple Hollow",
@@ -172,6 +212,6 @@ private fun NotificationsScreenPreview() {
                 message = "Welcome! Turn on notifications to hear about lottery results.",
                 timestamp = "Nov 2"
             )
-        )
+        ))
     )
 }

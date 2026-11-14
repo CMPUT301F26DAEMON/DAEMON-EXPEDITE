@@ -4,9 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -15,6 +17,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -22,8 +28,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
+import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.EntrantCard
+import com.example.daemon_expedite.ui_components.GreenButton
+import com.example.daemon_expedite.ui_components.OwnerNotificationPopup
 import com.example.daemon_expedite.ui_components.ScreenHeader
 
 /**
@@ -37,14 +46,32 @@ import com.example.daemon_expedite.ui_components.ScreenHeader
  * @param onBackClick Called when the header's back button is tapped.
  * @param onRetry Called when the error message is tapped.
  * @param onMessageClick Called when the message button on any entrant's card is tapped.
+ * @param isSendingNotification True while a notification is being sent. Disables the popup's button.
+ * @param onSendNotification Called when the owner sends from the popup, with the title (null if
+ *   blank), the message, and a callback to report back: pass true to close the popup, false
+ *   to keep it open (with the owner's text) so they can try again. The "Send Notification"
+ *   button that opens the popup is only shown when the waiting list has at least one entrant.
  */
 @Composable
 fun LotteryWaitingList(
     state: UiState<List<EntrantInWaitingList>>,
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
-    onMessageClick: () -> Unit = {}
+    onMessageClick: () -> Unit = {},
+    isSendingNotification: Boolean = false,
+    onSendNotification: (title: String?, text: String, onResult: (Boolean) -> Unit) -> Unit = { _, _, _ -> },
 ){
+    var showNotificationPopup by rememberSaveable { mutableStateOf(false) }
+    if (showNotificationPopup) {
+        OwnerNotificationPopup(
+            onDismiss = { showNotificationPopup = false },
+            isSending = isSendingNotification,
+            onSend = { title, text ->
+                onSendNotification(title, text) { sent -> if (sent) showNotificationPopup = false }
+            },
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -76,8 +103,10 @@ fun LotteryWaitingList(
                     )
                 }
             } else {
+                // weight(1f) lets the list take only the space left over after the button,
+                // instead of fillMaxSize() which would push the button off-screen.
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(start = 28.dp, end = 28.dp, top = 12.dp, bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
@@ -89,7 +118,22 @@ fun LotteryWaitingList(
                         )
                     }
                 }
+
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 28.dp, end = 28.dp, top = 8.dp, bottom = 16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GreenButton(
+                        onClick = { showNotificationPopup = true },
+                        icon = AppIcons.BellIcon,
+                        buttonText = "Send Notification",
+                        customWidth = maxWidth.value.toInt(),
+                    )
+                }
             }
+
         }
     }
 

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.Notification
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 
 /**
@@ -35,6 +37,42 @@ class LotteryWaitingListViewModel(savedState: SavedStateHandle) : ViewModel() {
 
     private val _entrants = MutableStateFlow<UiState<List<EntrantInWaitingList>>>(UiState.Loading)
     val entrants: StateFlow<UiState<List<EntrantInWaitingList>>> = _entrants.asStateFlow()
+
+    private val _isSending = MutableStateFlow(false)
+
+    /** True while a notification is being sent. */
+    val isSending: StateFlow<Boolean> = _isSending.asStateFlow()
+
+    /**
+     * Sends a notification to everyone on this lottery's waiting list (see
+     * [Database.sendLotteryNotification]). Ignored while a send is already running.
+     *
+     * @param senderId The owner sending it.
+     * @param onResult Called with the saved notification, or null if it couldn't be sent.
+     */
+    fun sendNotification(
+        senderId: Id,
+        title: String?,
+        text: String,
+        onResult: (Notification?) -> Unit,
+    ) {
+        val id = lotteryId ?: return onResult(null)
+        if (_isSending.value) return
+        _isSending.value = true
+        viewModelScope.launch {
+            val sent =
+                try {
+                    Database.sendLotteryNotification(id, senderId, title, text)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("LotteryWaitingListVM", "Couldn't send notification", e)
+                    null
+                }
+            _isSending.value = false
+            onResult(sent)
+        }
+    }
 
     /** Loads (or reloads) the waiting list. What is on screen stays there while it reloads. */
     fun load() {

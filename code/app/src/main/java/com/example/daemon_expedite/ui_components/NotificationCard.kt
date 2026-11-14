@@ -3,7 +3,12 @@ package com.example.daemon_expedite.ui_components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +42,8 @@ import androidx.compose.ui.unit.sp
  *
  * @param sender Shown in bold at the top, for example a campsite or owner name.
  * @param message The notification text. Wraps onto as many lines as it needs.
+ * @param title Optional heading shown between the sender and the message.
+ * @param isNew Shows a green dot next to the sender for notifications the user hasn't seen.
  * @param timestamp When it was sent, already formatted, for example "2h ago".
  * @param onClick Called when the card is tapped.
  * @param modifier Optional [Modifier] for the card.
@@ -47,6 +55,8 @@ fun NotificationCard(
     timestamp: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String? = null,
+    isNew: Boolean = false,
 ) {
     val shape = RoundedCornerShape(14.dp)
 
@@ -66,14 +76,35 @@ fun NotificationCard(
                 vertical = 11.dp
             )
     ) {
-        Text(
-            text = sender,
-            color = AppColors.TextPrimary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (isNew) {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(AppColors.Primary)
+                )
+                Spacer(Modifier.width(7.dp))
+            }
+            Text(
+                text = sender,
+                color = AppColors.TextPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
 
         Spacer(Modifier.height(5.dp))
+
+        if (title != null) {
+            Text(
+                text = title,
+                color = AppColors.TextPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(Modifier.height(3.dp))
+        }
 
         Text(
             text = message,
@@ -101,6 +132,8 @@ private fun NotificationCardPreview() {
             message = "You won the lottery for Jun 12 - Jun 14. Accept your spot within 48 hours.",
             timestamp = "2h ago",
             onClick = {},
+            title = "Lottery results",
+            isNew = true,
         )
         Spacer(Modifier.height(10.dp))
         NotificationCard(

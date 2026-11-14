@@ -118,12 +118,14 @@ open class Owner(
     }
 
     /**
-     * Records a notification sent by this owner.
+     * Records a notification sent by this owner, in memory. Call it after
+     * [Database.sendLotteryNotification], which already saved it on the owner document, so a
+     * later [Database.updateOwner] doesn't drop it.
+     *
+     * @return false if the notification was already recorded.
      */
-    /**
-     fun addSentNotification(notification: Notification): Boolean {
-     if (notification.id in _sentNotifications) return false
-     return _sentNotifications.add(notification.id)
-     }
-     */
+    fun addSentNotification(notification: Notification): Boolean {
+        if (notification.id in _sentNotifications) return false
+        return _sentNotifications.add(notification.id)
+    }
 }
