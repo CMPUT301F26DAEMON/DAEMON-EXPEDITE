@@ -16,10 +16,12 @@ import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.storage
 import com.google.firebase.storage.storageMetadata
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import java.io.File
@@ -164,9 +166,11 @@ interface DatabaseInterface {
         lastMessage: Message? = null,
     ): Chat
 
-    fun addNotification(notification: Notification)
+    suspend fun sendLotteryNotification(lotteryId: Id, senderId: Id, title: String?, text: String): Notification
 
-    fun fetchAllNotifications(): List<Notification>
+    suspend fun fetchReceivedNotifications(userId: Id): List<Notification>
+
+    suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>)
 }
 
 /**
@@ -407,8 +411,32 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         }
     }
 
+    /**
+     * Saves the user's own fields.
+     *
+     * `receivedNotifications` is left out on purpose: other people add to it (see
+     * [sendLotteryNotification]), so the in-memory [User] can be missing ids that arrived after
+     * it was loaded. Writing the list here would delete them.
+     */
     override suspend fun updateUser(user: User) {
-        addUser(user)
+        val data =
+            mapOf(
+                "authId" to auth.currentUser?.uid,
+                "id" to user.id.value.toString(),
+                "name" to user.name,
+                "email" to user.email,
+                "phoneNumber" to user.phoneNumber,
+                "notificationsEnabled" to user.notificationsEnabled,
+                "profileImage" to user.profileImage?.id?.value?.toString(),
+                "lotteries" to user.lotteryIds.map { it.value.toString() },
+                "reservations" to user.reservationIds.map { it.value.toString() },
+                "chats" to user.chatIds.map { it.value.toString() },
+            )
+        db
+            .collection("users")
+            .document(user.id.value.toString())
+            .set(data, SetOptions.merge())
+            .await()
     }
 
     /**
@@ -1643,13 +1671,157 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return fetchChat(Id(Uuid.parse(chatDoc.id)), lastMessage)
     }
 
-    override fun addNotification(notification: Notification) {
-        TODO("Not yet implemented")
+    // region Notifications
+
+    private fun notificationRef(id: Id) = db.collection("notifications").document(id.value.toString())
+
+    /**
+     * Sends a notification from owner [senderId] to everyone on [lotteryId]'s waiting list.
+     *
+     * Stores the notification once in `notifications/<id>`, then adds its id to each entrant's
+     * `receivedNotifications` and to the owner's `ownerNotifications` with `arrayUnion`, so it
+     * never overwrites ids added by someone else at the same time. Entrants whose account no
+     * longer exists are skipped (updating a missing document would fail the whole write).
+     *
+     * Firestore allows 500 writes per batch, so very long waiting lists are written in chunks.
+     *
+     * @param title Optional heading. Blank is treated as no title.
+     * @param text The message. Must not be blank.
+     * @return The saved notification. Record it on the in-memory owner with
+     *   [Owner.addSentNotification].
+     */
+    override suspend fun sendLotteryNotification(
+        lotteryId: Id,
+        senderId: Id,
+        title: String?,
+        text: String,
+    ): Notification {
+        require(text.isNotBlank()) { "Notification text is required" }
+        val lottery = fetchLottery(lotteryId)
+        val notification =
+            Notification(
+                id = Id(),
+                text = text.trim(),
+                receiversOfLottery = lotteryId,
+                senderId = senderId,
+                title = title?.trim()?.takeIf { it.isNotEmpty() },
+            )
+        val idString = notification.id.value.toString()
+
+        val recipients = existingUserRefs(lottery.waitingList.users)
+
+        val first = db.batch()
+        first.set(
+            notificationRef(notification.id),
+            mapOf(
+                "id" to idString,
+                "title" to notification.title,
+                "text" to notification.text,
+                "lottery" to lotteryId.value.toString(),
+                "sender" to senderId.value.toString(),
+                "readBy" to emptyList<String>(),
+            ),
+        )
+        first.update(ownerRef(senderId), "ownerNotifications", FieldValue.arrayUnion(idString))
+        // 2 writes already in the first batch.
+        val firstChunk = recipients.take(498)
+        firstChunk.forEach { first.update(it, "receivedNotifications", FieldValue.arrayUnion(idString)) }
+        first.commit().await()
+
+        recipients.drop(firstChunk.size).chunked(500).forEach { chunk ->
+            val batch = db.batch()
+            chunk.forEach { batch.update(it, "receivedNotifications", FieldValue.arrayUnion(idString)) }
+            batch.commit().await()
+        }
+        return notification
     }
 
-    override fun fetchAllNotifications(): List<Notification> {
-        TODO("Not yet implemented")
+    /** References to the `users` documents that exist among [ids], looked up 30 at a time. */
+    private suspend fun existingUserRefs(ids: List<Id>) =
+        coroutineScope {
+            ids
+                .distinct()
+                .chunked(30) // Firestore `in` limit
+                .map { chunk ->
+                    async {
+                        db
+                            .collection("users")
+                            .whereIn(FieldPath.documentId(), chunk.map { it.value.toString() })
+                            .get()
+                            .await()
+                            .documents
+                            .map { it.reference }
+                    }
+                }.awaitAll()
+                .flatten()
+        }
+
+    /**
+     * The notifications sent to [userId], newest first (by [Id.getTime]).
+     *
+     * Reads the ids from the stored user document rather than an in-memory [User], because
+     * owners add to that list after the user was loaded. Each notification's
+     * [Notification.isRead] says whether *this* user has read it. Ids whose notification is
+     * missing or malformed are skipped.
+     */
+    override suspend fun fetchReceivedNotifications(userId: Id): List<Notification> {
+        val userData =
+            db.collection("users").document(userId.value.toString()).get().await().data
+                ?: throw NotFoundException("User ${userId.value} not found")
+        val ids =
+            (userData["receivedNotifications"] as? List<*>)
+                .orEmpty()
+                .mapNotNull { (it as? String)?.let { s -> runCatching { Uuid.parse(s) }.getOrNull() } }
+                .distinct()
+        val me = userId.value.toString()
+
+        val docs =
+            coroutineScope {
+                ids
+                    .chunked(30) // Firestore `in` limit
+                    .map { chunk ->
+                        async {
+                            db
+                                .collection("notifications")
+                                .whereIn(FieldPath.documentId(), chunk.map { it.toString() })
+                                .get()
+                                .await()
+                                .documents
+                        }
+                    }.awaitAll()
+                    .flatten()
+            }
+
+        return docs
+            .mapNotNull { doc ->
+                runCatching {
+                    Notification(
+                        id = Id(Uuid.parse(doc.id)),
+                        text = doc.getString("text")!!,
+                        receiversOfLottery = Id(Uuid.parse(doc.getString("lottery")!!)),
+                        senderId = Id(Uuid.parse(doc.getString("sender")!!)),
+                        isRead = (doc.get("readBy") as? List<*>)?.contains(me) == true,
+                        title = doc.getString("title")?.takeIf { it.isNotBlank() },
+                    )
+                }.onFailure { Log.e("DatabaseInner", "Skipping malformed notification ${doc.id}", it) }
+                    .getOrNull()
+            }.sortedByDescending { it.id.getTime() }
     }
+
+    /**
+     * Marks each of [notificationIds] as read by [userId] (adds the user to its `readBy`).
+     * Other recipients are unaffected.
+     */
+    override suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>) {
+        val me = userId.value.toString()
+        notificationIds.distinct().chunked(500).forEach { chunk ->
+            val batch = db.batch()
+            chunk.forEach { batch.update(notificationRef(it), "readBy", FieldValue.arrayUnion(me)) }
+            batch.commit().await()
+        }
+    }
+
+    // endregion
 
     suspend fun getImage(path: String): String =
         try {
@@ -1843,6 +2015,17 @@ object Database {
         userB: Id,
         lastMessage: Message?,
     ): Chat = db.fetchChatWithUserId(userA, userB, lastMessage)
+
+    /** Sends a notification to everyone on a lottery's waiting list. See [DatabaseInner.sendLotteryNotification]. */
+    suspend fun sendLotteryNotification(lotteryId: Id, senderId: Id, title: String?, text: String): Notification =
+        db.sendLotteryNotification(lotteryId, senderId, title, text)
+
+    /** The user's notifications, newest first, with their own read state. */
+    suspend fun fetchReceivedNotifications(userId: Id): List<Notification> = db.fetchReceivedNotifications(userId)
+
+    /** Marks the notifications as read for [userId] only. */
+    suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>) =
+        db.markNotificationsRead(userId, notificationIds)
 }
 
 // region Lottery document helpers

@@ -567,8 +567,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
             composable(Routes.ENTRANT_NOTIFICATIONS) {
                 // A tab, like the other entrant tabs, so it has no back button.
-                // Empty until Database.fetchAllNotifications() is written; the screen says so.
-                NotificationsScreen(notifications = emptyList(), onBackClick = null)
+                NotificationsTab(userId = user?.id)
             }
 
             composable(Routes.EDIT_PROFILE) {
@@ -641,7 +640,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
             composable(Routes.OWNER_NOTIFICATIONS) {
                 // A tab: the bar's Home tab goes home, so there's no back button.
-                NotificationsScreen(notifications = emptyList(), onBackClick = null)
+                NotificationsTab(userId = user?.id)
             }
 
             composable(Routes.OWNER_PROFILE) {
@@ -688,11 +687,34 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 // Runs each time the page comes back, so new entrants show up.
                 LaunchedEffect(Unit) { waitlist.load() }
                 val state by waitlist.entrants.collectAsState()
+                val sending by waitlist.isSending.collectAsState()
+                val owner by ownerViewModel.owner.collectAsState()
                 LotteryWaitingList(
                     state = state,
                     onBackClick = { navController.popBackStack() },
                     onRetry = waitlist::load,
                     onMessageClick = { showComingSoon("Messages") },
+                    isSendingNotification = sending,
+                    onSendNotification = { title, text, onResult ->
+                        val loadedOwner = (owner as? UiState.Content)?.data
+                        // The owner's id is the user's id, so either works as the sender.
+                        val senderId = loadedOwner?.id ?: user?.id
+                        if (senderId == null) {
+                            onResult(false)
+                        } else {
+                            waitlist.sendNotification(senderId, title, text) { sent ->
+                                if (sent != null) {
+                                    // Already saved; keep the in-memory owner in step so a later
+                                    // updateOwner doesn't drop it.
+                                    loadedOwner?.addSentNotification(sent)
+                                    toast("Notification sent")
+                                } else {
+                                    toast("Couldn't send notification")
+                                }
+                                onResult(sent != null)
+                            }
+                        }
+                    },
                 )
             }
 
@@ -984,7 +1006,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
             composable(Routes.ADMIN_NOTIFICATIONS) {
                 // A tab: the bar's Home tab goes home, so there's no back button.
-                NotificationsScreen(notifications = emptyList(), onBackClick = null)
+                NotificationsTab(userId = user?.id)
             }
 
             composable(Routes.ADMIN_PROFILE) {
@@ -1321,4 +1343,22 @@ private fun SplashRoute(
             )
         }
     }
+}
+
+/**
+ * The Notifications tab for every role. Reloads each time it's opened, so new notifications
+ * show up with a green dot; opening it marks them read (see [NotificationsViewModel]).
+ *
+ * @param userId The signed-in user, or null while they are still loading.
+ */
+@Composable
+private fun NotificationsTab(userId: Id?) {
+    val vm: NotificationsViewModel = viewModel()
+    LaunchedEffect(userId) { userId?.let(vm::load) }
+    val state by vm.notifications.collectAsState()
+    NotificationsScreen(
+        state = state,
+        onBackClick = null,
+        onRetry = { userId?.let(vm::load) },
+    )
 }
