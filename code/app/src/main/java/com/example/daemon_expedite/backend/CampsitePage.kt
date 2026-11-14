@@ -21,7 +21,6 @@ data class CampsitePage(
 /**
  * Where a campsite search left off. Treat it as opaque: only pass it back to searchCampsites.
  *
- * @property boundIndex which geohash query (or the single plain query) the search was on.
  * @property lastDoc the last document returned, so the next page starts after it.
  */
 data class SearchCursor(
