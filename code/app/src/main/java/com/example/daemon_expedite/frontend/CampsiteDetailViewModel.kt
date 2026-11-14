@@ -4,16 +4,15 @@
 
 package com.example.daemon_expedite.frontend
 
-import java.time.LocalDate
-import com.example.daemon_expedite.backend.BookingRules
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Booking
+import com.example.daemon_expedite.backend.BookingRules
 import com.example.daemon_expedite.backend.Campsite
-import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Database
+import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.LotteryPhase
@@ -26,11 +25,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -89,8 +89,9 @@ data class CampsiteDetails(
  * The campsite id comes from the navigation route (see [Routes.CAMPSITE_DETAIL]).
  * Call [load] with the signed-in user once they are available.
  */
-class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
-
+class CampsiteDetailViewModel(
+    savedState: SavedStateHandle,
+) : ViewModel() {
     private val campsiteId: Id? = savedState.campsiteIdArg()
 
     private val _details = MutableStateFlow<UiState<CampsiteDetails>>(UiState.Loading)
@@ -99,21 +100,30 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
     private var loadedFor: User? = null
 
     /** Loads the campsite for [viewer]. Only loads once per user unless [force] is true. */
-    fun load(viewer: User, force: Boolean = false) {
+    fun load(
+        viewer: User,
+        force: Boolean = false,
+    ) {
         if (!force && loadedFor === viewer) return
         loadedFor = viewer
-        val id = campsiteId ?: run {
-            _details.value = UiState.Error(CAMPSITE_NOT_FOUND)
-            return
-        }
+        val id =
+            campsiteId ?: run {
+                _details.value = UiState.Error(CAMPSITE_NOT_FOUND)
+                return
+            }
         viewModelScope.launch {
             _details.value = UiState.Loading
-            _details.value = loadAsUiState("Couldn't load this campsite") {
-                val campsite = Database.fetchCampsite(id)
-                val lottery = campsite.currentLottery()
-                val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
-                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status, viewer = viewer.id)
-            }
+            _details.value =
+                loadAsUiState("Couldn't load this campsite") {
+                    val campsite = Database.fetchCampsite(id)
+                    val lottery = campsite.currentLottery()
+                    val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
+                    campsite.toDetails(
+                        lottery = lottery.takeIf { status != LotteryStatus.NONE },
+                        lotteryStatus = status,
+                        viewer = viewer.id,
+                    )
+                }
         }
     }
 
@@ -130,12 +140,17 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
         val id = campsiteId ?: return
         loadedFor = viewer
         viewModelScope.launch {
-            val fresh = loadAsUiState("Couldn't load this campsite") {
-                val campsite = Database.fetchCampsite(id)
-                val lottery = campsite.currentLottery()
-                val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
-                campsite.toDetails(lottery = lottery.takeIf { status != LotteryStatus.NONE }, lotteryStatus = status, viewer = viewer.id)
-            }
+            val fresh =
+                loadAsUiState("Couldn't load this campsite") {
+                    val campsite = Database.fetchCampsite(id)
+                    val lottery = campsite.currentLottery()
+                    val status = lottery?.entrantStatus(viewer.id) ?: LotteryStatus.NONE
+                    campsite.toDetails(
+                        lottery = lottery.takeIf { status != LotteryStatus.NONE },
+                        lotteryStatus = status,
+                        viewer = viewer.id,
+                    )
+                }
             if (fresh is UiState.Content || _details.value !is UiState.Content) _details.value = fresh
         }
     }
@@ -147,33 +162,53 @@ class CampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
  * Results only show to entrants who joined; everyone else sees "no lottery" once entries
  * close. A winner who hasn't booked or declined by the first night has missed the deadline.
  */
-internal fun Lottery.entrantStatus(viewer: Id, now: Instant = Clock.System.now()): LotteryStatus {
+internal fun Lottery.entrantStatus(
+    viewer: Id,
+    now: Instant = Clock.System.now(),
+): LotteryStatus {
     val joined = viewer in waitingList.users
     val booked = bookings.any { it.user == viewer }
     val declinedWin = viewer in declined
     val won = viewer in winners
     return when (phase(now)) {
-        LotteryPhase.UPCOMING -> LotteryStatus.UPCOMING
-        LotteryPhase.OPEN -> when {
-            joined -> LotteryStatus.JOINED
-            waitingList.isFull() -> LotteryStatus.FULL
-            else -> LotteryStatus.OPEN
+        LotteryPhase.UPCOMING -> {
+            LotteryStatus.UPCOMING
         }
-        LotteryPhase.DRAWING -> if (joined) LotteryStatus.DRAWING else LotteryStatus.NONE
-        LotteryPhase.BOOKING -> when {
-            booked -> LotteryStatus.BOOKED
-            declinedWin -> LotteryStatus.DECLINED
-            won -> LotteryStatus.WON
-            joined -> LotteryStatus.LOST
-            else -> LotteryStatus.NONE
+
+        LotteryPhase.OPEN -> {
+            when {
+                joined -> LotteryStatus.JOINED
+                waitingList.isFull() -> LotteryStatus.FULL
+                else -> LotteryStatus.OPEN
+            }
         }
-        LotteryPhase.STAYS -> when {
-            booked -> LotteryStatus.BOOKED
-            declinedWin -> LotteryStatus.DECLINED
-            won -> LotteryStatus.MISSED
-            else -> LotteryStatus.NONE
+
+        LotteryPhase.DRAWING -> {
+            if (joined) LotteryStatus.DRAWING else LotteryStatus.NONE
         }
-        else -> LotteryStatus.NONE
+
+        LotteryPhase.BOOKING -> {
+            when {
+                booked -> LotteryStatus.BOOKED
+                declinedWin -> LotteryStatus.DECLINED
+                won -> LotteryStatus.WON
+                joined -> LotteryStatus.LOST
+                else -> LotteryStatus.NONE
+            }
+        }
+
+        LotteryPhase.STAYS -> {
+            when {
+                booked -> LotteryStatus.BOOKED
+                declinedWin -> LotteryStatus.DECLINED
+                won -> LotteryStatus.MISSED
+                else -> LotteryStatus.NONE
+            }
+        }
+
+        else -> {
+            LotteryStatus.NONE
+        }
     }
 }
 
@@ -186,7 +221,7 @@ internal fun SavedStateHandle.campsiteIdArg(): Id? = get<String>(Routes.CAMPSITE
 
 /** Parses an id taken from a route, or returns null if it's missing or malformed. */
 @OptIn(ExperimentalUuidApi::class)
-internal fun String?.toIdOrNull(): Id? = this?.let { runCatching { Id(Uuid.parse(it)) }.getOrNull() }
+internal fun String?.toIdOrNull(): Id? = this?.trim()?.takeIf { it.isNotBlank() }?.let { runCatching { Id(Uuid.parse(it)) }.getOrNull() }
 
 /**
  * Turns a [Campsite] into the [CampsiteDetails] the details screens draw. Photo URLs and the
@@ -196,7 +231,11 @@ internal fun String?.toIdOrNull(): Id? = this?.let { runCatching { Id(Uuid.parse
  * @param lotteryStatus What the lottery card and photo badge should show.
  * @param viewer The signed-in entrant, to show what they booked. Null on the owner's page.
  */
-internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: LotteryStatus, viewer: Id? = null): CampsiteDetails =
+internal suspend fun Campsite.toDetails(
+    lottery: Lottery?,
+    lotteryStatus: LotteryStatus,
+    viewer: Id? = null,
+): CampsiteDetails =
     coroutineScope {
         val urls = async { imageUrls() }
         val owner = async { ownerInfo() }
@@ -234,30 +273,38 @@ internal suspend fun Campsite.toDetails(lottery: Lottery?, lotteryStatus: Lotter
  * same lottery, so its name is looked up unless it is this one.
  */
 private suspend fun Campsite.describeBooking(booking: Booking): String {
-    val name = if (booking.campsite == id) name
-    else quietly("Couldn't load campsite ${booking.campsite}") { Database.fetchCampsite(booking.campsite).name } ?: "Campsite"
+    val name =
+        if (booking.campsite == id) {
+            name
+        } else {
+            quietly("Couldn't load campsite ${booking.campsite}") { Database.fetchCampsite(booking.campsite).name } ?: "Campsite"
+        }
     val period = booking.period
     return "$name · ${period.start.format(OPENS_FORMAT)} → ${period.end.format(OPENS_FORMAT)} · " +
         if (period.nights == 1) "1 night" else "${period.nights} nights"
 }
 
 /** Download URLs for the photos, in order. Photos whose URL can't be found are skipped. */
-internal suspend fun Campsite.imageUrls(): List<String> = coroutineScope {
-    images.map { image ->
-        async { quietly("Couldn't get URL for image ${image.id}") { Database.getImage(image.path) } }
-    }.awaitAll().filterNotNull()
-}
+internal suspend fun Campsite.imageUrls(): List<String> =
+    coroutineScope {
+        images
+            .map { image ->
+                async { quietly("Couldn't get URL for image ${image.id}") { Database.getImage(image.path) } }
+            }.awaitAll()
+            .filterNotNull()
+    }
 
 /** The owner's name and profile photo URL. Either is null if it's missing or couldn't be loaded. */
 private suspend fun Campsite.ownerInfo(): Pair<String?, String?> {
     val user = quietly("Couldn't load owner $ownerId") { Database.fetchUser(ownerId) } ?: return null to null
     val name = user["name"]?.takeIf { it.isNotBlank() }
     // The user document stores the photo's image id; its record holds the Storage path.
-    val photoUrl = user["profileImage"].toIdOrNull()?.let { imageId ->
-        quietly("Couldn't load profile photo of owner $ownerId") {
-            Database.getImage(Database.fetchImage(imageId).path)
+    val photoUrl =
+        user["profileImage"].toIdOrNull()?.let { imageId ->
+            quietly("Couldn't load profile photo of owner $ownerId") {
+                Database.getImage(Database.fetchImage(imageId).path)
+            }
         }
-    }
     return name to photoUrl
 }
 
@@ -265,11 +312,13 @@ private suspend fun Campsite.ownerInfo(): Pair<String?, String?> {
  * The lottery this campsite is in that isn't finished or cancelled, or null. A campsite is in
  * at most one such lottery at a time.
  */
-internal suspend fun Campsite.currentLottery(): Lottery? =
-    Database.fetchLotteriesForCampsite(id).firstOrNull { !it.phase().isPast }
+internal suspend fun Campsite.currentLottery(): Lottery? = Database.fetchLotteriesForCampsite(id).firstOrNull { !it.phase().isPast }
 
 /** Runs [block], logging and returning null if it fails, so one missing piece doesn't fail the page. */
-internal suspend fun <T> quietly(message: String, block: suspend () -> T): T? =
+internal suspend fun <T> quietly(
+    message: String,
+    block: suspend () -> T,
+): T? =
     try {
         block()
     } catch (e: CancellationException) {
@@ -284,8 +333,13 @@ private val END_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM y
 private val OPENS_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 
 private fun Instant.toZoned(zone: ZoneId) =
-    java.time.Instant.ofEpochMilli(toEpochMilliseconds()).atZone(zone)
+    java.time.Instant
+        .ofEpochMilli(toEpochMilliseconds())
+        .atZone(zone)
 
-private fun Instant.format(zone: ZoneId, formatter: DateTimeFormatter): String = toZoned(zone).format(formatter)
+private fun Instant.format(
+    zone: ZoneId,
+    formatter: DateTimeFormatter,
+): String = toZoned(zone).format(formatter)
 
 // endregion

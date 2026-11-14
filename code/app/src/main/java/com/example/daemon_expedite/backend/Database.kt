@@ -14,14 +14,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.storage
 import com.google.firebase.storage.storageMetadata
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import java.io.File
@@ -90,13 +88,29 @@ interface DatabaseInterface {
 
     suspend fun updateLotterySettings(edited: Lottery)
 
-    suspend fun bookLotteryStay(lotteryId: Id, userId: Id, campsiteId: Id, period: DatePeriod): Reservation
+    suspend fun bookLotteryStay(
+        lotteryId: Id,
+        userId: Id,
+        campsiteId: Id,
+        period: DatePeriod,
+    ): Reservation
 
-    suspend fun declineLottery(lotteryId: Id, userId: Id)
+    suspend fun declineLottery(
+        lotteryId: Id,
+        userId: Id,
+    )
 
-    suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation
+    suspend fun cancelReservation(
+        reservationId: Id,
+        userId: Id,
+    ): Reservation
 
-    suspend fun rateStay(reservationId: Id, userId: Id, score: Int, review: String?): Rating
+    suspend fun rateStay(
+        reservationId: Id,
+        userId: Id,
+        score: Int,
+        review: String?,
+    ): Rating
 
     suspend fun fetchLottery(id: Id): Lottery
 
@@ -130,7 +144,7 @@ interface DatabaseInterface {
 
     suspend fun fetchImage(id: Id): Image
 
-    fun fetchAllImages(): List<Image>
+    suspend fun fetchAllImages(): List<Image>
 
     suspend fun deleteImage(id: Id)
 
@@ -139,15 +153,20 @@ interface DatabaseInterface {
         chatId: Id,
     )
 
-    suspend fun fetchChat(id: Id): Chat
+    suspend fun fetchChat(
+        id: Id,
+        lastMessage: Message? = null,
+    ): Chat
 
-    fun fetchAllChats(): List<Chat>
+    suspend fun fetchChatWithUserId(
+        userA: Id,
+        userB: Id,
+        lastMessage: Message? = null,
+    ): Chat
 
-    suspend fun sendLotteryNotification(lotteryId: Id, senderId: Id, title: String?, text: String): Notification
+    fun addNotification(notification: Notification)
 
-    suspend fun fetchReceivedNotifications(userId: Id): List<Notification>
-
-    suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>)
+    fun fetchAllNotifications(): List<Notification>
 }
 
 /**
@@ -388,32 +407,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         }
     }
 
-    /**
-     * Saves the user's own fields.
-     *
-     * `receivedNotifications` is left out on purpose: other people add to it (see
-     * [sendLotteryNotification]), so the in-memory [User] can be missing ids that arrived after
-     * it was loaded. Writing the list here would delete them.
-     */
     override suspend fun updateUser(user: User) {
-        val data =
-            mapOf(
-                "authId" to auth.currentUser?.uid,
-                "id" to user.id.value.toString(),
-                "name" to user.name,
-                "email" to user.email,
-                "phoneNumber" to user.phoneNumber,
-                "notificationsEnabled" to user.notificationsEnabled,
-                "profileImage" to user.profileImage?.id?.value?.toString(),
-                "lotteries" to user.lotteryIds.map { it.value.toString() },
-                "reservations" to user.reservationIds.map { it.value.toString() },
-                "chats" to user.chatIds.map { it.value.toString() },
-            )
-        db
-            .collection("users")
-            .document(user.id.value.toString())
-            .set(data, SetOptions.merge())
-            .await()
+        addUser(user)
     }
 
     /**
@@ -1127,7 +1122,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * day is the first night and the latest the check-out day (one night if they're the same).
      */
     private fun legacyReservationPeriod(dates: List<*>): DatePeriod {
-        val days = dates.map { Instant.parse(it.toString()).toJavaInstant().atZone(ZoneId.systemDefault()).toLocalDate() }
+        val days =
+            dates.map {
+                Instant
+                    .parse(it.toString())
+                    .toJavaInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }
         val first = days.min()
         return DatePeriod(first, maxOf(days.max(), first.plusDays(1)))
     }
@@ -1143,14 +1145,18 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     /** A reservation from its Firestore [data], or null if it can't be read. */
-    private fun parseReservation(id: Id, data: Map<String, Any?>): Reservation? =
+    private fun parseReservation(
+        id: Id,
+        data: Map<String, Any?>,
+    ): Reservation? =
         try {
             Reservation(
                 id = id,
                 campsite = Id(Uuid.parse(data["campsite"] as String)),
-                period = (data["start"] as? String)
-                    ?.let { DatePeriod(LocalDate.parse(it), LocalDate.parse(data["end"] as String)) }
-                    ?: legacyReservationPeriod(data["reservationDates"] as List<*>),
+                period =
+                    (data["start"] as? String)
+                        ?.let { DatePeriod(LocalDate.parse(it), LocalDate.parse(data["end"] as String)) }
+                        ?: legacyReservationPeriod(data["reservationDates"] as List<*>),
                 reservedBy = Id(Uuid.parse(data["reservedBy"] as String)),
                 lotteryId = (data["lottery"] as? String)?.let { Id(Uuid.parse(it)) },
                 isCancelled = data["isCancelled"] as? Boolean ?: false,
@@ -1176,6 +1182,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     ) {
         val lotteryRef = lotteryRef(lotteryId)
         val userRef = db.collection("users").document(userId.value.toString())
+        val lotteryData = lotteryRef.get().await().data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
+        if (lotteryData["owner"] as? String == userId.value.toString()) {
+            throw Exception("cant add owner to their own lottery")
+        }
         db
             .runTransaction { tx ->
                 val data = tx.get(lotteryRef).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
@@ -1225,14 +1235,20 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * @return The new reservation.
      * @throws BookingRejectedException if the booking breaks a rule; its message says why.
      */
-    override suspend fun bookLotteryStay(lotteryId: Id, userId: Id, campsiteId: Id, period: DatePeriod): Reservation {
+    override suspend fun bookLotteryStay(
+        lotteryId: Id,
+        userId: Id,
+        campsiteId: Id,
+        period: DatePeriod,
+    ): Reservation {
         val ref = lotteryRef(lotteryId)
         val reservation = Reservation(campsite = campsiteId, period = period, reservedBy = userId, lotteryId = lotteryId)
         db
             .runTransaction { tx ->
                 val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
                 val lottery = parseLottery(lotteryId, data)
-                BookingRules.check(lottery, lottery.phase(), userId, campsiteId, period)
+                BookingRules
+                    .check(lottery, lottery.phase(), userId, campsiteId, period)
                     ?.let { throw BookingRejectedException(it) }
 
                 val booking = Booking(userId, campsiteId, period, reservation.id)
@@ -1255,18 +1271,22 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      *
      * @throws BookingRejectedException if they can't decline; its message says why.
      */
-    override suspend fun declineLottery(lotteryId: Id, userId: Id) {
+    override suspend fun declineLottery(
+        lotteryId: Id,
+        userId: Id,
+    ) {
         val ref = lotteryRef(lotteryId)
         db
             .runTransaction { tx ->
                 val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
                 val lottery = parseLottery(lotteryId, data)
-                val problem = when {
-                    lottery.phase() != LotteryPhase.BOOKING -> "Booking for this lottery is closed"
-                    userId !in lottery.winners -> "Only winners can decline"
-                    lottery.bookings.any { it.user == userId } -> "You've booked a stay. Cancel it before declining."
-                    else -> null
-                }
+                val problem =
+                    when {
+                        lottery.phase() != LotteryPhase.BOOKING -> "Booking for this lottery is closed"
+                        userId !in lottery.winners -> "Only winners can decline"
+                        lottery.bookings.any { it.user == userId } -> "You've booked a stay. Cancel it before declining."
+                        else -> null
+                    }
                 problem?.let { throw BookingRejectedException(it) }
                 tx.update(ref, "declined", FieldValue.arrayUnion(userId.value.toString()))
                 null
@@ -1285,19 +1305,25 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * @return The cancelled reservation.
      * @throws BookingRejectedException if it can't be cancelled; its message says why.
      */
-    override suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation {
+    override suspend fun cancelReservation(
+        reservationId: Id,
+        userId: Id,
+    ): Reservation {
         val ref = reservationRef(reservationId)
         return db
             .runTransaction { tx ->
                 // Firestore needs every read before the first write.
                 val data = tx.get(ref).data ?: throw NotFoundException("Reservation ${reservationId.value} not found")
-                val reservation = parseReservation(reservationId, data)
-                    ?: throw NotFoundException("Reservation ${reservationId.value} can't be read")
-                BookingRules.cancelProblem(reservation, userId, LocalDate.now())
+                val reservation =
+                    parseReservation(reservationId, data)
+                        ?: throw NotFoundException("Reservation ${reservationId.value} can't be read")
+                BookingRules
+                    .cancelProblem(reservation, userId, LocalDate.now())
                     ?.let { throw BookingRejectedException(it) }
-                val lottery = reservation.lotteryId?.let { id ->
-                    tx.get(lotteryRef(id)).data?.let { parseLottery(id, it) }
-                }
+                val lottery =
+                    reservation.lotteryId?.let { id ->
+                        tx.get(lotteryRef(id)).data?.let { parseLottery(id, it) }
+                    }
 
                 if (lottery != null) {
                     val lotteryDoc = lotteryRef(lottery.id)
@@ -1335,30 +1361,40 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * @throws BookingRejectedException if the stay can't be rated; its message says why.
      * @throws IllegalArgumentException if [score] is outside 1..[Rating.MAX_RATING].
      */
-    override suspend fun rateStay(reservationId: Id, userId: Id, score: Int, review: String?): Rating {
+    override suspend fun rateStay(
+        reservationId: Id,
+        userId: Id,
+        score: Int,
+        review: String?,
+    ): Rating {
         val ref = reservationRef(reservationId)
         return db
             .runTransaction { tx ->
                 // Firestore needs every read before the first write.
                 val data = tx.get(ref).data ?: throw NotFoundException("Reservation ${reservationId.value} not found")
-                val reservation = parseReservation(reservationId, data)
-                    ?: throw NotFoundException("Reservation ${reservationId.value} can't be read")
+                val reservation =
+                    parseReservation(reservationId, data)
+                        ?: throw NotFoundException("Reservation ${reservationId.value} can't be read")
                 val campsiteRef = db.collection("campsites").document(reservation.campsite.value.toString())
-                val campsiteData = tx.get(campsiteRef).data
-                    ?: throw BookingRejectedException("This campsite no longer exists")
-                val existing = (campsiteData["ratings"] as? List<*>)
-                    ?.mapNotNull { (it as? Map<*, *>)?.let(::parseRating) }
-                    ?: emptyList()
-                RatingRules.rateProblem(reservation, userId, existing, LocalDate.now())
+                val campsiteData =
+                    tx.get(campsiteRef).data
+                        ?: throw BookingRejectedException("This campsite no longer exists")
+                val existing =
+                    (campsiteData["ratings"] as? List<*>)
+                        ?.mapNotNull { (it as? Map<*, *>)?.let(::parseRating) }
+                        ?: emptyList()
+                RatingRules
+                    .rateProblem(reservation, userId, existing, LocalDate.now())
                     ?.let { throw BookingRejectedException(it) }
 
-                val rating = Rating(
-                    campsiteId = reservation.campsite,
-                    authorId = userId,
-                    score = score,
-                    reservationId = reservation.id,
-                    description = RatingRules.cleanReview(review),
-                )
+                val rating =
+                    Rating(
+                        campsiteId = reservation.campsite,
+                        authorId = userId,
+                        score = score,
+                        reservationId = reservation.id,
+                        description = RatingRules.cleanReview(review),
+                    )
                 tx.update(campsiteRef, "ratings", FieldValue.arrayUnion(rating.toMap()))
                 rating
             }.await()
@@ -1465,8 +1501,26 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
     override suspend fun fetchImage(id: Id): Image = fetchImageRecord(id)
 
-    override fun fetchAllImages(): List<Image> {
-        TODO("Not yet implemented")
+    override suspend fun fetchAllImages(): List<Image> {
+        val snapshot = db.collection("images").get().await()
+        return snapshot.documents.mapNotNull { doc ->
+            try {
+                val data = doc.data ?: return@mapNotNull null
+                val idStr = data["id"] as? String ?: doc.id
+                val uploaderStr = data["uploader"] as? String ?: return@mapNotNull null
+                val path = data["path"] as? String ?: return@mapNotNull null
+                Image(
+                    id = Id(Uuid.parse(idStr)),
+                    uploader = Id(Uuid.parse(uploaderStr)),
+                    path = path,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("DatabaseInner", "Skipping malformed image document '${doc.id}'", e)
+                null
+            }
+        }
     }
 
     /**
@@ -1488,61 +1542,54 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         message: Message,
         chatId: Id,
     ) {
-        val chatRef = db.collection("chats").document(chatId.value.toString())
-        val messageRef = db.collection("messages").document(message.id.value.toString())
-
-        val messageData =
+        db
+            .collection("chats")
+            .document(chatId.value.toString())
+            .get()
+            .await()
+            .exists() || throw NotFoundException("Chat ${chatId.value} not found")
+        val messageMap =
             mapOf(
-                "id" to message.id.value.toString(),
                 "message" to message.message,
+                "id" to message.id.value.toString(),
+                "senderId" to message.sender.value.toString(),
             )
-
-        try {
-            db
-                .batch()
-                .apply {
-                    update(chatRef, "messageOwn", FieldValue.arrayUnion(message.id.value.toString()))
-                    set(messageRef, messageData)
-                }.commit()
-                .await()
-        } catch (e: FirebaseFirestoreException) {
-            if (e.code == FirebaseFirestoreException.Code.NOT_FOUND) {
-                throw IllegalStateException("Chat $chatId not found", e)
-            }
-            throw e
-        }
+        db
+            .collection("chats")
+            .document(chatId.value.toString())
+            .collection("messages")
+            .document(message.id.value.toString())
+            .set(messageMap)
+            .await()
     }
 
-    private fun parseIdList(
-        data: Map<String, Any?>,
-        key: String,
-    ): List<Id> {
-        val raw =
-            data[key] as? List<*>
-                ?: throw InvalidDataException("'$key' is missing or not a list")
+    override suspend fun fetchChat(
+        id: Id,
+        lastMessage: Message?,
+    ): Chat {
+        val chatRef = db.collection("chats").document(id.value.toString())
 
-        return raw.mapIndexed { index, item ->
-            val idString =
-                item as? String
-                    ?: throw InvalidDataException("'$key'[$index] is not a string: $item")
-            try {
-                Id(Uuid.parse(idString))
-            } catch (e: IllegalArgumentException) {
-                throw InvalidDataException("'$key'[$index] is not a valid UUID: $idString", e)
+        val (chatSnapshot, messageDocs) =
+            coroutineScope {
+                val chat = async { chatRef.get().await() }
+                val messages =
+                    async {
+                        var query: Query =
+                            chatRef
+                                .collection("messages")
+                                .orderBy(FieldPath.documentId(), Query.Direction.DESCENDING)
+                                .limit(50)
+                        if (lastMessage != null) {
+                            query = query.startAfter(lastMessage.id.value.toString())
+                        }
+                        query.get().await().documents
+                    }
+                chat.await() to messages.await()
             }
-        }
-    }
 
-    override suspend fun fetchChat(id: Id): Chat {
-        val data =
-            db
-                .collection("chats")
-                .document(id.value.toString())
-                .get()
-                .await()
-                .data ?: throw ChatNotFoundException(id)
+        val data = chatSnapshot.data
+        if (!chatSnapshot.exists() || data == null) throw ChatNotFoundException(id)
 
-        // Validate everything cheap before doing any message reads
         fun requireId(key: String): Id {
             val raw =
                 data[key] as? String
@@ -1554,210 +1601,55 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             }
         }
 
-        val ownUser = requireId("ownUser")
-        val otherUser = requireId("otherUser")
+        val messages =
+            messageDocs
+                .mapNotNull { doc ->
+                    try {
+                        val text = doc.getString("message") ?: error("no message text")
+                        val sender = Id(Uuid.parse(doc.getString("senderId") ?: error("no sender")))
+                        Message(Id(Uuid.parse(doc.id)), text, sender)
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Log.e("DatabaseInner", "Skipping malformed message ${doc.id} in chat ${id.value}", e)
+                        null
+                    }
+                }
 
-        if (data["messageOwn"] !is List<*> || data["messageOther"] !is List<*>) {
-            throw InvalidChatDataException(id, "messageOwn/messageOther missing or invalid")
-        }
-
-        val (messageOwn, messageOther) =
-            coroutineScope {
-                val own = async { fetchMessages(parseIdList(data, "messageOwn")) }
-                val other = async { fetchMessages(parseIdList(data, "messageOther")) }
-                own.await() to other.await()
-            }
-
-        return Chat(id, ownUser, otherUser, messageOwn as MutableList, messageOther as MutableList)
+        return Chat(id, requireId("userA"), requireId("userB"), messages)
     }
 
-    /** Fetches messages in parallel batches of 30, returned in the same order as [ids]. */
-    private suspend fun fetchMessages(ids: List<Id>): List<Message> =
-        coroutineScope {
-            val found: Map<Id, Message> =
-                ids
-                    .distinct()
-                    .chunked(30) // Firestore `in` limit
-                    .map { chunk ->
-                        async {
-                            db
-                                .collection("messages")
-                                .whereIn(FieldPath.documentId(), chunk.map { it.value.toString() })
-                                .get()
-                                .await()
-                                .documents
-                        }
-                    }.awaitAll()
-                    .flatten()
-                    .mapNotNull { doc ->
-                        val text = doc.getString("message")
-                        val msgId = runCatching { Id(Uuid.parse(doc.id)) }.getOrNull()
-                        if (text == null || msgId == null) {
-                            Log.e("DatabaseInner", "Skipping malformed message ${doc.id}")
-                            null
-                        } else {
-                            msgId to Message(msgId, text)
-                        }
-                    }.toMap()
+    override suspend fun fetchChatWithUserId(
+        userA: Id,
+        userB: Id,
+        lastMessage: Message?,
+    ): Chat {
+        val a = userA.value.toString()
+        val b = userB.value.toString()
 
-            ids.mapNotNull { found[it] ?: null.also { _ -> Log.w("DatabaseInner", "Message $it not found") } }
-        }
+        val chatDoc =
+            db
+                .collection("chats")
+                .where(
+                    Filter.or(
+                        Filter.and(Filter.equalTo("userA", a), Filter.equalTo("userB", b)),
+                        Filter.and(Filter.equalTo("userA", b), Filter.equalTo("userB", a)),
+                    ),
+                ).limit(1) // doesn't matter ig because there can only be one chat for given two users
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+                ?: throw ChatNotFoundException(userA)
+        return fetchChat(Id(Uuid.parse(chatDoc.id)), lastMessage)
+    }
 
-    override fun fetchAllChats(): List<Chat> {
+    override fun addNotification(notification: Notification) {
         TODO("Not yet implemented")
     }
 
-    // region Notifications
-
-    private fun notificationRef(id: Id) = db.collection("notifications").document(id.value.toString())
-
-    /**
-     * Sends a notification from owner [senderId] to everyone on [lotteryId]'s waiting list.
-     *
-     * Stores the notification once in `notifications/<id>`, then adds its id to each entrant's
-     * `receivedNotifications` and to the owner's `ownerNotifications` with `arrayUnion`, so it
-     * never overwrites ids added by someone else at the same time. Entrants whose account no
-     * longer exists are skipped (updating a missing document would fail the whole write).
-     *
-     * Firestore allows 500 writes per batch, so very long waiting lists are written in chunks.
-     *
-     * @param title Optional heading. Blank is treated as no title.
-     * @param text The message. Must not be blank.
-     * @return The saved notification. Record it on the in-memory owner with
-     *   [Owner.addSentNotification].
-     */
-    override suspend fun sendLotteryNotification(
-        lotteryId: Id,
-        senderId: Id,
-        title: String?,
-        text: String,
-    ): Notification {
-        require(text.isNotBlank()) { "Notification text is required" }
-        val lottery = fetchLottery(lotteryId)
-        val notification =
-            Notification(
-                id = Id(),
-                text = text.trim(),
-                receiversOfLottery = lotteryId,
-                senderId = senderId,
-                title = title?.trim()?.takeIf { it.isNotEmpty() },
-            )
-        val idString = notification.id.value.toString()
-
-        val recipients = existingUserRefs(lottery.waitingList.users)
-
-        val first = db.batch()
-        first.set(
-            notificationRef(notification.id),
-            mapOf(
-                "id" to idString,
-                "title" to notification.title,
-                "text" to notification.text,
-                "lottery" to lotteryId.value.toString(),
-                "sender" to senderId.value.toString(),
-                "readBy" to emptyList<String>(),
-            ),
-        )
-        first.update(ownerRef(senderId), "ownerNotifications", FieldValue.arrayUnion(idString))
-        // 2 writes already in the first batch.
-        val firstChunk = recipients.take(498)
-        firstChunk.forEach { first.update(it, "receivedNotifications", FieldValue.arrayUnion(idString)) }
-        first.commit().await()
-
-        recipients.drop(firstChunk.size).chunked(500).forEach { chunk ->
-            val batch = db.batch()
-            chunk.forEach { batch.update(it, "receivedNotifications", FieldValue.arrayUnion(idString)) }
-            batch.commit().await()
-        }
-        return notification
+    override fun fetchAllNotifications(): List<Notification> {
+        TODO("Not yet implemented")
     }
-
-    /** References to the `users` documents that exist among [ids], looked up 30 at a time. */
-    private suspend fun existingUserRefs(ids: List<Id>) =
-        coroutineScope {
-            ids
-                .distinct()
-                .chunked(30) // Firestore `in` limit
-                .map { chunk ->
-                    async {
-                        db
-                            .collection("users")
-                            .whereIn(FieldPath.documentId(), chunk.map { it.value.toString() })
-                            .get()
-                            .await()
-                            .documents
-                            .map { it.reference }
-                    }
-                }.awaitAll()
-                .flatten()
-        }
-
-    /**
-     * The notifications sent to [userId], newest first (by [Id.getTime]).
-     *
-     * Reads the ids from the stored user document rather than an in-memory [User], because
-     * owners add to that list after the user was loaded. Each notification's
-     * [Notification.isRead] says whether *this* user has read it. Ids whose notification is
-     * missing or malformed are skipped.
-     */
-    override suspend fun fetchReceivedNotifications(userId: Id): List<Notification> {
-        val userData =
-            db.collection("users").document(userId.value.toString()).get().await().data
-                ?: throw NotFoundException("User ${userId.value} not found")
-        val ids =
-            (userData["receivedNotifications"] as? List<*>)
-                .orEmpty()
-                .mapNotNull { (it as? String)?.let { s -> runCatching { Uuid.parse(s) }.getOrNull() } }
-                .distinct()
-        val me = userId.value.toString()
-
-        val docs =
-            coroutineScope {
-                ids
-                    .chunked(30) // Firestore `in` limit
-                    .map { chunk ->
-                        async {
-                            db
-                                .collection("notifications")
-                                .whereIn(FieldPath.documentId(), chunk.map { it.toString() })
-                                .get()
-                                .await()
-                                .documents
-                        }
-                    }.awaitAll()
-                    .flatten()
-            }
-
-        return docs
-            .mapNotNull { doc ->
-                runCatching {
-                    Notification(
-                        id = Id(Uuid.parse(doc.id)),
-                        text = doc.getString("text")!!,
-                        receiversOfLottery = Id(Uuid.parse(doc.getString("lottery")!!)),
-                        senderId = Id(Uuid.parse(doc.getString("sender")!!)),
-                        isRead = (doc.get("readBy") as? List<*>)?.contains(me) == true,
-                        title = doc.getString("title")?.takeIf { it.isNotBlank() },
-                    )
-                }.onFailure { Log.e("DatabaseInner", "Skipping malformed notification ${doc.id}", it) }
-                    .getOrNull()
-            }.sortedByDescending { it.id.getTime() }
-    }
-
-    /**
-     * Marks each of [notificationIds] as read by [userId] (adds the user to its `readBy`).
-     * Other recipients are unaffected.
-     */
-    override suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>) {
-        val me = userId.value.toString()
-        notificationIds.distinct().chunked(500).forEach { chunk ->
-            val batch = db.batch()
-            chunk.forEach { batch.update(notificationRef(it), "readBy", FieldValue.arrayUnion(me)) }
-            batch.commit().await()
-        }
-    }
-
-    // endregion
 
     suspend fun getImage(path: String): String =
         try {
@@ -1845,18 +1737,32 @@ object Database {
     suspend fun createLottery(lottery: Lottery) = db.createLottery(lottery)
 
     /** Books a lottery winner's stay. See [DatabaseInner.bookLotteryStay]. */
-    suspend fun bookLotteryStay(lotteryId: Id, userId: Id, campsiteId: Id, period: DatePeriod): Reservation =
-        db.bookLotteryStay(lotteryId, userId, campsiteId, period)
+    suspend fun bookLotteryStay(
+        lotteryId: Id,
+        userId: Id,
+        campsiteId: Id,
+        period: DatePeriod,
+    ): Reservation = db.bookLotteryStay(lotteryId, userId, campsiteId, period)
 
     /** Turns down a lottery win. See [DatabaseInner.declineLottery]. */
-    suspend fun declineLottery(lotteryId: Id, userId: Id) = db.declineLottery(lotteryId, userId)
+    suspend fun declineLottery(
+        lotteryId: Id,
+        userId: Id,
+    ) = db.declineLottery(lotteryId, userId)
 
     /** Cancels a reservation and frees its lottery booking. See [DatabaseInner.cancelReservation]. */
-    suspend fun cancelReservation(reservationId: Id, userId: Id): Reservation = db.cancelReservation(reservationId, userId)
+    suspend fun cancelReservation(
+        reservationId: Id,
+        userId: Id,
+    ): Reservation = db.cancelReservation(reservationId, userId)
 
     /** Rates a finished stay and adds it to the campsite's ratings. See [DatabaseInner.rateStay]. */
-    suspend fun rateStay(reservationId: Id, userId: Id, score: Int, review: String?): Rating =
-        db.rateStay(reservationId, userId, score, review)
+    suspend fun rateStay(
+        reservationId: Id,
+        userId: Id,
+        score: Int,
+        review: String?,
+    ): Rating = db.rateStay(reservationId, userId, score, review)
 
     /** Saves edited lottery settings without touching its waitlist. See [DatabaseInner.updateLotterySettings]. */
     suspend fun updateLotterySettings(edited: Lottery) = db.updateLotterySettings(edited)
@@ -1912,6 +1818,8 @@ object Database {
 
     suspend fun getImage(path: String): String = db.getImage(path)
 
+    suspend fun fetchAllImages(): List<Image> = db.fetchAllImages()
+
     /** True if the user has an entry in the "admins" collection. */
     suspend fun isAdmin(userId: Id): Boolean = db.isAdmin(userId)
 
@@ -1930,16 +1838,11 @@ object Database {
 
     suspend fun deleteCampsite(campsite: Campsite) = db.deleteCampsite(campsite)
 
-    /** Sends a notification to everyone on a lottery's waiting list. See [DatabaseInner.sendLotteryNotification]. */
-    suspend fun sendLotteryNotification(lotteryId: Id, senderId: Id, title: String?, text: String): Notification =
-        db.sendLotteryNotification(lotteryId, senderId, title, text)
-
-    /** The user's notifications, newest first, with their own read state. */
-    suspend fun fetchReceivedNotifications(userId: Id): List<Notification> = db.fetchReceivedNotifications(userId)
-
-    /** Marks the notifications as read for [userId] only. */
-    suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>) =
-        db.markNotificationsRead(userId, notificationIds)
+    suspend fun fetchAllChats(
+        userA: Id,
+        userB: Id,
+        lastMessage: Message?,
+    ): Chat = db.fetchChatWithUserId(userA, userB, lastMessage)
 }
 
 // region Lottery document helpers

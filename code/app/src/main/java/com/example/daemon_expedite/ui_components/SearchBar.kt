@@ -1,5 +1,6 @@
 package com.example.daemon_expedite.ui_components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.border
@@ -24,6 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Pill-shaped search field from the Figma "Search field": a search icon, the text, and an
@@ -119,3 +126,16 @@ fun SearchBarPreview() {
     }
 }
 
+suspend fun scanQrCode(context: Context): String? =
+    suspendCancellableCoroutine { cont ->
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
+
+        GmsBarcodeScanning.getClient(context, options)
+            .startScan()
+            .addOnSuccessListener { barcode -> cont.resume(barcode.rawValue) }
+            .addOnCanceledListener { cont.resume(null) }       // user backed out
+            .addOnFailureListener { e -> cont.resumeWithException(e) }
+    }
