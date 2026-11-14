@@ -1182,6 +1182,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     ) {
         val lotteryRef = lotteryRef(lotteryId)
         val userRef = db.collection("users").document(userId.value.toString())
+        val lotteryData = lotteryRef.get().await().data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
+        if (lotteryData["owner"] as? String == userId.value.toString()) {
+            throw Exception("cant add owner to their own lottery")
+        }
         db
             .runTransaction { tx ->
                 val data = tx.get(lotteryRef).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")

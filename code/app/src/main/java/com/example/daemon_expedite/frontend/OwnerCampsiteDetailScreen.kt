@@ -36,6 +36,7 @@ import com.example.daemon_expedite.ui_components.RedButton
  * @param onViewMapClick Called when "View on map" is tapped.
  * @param onViewWaitlistClick Called when "View Waitlist" is tapped.
  * @param onEditClick Called when "Edit campsite" is tapped.
+ * @param onShowQrCodeClick Called when "Show QR code" is tapped.
  * @param onDeleteConfirmed Called after the owner confirms the delete dialog.
  */
 @Composable
@@ -47,6 +48,7 @@ fun OwnerCampsiteDetailScreen(
     onViewMapClick: () -> Unit,
     onViewWaitlistClick: () -> Unit,
     onEditClick: () -> Unit,
+    onShowQrCodeClick: () -> Unit = {},
     onDeleteConfirmed: () -> Unit,
 ) {
     var askDelete by rememberSaveable { mutableStateOf(false) }
@@ -72,6 +74,7 @@ fun OwnerCampsiteDetailScreen(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 GreenButton(onClick = onViewWaitlistClick, icon = AppIcons.Waitlist, buttonText = "View Waitlist", customWidth = width)
                 GreenButton(onClick = onEditClick, icon = AppIcons.EditPencilOutlined, buttonText = "Edit campsite", customWidth = width)
+                GreenButton(onClick = onShowQrCodeClick, icon = AppIcons.QRCode, buttonText = "Show QR code", customWidth = width)
                 RedButton(
                     onClick = { if (!isDeleting) askDelete = true },
                     icon = AppIcons.Dustbin,
