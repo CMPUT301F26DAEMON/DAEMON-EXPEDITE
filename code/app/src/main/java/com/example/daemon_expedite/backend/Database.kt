@@ -22,7 +22,10 @@ import com.google.firebase.storage.storage
 import com.google.firebase.storage.storageMetadata
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.time.LocalDate
@@ -166,11 +169,19 @@ interface DatabaseInterface {
         lastMessage: Message? = null,
     ): Chat
 
-    suspend fun sendLotteryNotification(lotteryId: Id, senderId: Id, title: String?, text: String): Notification
+    suspend fun sendLotteryNotification(
+        lotteryId: Id,
+        senderId: Id,
+        title: String?,
+        text: String,
+    ): Notification
 
     suspend fun fetchReceivedNotifications(userId: Id): List<Notification>
 
-    suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>)
+    suspend fun markNotificationsRead(
+        userId: Id,
+        notificationIds: List<Id>,
+    )
 }
 
 /**
@@ -427,7 +438,11 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "email" to user.email,
                 "phoneNumber" to user.phoneNumber,
                 "notificationsEnabled" to user.notificationsEnabled,
-                "profileImage" to user.profileImage?.id?.value?.toString(),
+                "profileImage" to
+                    user.profileImage
+                        ?.id
+                        ?.value
+                        ?.toString(),
                 "lotteries" to user.lotteryIds.map { it.value.toString() },
                 "reservations" to user.reservationIds.map { it.value.toString() },
                 "chats" to user.chatIds.map { it.value.toString() },
@@ -1591,6 +1606,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .await()
     }
 
+    /**
+     * This function is used to get the older 50 messages starting from the [lastMessage]
+     * Returns the latest 50 if [lastMessage] is null
+     *
+     * @param id Id of the chat to fetch
+     * @param lastMessage last message to fetch
+     * @return Chat object with the latest 50 messages
+     */
     override suspend fun fetchChat(
         id: Id,
         lastMessage: Message?,
@@ -1646,6 +1669,62 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return Chat(id, requireId("userA"), requireId("userB"), messages)
     }
 
+    /**
+     * This function is used for registering a listener for a particular chat.
+     * Once successfully registered, it returns the latest 50 messages upon any changes to the chat.
+     * Need to handle duplicate messages by checking if the message was already received by a previous call of this function.
+     * To fetch older messages, use fetchChat function and provide the last message argument.
+     *
+     * @param chatId Id of the chat to observe
+     * @param limit how many messages to return at a time
+     * @return latest 50 messages in the chat
+     * */
+    fun chatListener(
+        chatId: Id,
+        limit: Long = 50,
+    ): Flow<List<Message>> =
+        callbackFlow {
+            val registration =
+                db
+                    .collection("chats")
+                    .document(chatId.value.toString())
+                    .collection("messages")
+                    .orderBy(FieldPath.documentId(), Query.Direction.DESCENDING)
+                    .limit(limit)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            close(error) // the collector receives the exception
+                            return@addSnapshotListener
+                        }
+                        if (snapshot == null) return@addSnapshotListener
+
+                        val messages =
+                            snapshot.documents.mapNotNull { doc ->
+                                try {
+                                    val text = doc.getString("message") ?: error("no message text")
+                                    val sender = Id(Uuid.parse(doc.getString("senderId") ?: error("no sender")))
+                                    Message(Id(Uuid.parse(doc.id)), text, sender)
+                                } catch (e: Exception) {
+                                    Log.e("DatabaseInner", "Skipping malformed message ${doc.id}", e)
+                                    null
+                                }
+                            }
+                        trySend(messages) // newest first
+                    }
+
+            awaitClose { registration.remove() } // detaches the listener when collection stops
+        }
+
+    /**
+     * Use this function to fetch the chat between two users.
+     * Implemented for admin view
+     *
+     * @param userA Id of the first user
+     * @param userB Id of the second user
+     * @param lastMessage last message to fetch
+     * @return Chat object with the latest 50 messages
+     * @throws ChatNotFoundException if the chat doesn't exist
+     * */
     override suspend fun fetchChatWithUserId(
         userA: Id,
         userB: Id,
@@ -1766,7 +1845,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      */
     override suspend fun fetchReceivedNotifications(userId: Id): List<Notification> {
         val userData =
-            db.collection("users").document(userId.value.toString()).get().await().data
+            db
+                .collection("users")
+                .document(userId.value.toString())
+                .get()
+                .await()
+                .data
                 ?: throw NotFoundException("User ${userId.value} not found")
         val ids =
             (userData["receivedNotifications"] as? List<*>)
@@ -1812,7 +1896,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * Marks each of [notificationIds] as read by [userId] (adds the user to its `readBy`).
      * Other recipients are unaffected.
      */
-    override suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>) {
+    override suspend fun markNotificationsRead(
+        userId: Id,
+        notificationIds: List<Id>,
+    ) {
         val me = userId.value.toString()
         notificationIds.distinct().chunked(500).forEach { chunk ->
             val batch = db.batch()
@@ -1997,6 +2084,11 @@ object Database {
 
     suspend fun fetchChat(chatId: Id): Chat = db.fetchChat(chatId)
 
+    fun chatListener(
+        chatId: Id,
+        limit: Long = 50,
+    ): Flow<List<Message>> = db.chatListener(chatId, limit)
+
     suspend fun uploadMessage(
         message: Message,
         chatId: Id,
@@ -2017,15 +2109,21 @@ object Database {
     ): Chat = db.fetchChatWithUserId(userA, userB, lastMessage)
 
     /** Sends a notification to everyone on a lottery's waiting list. See [DatabaseInner.sendLotteryNotification]. */
-    suspend fun sendLotteryNotification(lotteryId: Id, senderId: Id, title: String?, text: String): Notification =
-        db.sendLotteryNotification(lotteryId, senderId, title, text)
+    suspend fun sendLotteryNotification(
+        lotteryId: Id,
+        senderId: Id,
+        title: String?,
+        text: String,
+    ): Notification = db.sendLotteryNotification(lotteryId, senderId, title, text)
 
     /** The user's notifications, newest first, with their own read state. */
     suspend fun fetchReceivedNotifications(userId: Id): List<Notification> = db.fetchReceivedNotifications(userId)
 
     /** Marks the notifications as read for [userId] only. */
-    suspend fun markNotificationsRead(userId: Id, notificationIds: List<Id>) =
-        db.markNotificationsRead(userId, notificationIds)
+    suspend fun markNotificationsRead(
+        userId: Id,
+        notificationIds: List<Id>,
+    ) = db.markNotificationsRead(userId, notificationIds)
 }
 
 // region Lottery document helpers
