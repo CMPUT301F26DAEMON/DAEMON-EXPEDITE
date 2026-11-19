@@ -1,7 +1,3 @@
 <resources>
     <string name="app_name">DAEMON-EXPEDITE</string>
-
-    <!-- Notification channel: shown in the phone's Settings > Apps > Notifications. -->
-    <string name="channel_lottery_updates_name">Lottery updates</string>
-    <string name="channel_lottery_updates_description">Lottery results and messages from campsite owners</string>
 </resources>

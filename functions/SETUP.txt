@@ -9,18 +9,7 @@ lottery that just closed. It finds lotteries whose entry period has ended (drawn
 winners: it picks winnerCount entrants at random from "users" (everyone wins if fewer joined),
 then sets "winners", "drawn" = true and "drawnAt". The Android app shows the results.
 
-notifyLotteryResults (index.js) runs whenever a lottery document changes, and acts only on the
-change that sets "drawn" to true: it sends a push notification to everyone on the waiting list,
-"You won the lottery!" to the winners and "Lottery results" to everyone else.
-
-notifyOwnerMessage (index.js) runs when the app creates a notifications/<id> document (an owner
-sending a message to their waiting list) and pushes that message to everyone on the list.
-
-Both send to the token the app saves in users/<id>.fcmToken, skip users with
-notificationsEnabled == false, and delete tokens Firebase says are dead (app uninstalled).
-
 draw.js holds the winner-picking logic on its own so it can be tested without Firebase.
-messages.js does the same for the wording of the push notifications.
 
 Files at the repo root used by the Firebase CLI:
   firebase.json            where the functions and the Firestore index file are
@@ -47,12 +36,7 @@ Blaze plan (it is).
 The Firestore index takes a few minutes to build after deploying. Until it's ready the function
 logs an error that links to it; that's expected.
 
-Run the deploy again whenever index.js, draw.js, messages.js or firestore.indexes.json change.
-
-The two notify functions are Firestore triggers. They deploy to us-central1 by default, which
-works when the Firestore database is in the "nam5" (United States) multi-region. If the deploy
-says the trigger's region doesn't match the database's, add { region: "<database location>" }
-as the first argument's options (see Firebase console > Firestore > the database's location).
+Run the deploy again whenever index.js, draw.js or firestore.indexes.json change.
 
 Checking it works
 -----------------
@@ -62,10 +46,6 @@ Checking it works
   Firebase console > Firestore, set that lottery's entryEnd to a time in the past. Then run
   the draw now instead of waiting for midnight: Google Cloud console > Cloud Scheduler >
   the drawLotteries job > "Force run". It should then have drawn = true and a "winners" list.
-- Push notifications: on the phones that joined, notifications must be allowed and the user
-  document must have an "fcmToken". After the draw above, each phone gets "You won" or
-  "Lottery results"; the notifyLotteryResults log says how many were sent. For owner messages,
-  send one from the waiting list screen in the app; notifyOwnerMessage logs the count.
 
 Tests
 -----
@@ -74,10 +54,7 @@ Tests
 Cost
 ----
 One run a day is about 30 runs a month, a tiny fraction of the free allowance (2 million).
-Cloud Scheduler gives 3 jobs a month free per billing account; this uses 1.
-notifyLotteryResults runs on every lottery change (each join, booking, edit), but returns at
-once for all but the draw; even thousands of changes a month stay inside the free allowance.
-Sending push notifications through Firebase Cloud Messaging is free.
+Cloud Scheduler gives 3 jobs a month free per billing account; this uses 1. 
 
 Owners outside Alberta: their lotteries close at their own midnight and get drawn at the next
 12:01 AM Alberta run, up to a day later. To shorten that, we could change the schedule in index.js to "1 * * * *" (every hour) and deploy again; that's takes ~720 runs a month.
