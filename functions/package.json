@@ -1,6 +1,6 @@
 {
   "name": "expedite-functions",
-  "description": "Cloud Functions for Expedite: draws lottery winners when entries close.",
+  "description": "Cloud Functions for Expedite: draws lottery winners when entries close and sends push notifications.",
   "private": true,
   "main": "index.js",
   "engines": {
