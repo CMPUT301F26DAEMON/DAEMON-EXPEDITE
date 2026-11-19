@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.daemon_expedite.push.rememberNotificationPermissionRequest
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -52,12 +53,15 @@ fun EntrantProfileDetailsScreen(
     onRoleSelected: (ProfileRole) -> Unit = {},
     onDeleteProfileClick: () -> Unit = {},
     onPoliciesClick: () -> Unit = {},
-    onNotificationsChanged: (Boolean) -> Unit = {}
+    onNotificationsChanged: (Boolean) -> Unit = {},
+    // Called when the user turns notifications on but Android's permission is refused.
+    onNotificationsBlocked: () -> Unit = {}
 ) {
     // Starts from the user's saved setting; keyed so it resets if a different value is passed in.
     var notificationsChecked by rememberSaveable(notificationsEnabled) {
         mutableStateOf(notificationsEnabled)
     }
+    val requestNotificationPermission = rememberNotificationPermissionRequest()
 
     var showDeleteDialog by rememberSaveable {
         mutableStateOf(false)
@@ -108,8 +112,22 @@ fun EntrantProfileDetailsScreen(
             ProfileNotifications(
                 checked = notificationsChecked,
                 onCheckedChange = { enabled ->
-                    notificationsChecked = enabled
-                    onNotificationsChanged(enabled)
+                    if (!enabled) {
+                        notificationsChecked = false
+                        onNotificationsChanged(false)
+                    } else {
+                        // The setting is only worth turning on if Android will show them.
+                        // Until the answer comes back the toggle stays off; if refused, it
+                        // stays off.
+                        requestNotificationPermission { granted ->
+                            if (granted) {
+                                notificationsChecked = true
+                                onNotificationsChanged(true)
+                            } else {
+                                onNotificationsBlocked()
+                            }
+                        }
+                    }
                 }
             )
 

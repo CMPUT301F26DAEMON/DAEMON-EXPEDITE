@@ -65,6 +65,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    // Push notifications (lottery results, campsite owner messages). See push/ExpediteMessagingService.
+    implementation(libs.firebase.messaging)
     implementation(libs.kotlinx.coroutines.play.services)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)

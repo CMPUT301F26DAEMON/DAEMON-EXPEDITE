@@ -44,6 +44,7 @@ import com.example.daemon_expedite.R
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Database.isAdmin
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.push.rememberNotificationPermissionRequest
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBar
@@ -193,6 +194,20 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
     val ownerViewModel: OwnerViewModel = viewModel()
 
     fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+    // Notifications start enabled for new users, but from Android 13 the app also needs the
+    // user's permission to show them. Ask once the user has loaded (keyed on their id, so a new
+    // profile after "Delete profile" is asked too). If they refuse, turn the setting off so it
+    // matches what they'll actually get; then they aren't asked again at every start-up, and the
+    // toggle on the profile page asks again if they change their mind.
+    val requestNotificationPermission = rememberNotificationPermissionRequest()
+    LaunchedEffect(user?.id) {
+        if (user?.notificationsEnabled == true) {
+            requestNotificationPermission { granted ->
+                if (!granted) session.setNotificationsEnabled(false)
+            }
+        }
+    }
 
     fun showComingSoon(screen: String) = toast("$screen isn't built yet")
 
@@ -543,6 +558,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                         session.setNotificationsEnabled(enabled) { ok ->
                             if (!ok) toast("Couldn't save notification setting")
                         }
+                    },
+                    onNotificationsBlocked = {
+                        toast("Notifications are blocked. Allow them in your phone's Settings > Apps.")
                     },
                     onDeleteProfileClick = {
                         // The screen already asked "are you sure?" before calling this.
