@@ -17,12 +17,14 @@ import com.example.daemon_expedite.backend.LotteryClosedException
 import com.example.daemon_expedite.backend.LotteryFullException
 import com.example.daemon_expedite.backend.User
 import com.example.daemon_expedite.backend.NotFoundException
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.cancellation.CancellationException
 
 /** Outcome of [SessionViewModel.joinLottery] and [SessionViewModel.leaveLottery]. */
@@ -332,6 +334,25 @@ class SessionViewModel : ViewModel() {
                 Log.e(TAG, "Start-up failed", e)
                 SessionState.Failed
             }
+            if (_state.value is SessionState.Ready) {
+                // Separate job: start-up is finished, and a failure here mustn't undo it.
+                viewModelScope.launch { saveFcmToken() }
+            }
+        }
+    }
+
+    /**
+     * Saves this device's push token on the user, so Cloud Functions can notify them.
+     *
+     * Done on every start-up, not only in ExpediteMessagingService.onNewToken: on a fresh
+     * install the token usually arrives *before* [loadOrCreateUser] has created the user's
+     * document, so that first save has nowhere to go. Saving an unchanged token again is a
+     * harmless overwrite. A failure (e.g. offline) is only logged; the next start-up retries.
+     */
+    private suspend fun saveFcmToken() {
+        runCatchingAll("Saving FCM token failed") {
+            val token = FirebaseMessaging.getInstance().token.await()
+            Database.saveOwnFcmToken(token)
         }
     }
 
