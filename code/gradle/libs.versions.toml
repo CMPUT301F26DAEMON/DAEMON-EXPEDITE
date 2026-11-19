@@ -1,4 +1,5 @@
 [versions]
+agp = "9.4.0"
 agp = "9.4.1"
 coilCompose = "3.6.3"
 coilNetworkOkhttp = "3.6.3"
