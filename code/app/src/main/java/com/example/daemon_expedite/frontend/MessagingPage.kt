@@ -3,6 +3,7 @@ package com.example.daemon_expedite.frontend
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -12,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-
+import com.example.daemon_expedite.ui_components.MessageCardOwner
 import com.example.daemon_expedite.ui_components.BottomNavBar
 // Screen showing owner's messages
 // empty lazy column for now
@@ -21,14 +22,28 @@ fun OwnerMessagingPage(
     onMySitesClick: () -> Unit = {},
     onReservationsClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
-    onLotteriesClick: () -> Unit = {}
+    onLotteriesClick: () -> Unit = {},
+    messagesContent: LazyListScope.()-> Unit = {
+        // Displays message "NO messages yet" if none to display
+        item {
+            Box(
+                modifier = Modifier.fillParentMaxSize(),
+                contentAlignment = Alignment.Center
+            ){
+                Text(
+                    text = "No messages yet",
+                    style = AppTextStyles.BodyMedium,
+                    color = AppColors.TextMuted
+                )
+            }
+        }
+    }
 ){
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Background)
-    ) {
+    ){
         Text(
             text = "Messages",
             style = AppTextStyles.PageTitleLarge,
@@ -42,29 +57,14 @@ fun OwnerMessagingPage(
                     top = 26.dp
                 )
         )
+
         Spacer(modifier = Modifier.height(24.dp))
         // Messages are added here
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            contentPadding = PaddingValues(
-                horizontal = 28.dp
-            )
-        ){
-
-            // Displays message "NO messages yet" if none to display
-
-            item{Box(modifier = Modifier.fillParentMaxSize(),contentAlignment = Alignment.Center){
-                    Text(
-                        text = "No messages yet",
-                        style = AppTextStyles.BodyMedium,
-                        color = AppColors.TextMuted
-                    )
-                }
-            }
-
-        }
+            contentPadding = PaddingValues(horizontal = 28.dp),content = messagesContent)
         // Reusing bottom nav bar
         BottomNavBar(
             labels = listOf(
@@ -91,6 +91,7 @@ fun OwnerMessagingPage(
         )
     }
 }
+
 /**
  * Preview showing the owner's Messaging screen
  * Displays the screen heading and bottom navigation bar.
@@ -103,4 +104,41 @@ fun OwnerMessagingPage(
     showSystemUi = true
 )
 @Composable
-private fun OwnerMessagingPagePreview(){OwnerMessagingPage()}
+private fun OwnerMessagingPagePreview(){
+
+    OwnerMessagingPage(
+        messagesContent = {
+
+            item {
+                MessageCardOwner(
+                    senderName = "Maya Bennett",
+                    lastMessage = "Perfect, we’ll arrive around 3 PM. See you soon!",
+                    timestamp = "9:41 AM",
+                    isUnread = true,
+                    onClick = {}
+                )
+            }
+
+            item {
+                MessageCardOwner(
+                    senderName = "Amitej",
+                    lastMessage = "Hello, where is the campsite?",
+                    isUnread = true,
+                    timestamp = "Yesterday",
+                    onClick = {}
+                )
+            }
+
+            item {
+                MessageCardOwner(
+                    senderName = "Keya",
+                    lastMessage = "Hello, does the campsite have a firepit?",
+                    isUnread = false,
+                    timestamp = "11 Oct",
+                    showDivider = false,
+                    onClick = {}
+                )
+            }
+        }
+    )
+}
