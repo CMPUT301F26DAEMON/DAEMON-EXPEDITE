@@ -21,7 +21,7 @@ import com.example.daemon_expedite.ui_components.AppColors.Danger
 import androidx.compose.material3.Icon
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
-import com.example.daemon_expedite.ui_components.AppColors.LowOpacityDanger
+import com.example.daemon_expedite.ui_components.AppColors.DangerTint
 import com.example.daemon_expedite.ui_components.AppFonts.Fraunces
 
 
@@ -31,7 +31,7 @@ import com.example.daemon_expedite.ui_components.AppFonts.Fraunces
  * Displays an icon alongside a text label
  *
  * @param onClick The callback invoked when the button is clicked.
- * @param icon The icon displayed beside the button text.
+ * @param icon The icon displayed beside the button text. Null for a text-only button.
  * @param buttonText The text label displayed inside the button.
  * @param customHeight The height of the button in dp. Defaults to 58 dp.
  * @param customWidth The width of the button in dp. Defaults to 356 dp.
@@ -39,9 +39,9 @@ import com.example.daemon_expedite.ui_components.AppFonts.Fraunces
 @Composable
 fun RedButton(
     onClick: () -> Unit,
-    icon: ImageVector,
+    icon: ImageVector? = null,
     buttonText: String,
-    customHeight: Int = 58,
+    customHeight: Int = 56,
     customWidth: Int = 356
 ) {
     OutlinedButton(
@@ -53,16 +53,18 @@ fun RedButton(
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = Danger,
-            containerColor = LowOpacityDanger
+            containerColor = DangerTint
 
         )
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = "Danger Button",
-            modifier = Modifier.size(ButtonDefaults.IconSize)
-        )
-        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = "Danger Button",
+                modifier = Modifier.size(ButtonDefaults.IconSize)
+            )
+            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+        }
         Text(
             text = buttonText,
             fontFamily = Fraunces,

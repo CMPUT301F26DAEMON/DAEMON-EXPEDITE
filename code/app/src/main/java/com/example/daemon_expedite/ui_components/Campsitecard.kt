@@ -18,11 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ConfirmationNumber // needs material-icons-extended
-import androidx.compose.material.icons.filled.Schedule // needs material-icons-extended
-import androidx.compose.material.icons.filled.StarOutline // needs material-icons-extended
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +45,8 @@ enum class PillVariant {
     Muted,
     /** Dark pill with a thin sage outline. For status labels such as "Confirmed". */
     Outlined,
+    /** Dark pill with a red outline. For bad outcomes such as a lost lottery. */
+    Danger,
 }
 
 /**
@@ -59,8 +56,8 @@ enum class PillVariant {
  * `pill` slot or anywhere else. Create one per state of your campsite:
  *
  * ```
- * CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = Icons.Default.ConfirmationNumber)
- * CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = Icons.Default.Schedule)
+ * CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket)
+ * CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = AppIcons.Clock)
  * CampsitePill("Confirmed")
  * ```
  *
@@ -82,22 +79,28 @@ fun CampsitePill(
     val iconTint: Color
     when (variant) {
         PillVariant.Highlight -> {
-            background = AppColors.SurfaceDeep.copy(alpha = 0.55f)
+            background = AppColors.SurfaceBadge
             borderColor = AppColors.Accent
-            borderWidth = 1.5f
+            borderWidth = 1f
             iconTint = AppColors.Accent
         }
         PillVariant.Muted -> {
-            background = AppColors.SurfaceDeep.copy(alpha = 0.8f)
+            background = AppColors.SurfaceDeep
             borderColor = AppColors.OutlineSubtle
             borderWidth = 1f
             iconTint = AppColors.TextSecondary
         }
         PillVariant.Outlined -> {
-            background = AppColors.SurfaceDeep.copy(alpha = 0.7f)
-            borderColor = AppColors.OutlineAccent
+            background = AppColors.SurfaceDeep
+            borderColor = AppColors.Secondary
             borderWidth = 1f
             iconTint = AppColors.TextPrimary
+        }
+        PillVariant.Danger -> {
+            background = AppColors.SurfaceDeep
+            borderColor = AppColors.Danger
+            borderWidth = 1f
+            iconTint = AppColors.Danger
         }
     }
 
@@ -106,14 +109,15 @@ fun CampsitePill(
             .clip(CircleShape)
             .background(background)
             .border(BorderStroke(borderWidth.dp, borderColor), CircleShape)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .height(28.dp)
+            .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
         }
-        Text(text = text, style = AppTextStyles.TabLabel, color = AppColors.TextOnPrimary)
+        Text(text = text, style = AppTextStyles.Badge, color = AppColors.TextPrimary)
     }
 }
 
@@ -125,7 +129,7 @@ fun CampsitePill(
  * - [pill] shows a [CampsitePill] (or anything else) in the photo's top-right corner.
  * - [action] shows a button row under the details, for example your
  *   `ButtonRed` ("Cancel reservation") or `ButtonGreen` ("Rate Your Stay").
- * - [onClick] makes the whole card tappable and adds the trailing arrow.
+ * - [onClick] makes the whole card tappable.
  *   Leave it null for cards that only show an [action].
  *
  * ```
@@ -133,7 +137,7 @@ fun CampsitePill(
  * CampsiteCard(
  *     name = "Pine Creek Hideaway", location = "Big Sur, California",
  *     pricePerNight = "$45", rating = 4.9, imageUrl = url, maxOccupancy = 5,
- *     pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = Icons.Default.ConfirmationNumber) },
+ *     pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket) },
  *     onClick = { openCampsite(id) },
  * )
  *
@@ -157,10 +161,11 @@ fun CampsitePill(
  * @param maxOccupancy Maximum guests, or null to hide "(Max Occ: n)".
  * @param pill Optional slot drawn in the top-right corner of the photo.
  * @param action Optional slot drawn at the bottom of the card, full width.
- * @param onClick Called when the card is tapped. When null the card is not
- * clickable and the arrow is hidden.
- * @param containerColor Background of the details area. Use a darker color for
- * browse cards and [AppColors.Surface] for reservation cards.
+ * @param onClick Called when the card is tapped. When null the card is not clickable.
+ * @param containerColor Background of the details area. Defaults to the Explore card fill;
+ * use [AppColors.Surface] for reservation cards.
+ * @param borderColor Card border. Defaults to the Explore card border; use
+ * [AppColors.OutlineAccent] for reservation cards.
  * @param imageAspectRatio Width to height ratio of the photo.
  */
 @Composable
@@ -176,7 +181,8 @@ fun CampsiteCard(
     pill: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
-    containerColor: Color = AppColors.FillField,
+    containerColor: Color = AppColors.FillCard,
+    borderColor: Color = AppColors.OutlineCard,
     imageAspectRatio: Float = 2.8f,
 ) {
     val shape = RoundedCornerShape(16.dp)
@@ -186,7 +192,7 @@ fun CampsiteCard(
             .fillMaxWidth()
             .clip(shape)
             .background(containerColor)
-            .border(BorderStroke(1.dp, AppColors.OutlineSubtle), shape)
+            .border(BorderStroke(1.dp, borderColor), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         // Photo with optional pill
@@ -220,8 +226,8 @@ fun CampsiteCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -235,14 +241,14 @@ fun CampsiteCard(
                 )
                 if (rating != null) {
                     Icon(
-                        Icons.Default.StarOutline,
+                        AppIcons.Star,
                         contentDescription = "Rating",
                         tint = AppColors.Accent,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(13.dp),
                     )
                     Text(
                         text = "%.1f".format(rating),
-                        style = AppTextStyles.BodyMedium,
+                        style = AppTextStyles.BodySmall,
                         color = AppColors.TextPrimary,
                         modifier = Modifier.padding(start = 4.dp),
                     )
@@ -251,8 +257,8 @@ fun CampsiteCard(
 
             Text(
                 text = location,
-                style = AppTextStyles.BodyMedium,
-                color = AppColors.TextSecondary,
+                style = AppTextStyles.BodySmall,
+                color = AppColors.TextPrimary,
             )
 
             Row(
@@ -261,25 +267,17 @@ fun CampsiteCard(
             ) {
                 Text(
                     text = buildAnnotatedString {
-                        withStyle(SpanStyle(color = AppColors.TextOnPrimary)) { append(pricePerNight) }
+                        withStyle(SpanStyle(color = AppColors.TextPrimary)) { append(pricePerNight) }
                         withStyle(
-                            AppTextStyles.Caption.toSpanStyle().copy(color = AppColors.TextSecondary)
+                            AppTextStyles.Caption.toSpanStyle().copy(color = AppColors.TextPrimary)
                         ) {
                             append(" / night")
-                            if (maxOccupancy != null) append(" (Max Occ: $maxOccupancy)")
+                            if (maxOccupancy != null) append("  ·  Up to $maxOccupancy ${if (maxOccupancy == 1) "guest" else "guests"}")
                         }
                     },
                     style = AppTextStyles.Price,
                     modifier = Modifier.weight(1f),
                 )
-                if (onClick != null) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Open campsite",
-                        tint = AppColors.TextPrimary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
             }
 
             if (action != null) {
@@ -319,14 +317,14 @@ private fun CampsiteCardPreview() {
         CampsiteCard(
             name = "Pine Creek Hideaway", location = "Big Sur, California",
             pricePerNight = "$45", rating = 4.9, maxOccupancy = 5, imageUrl = PREVIEW_IMAGE_URL,
-            pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = Icons.Default.ConfirmationNumber) },
+            pill = { CampsitePill("Lottery · Active", variant = PillVariant.Highlight, icon = AppIcons.LotteryTicket) },
             onClick = {},
             containerColor = AppColors.SurfaceDeep,
         )
         CampsiteCard(
             name = "Redwood Meadow", location = "Felton, California",
             pricePerNight = "$38", rating = 4.8, maxOccupancy = 6, imageUrl = null,
-            pill = { CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = Icons.Default.Schedule) },
+            pill = { CampsitePill("Lottery · None", variant = PillVariant.Muted, icon = AppIcons.Clock) },
             onClick = {},
             containerColor = AppColors.SurfaceDeep,
         )

@@ -38,7 +38,7 @@ fun YellowButton(
     onClick: () -> Unit,
     icon: ImageVector? = null,
     buttonText: String,
-    customHeight: Int = 58,
+    customHeight: Int = 56,
     customWidth: Int = 356
 ) {
     Button(
@@ -48,7 +48,7 @@ fun YellowButton(
             .height(customHeight.dp),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = AppColors.Scrim,
+            contentColor = AppColors.TextOnAccent,
             containerColor = AppColors.Accent
 
         )

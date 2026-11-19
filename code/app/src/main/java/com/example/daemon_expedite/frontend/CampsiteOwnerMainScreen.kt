@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -24,10 +25,17 @@ import androidx.compose.ui.unit.dp
 
 
 
-import com.example.daemon_expedite.ui_components.BottomNavBar
-import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.GreenButton
+import com.example.daemon_expedite.ui_components.ProfileImage
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import com.example.daemon_expedite.ui_components.SearchBar
 
 /**
@@ -35,24 +43,43 @@ import com.example.daemon_expedite.ui_components.SearchBar
  * Displays a search bar and profile button for accessing the owner's profile.
  * Includes a scrollable list of registered campsites and their details.
  * Provides a button for registering new campsites.
- * Includes a bottom navigation bar for accessing reservations, messages,
- * notifications, and lotteries.
+ * The bottom bar (reservations, messages, notifications and lotteries) is drawn over this
+ * screen by AppNavigation, so it stays put while the owner moves between screens.
+ *
+ * The screen only displays what it is given; [OwnerViewModel] loads the campsites.
+ * The search bar filters the already-loaded list, so it doesn't hit the database.
  */
 @Composable
-fun CampsiteOwnerMainPage() {
-    var searchQuery by remember { mutableStateOf("") }
+fun CampsiteOwnerMainPage(
+    profileImageUrl: String? = null,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    campsites: UiState<List<CampsiteSummary>> = UiState.Content(emptyList()),
+    onRetry: () -> Unit = {},
+    onCampsiteClick: (Id) -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    onRegisterCampsiteClick: () -> Unit = {},
+) {
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Background)
     ) {
+        // Keeps the top bar clear of the status bar and camera cutout on every device
+        Spacer(
+            Modifier.windowInsetsTopHeight(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+        )
 
         // Search bar and profile icon
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 15.dp, top = 30.dp),
+                .padding(
+                    start = 15.dp,
+                    end = 11.dp, // + the profile button's inner padding = 15dp, matching start
+                    top = 12.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
@@ -63,18 +90,20 @@ fun CampsiteOwnerMainPage() {
             ) {
                 SearchBar(
                     query = searchQuery,
-                    onQueryChange = { searchQuery = it },
+                    onQueryChange = onSearchQueryChange,
                     placeholderText = "SEARCH YOUR CAMPSITES",
                     showQrIcon = false,
                     onQRCodeClicked = {}
                 )
             }
 
-            IconButton(onClick = {}) {
-                Icon(
-                    imageVector = AppIcons.Profile,
-                    contentDescription = "Profile",
-                    tint = AppColors.TextOnPrimary
+            // Same size as on the entrant home page so the two top bars match.
+            IconButton(onClick = onProfileClick, modifier = Modifier.size(40.dp)) {
+                // Profile picture (falls back to a default image when the user has none)
+                ProfileImage(
+                    imageUrl = profileImageUrl,
+                    size = 39.dp,
+                    contentDescription = "Profile"
                 )
             }
         }
@@ -86,19 +115,28 @@ fun CampsiteOwnerMainPage() {
             modifier = Modifier.padding(
                 start = 25.dp,
                 end = 25.dp,
-                top = 50.dp,
+                top = 32.dp,
                 bottom = 20.dp
             )
         )
 
-        // Scrollable list of the owner's registered campsites
-        LazyColumn(
+        // Scrollable list of the owner's registered campsites, filtered by the search text
+        val filtered = when (campsites) {
+            is UiState.Content -> UiState.Content(
+                campsites.data.filter { it.name.contains(searchQuery.trim(), ignoreCase = true) }
+            )
+            else -> campsites
+        }
+        CampsiteList(
+            state = filtered,
+            emptyText = if (searchQuery.isBlank()) "You haven't registered a campsite yet"
+                        else "No campsites match \"$searchQuery\"",
+            onRetry = onRetry,
+            onCampsiteClick = onCampsiteClick,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-        ) {
-            // Registered Campsites go here
-        }
+        )
         // Register campsite button
         Box(
             modifier = Modifier
@@ -107,33 +145,12 @@ fun CampsiteOwnerMainPage() {
             contentAlignment = Alignment.Center
         ) {
             GreenButton(
-                onClick = {},
+                onClick = onRegisterCampsiteClick,
                 buttonText = "Register a campsite"
             )
         }
-        // Bottom navigation
-        BottomNavBar(
-            labels = listOf(
-                "Reservations",
-                "Messages",
-                "Notifications",
-                "Lotteries"
-            ),
-            icons = listOf(
-                AppIcons.Reservation,
-                AppIcons.Chat,
-                AppIcons.BellIcon,
-                AppIcons.LotteryTicket
-            ),
-            onClicks = listOf(
-                {}, //Reservations
-                {}, //Messages
-                {}, //Notifications
-                {}, //Lotteries
-            )
-
-
-        )
+        // Room for the shared bottom bar AppNavigation draws on top.
+        BottomNavBarSpacer()
     }
 }
 

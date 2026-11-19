@@ -36,6 +36,11 @@ android {
     buildFeatures {
         compose = true
     }
+    // android.util.Log (and other framework stubs) return defaults instead of throwing in JVM
+    // unit tests, so error-handling paths that log can be tested.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -48,6 +53,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.junit.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.material3)
     implementation(libs.core.ktx)
     testImplementation(libs.junit)
@@ -59,11 +65,23 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    // Push notifications (lottery results, campsite owner messages). See push/ExpediteMessagingService.
+    implementation(libs.firebase.messaging)
     implementation(libs.kotlinx.coroutines.play.services)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.firebase.storage)
-    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+    implementation(libs.coil.compose)
+    // Coil 3 can't download images from URLs without a network module (it fails silently).
+    // Needed for profile and campsite photos, which are loaded from Firebase Storage URLs.
+    implementation(libs.coil.network.okhttp)
+    // OpenStreetMap map view, used with Esri satellite tiles on the Select location screen.
+    implementation(libs.osmdroid.android)
+    implementation(libs.geofire.android.common)
+    implementation(libs.zxing.core)
+    implementation(libs.play.services.code.scanner)
 }

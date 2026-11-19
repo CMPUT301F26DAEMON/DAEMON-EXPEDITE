@@ -2,7 +2,16 @@ package com.example.daemon_expedite.backend
 
 import android.location.Location
 
-
+/**
+ * Represents a campsite listing that can be published by an owner and booked through a lottery.
+ *
+ * The class keeps track of the campsite's public details, pricing, occupancy limits,
+ * and associated images. Its lotteries are found with [Database.fetchLotteriesForCampsite].
+ *
+ * @property id Unique identifier for the campsite.
+ * @property ownerId Identifier of the owner who manages this campsite.
+ * @property ratings Every review left for the campsite; see [averageRating].
+ */
 class Campsite(
     val id: Id = Id(),
     name: String,
@@ -14,7 +23,7 @@ class Campsite(
     pricePerNight: Int,
     images: List<Image> = emptyList(),
     val ownerId: Id,
-    rating: Rating,
+    ratings: List<Rating> = emptyList(),
     address: String
 ) {
     var name: String = name
@@ -29,8 +38,6 @@ class Campsite(
         private set
     var policies: String = policies
         private set
-    var rating: Rating = rating
-        private set
     var address: String = address
         private set
 
@@ -40,37 +47,36 @@ class Campsite(
     private val _images = images.toMutableList()
     val images: List<Image> get() = _images
 
-    private val _lotteryIds = mutableListOf<Id>()
-    val lotteryIds: List<Id> get() = _lotteryIds
+    private val _ratings = ratings.toMutableList()
+    val ratings: List<Rating> get() = _ratings
 
-    suspend fun updateDetails(newName: String, newRate: Int, newMaxOccupancy: Int) {
+    /** Changes the details */
+    fun updateDetails(newName: String, newRate: Int, newMaxOccupancy: Int) {
         this.name = newName
         this.pricePerNight = newRate
         this.maxOccupancy = newMaxOccupancy
-
-        Database.updateCampsite(this)
     }
 
-    suspend fun addLottery(lottery: Lottery) {
-        if (lottery.id !in _lotteryIds) {
-            _lotteryIds.add(lottery.id)
-            Database.addLottery(lottery)
+    /**
+     * Adds [image].
+     */
+    fun addImage(image: Image): Boolean {
+        if (image in _images) return false
+        return _images.add(image)
+    }
+
+    fun addRating(rating: Rating): Boolean {
+        if (rating in _ratings) return false
+        return _ratings.add(rating)
+    }
+
+    fun averageRating(): Double {
+        if (_ratings.isEmpty()) return 0.0
+        var sum = 0
+        for (rating in _ratings){
+            sum += rating.score
         }
+        return sum.toDouble() / _ratings.size
     }
 
-    suspend fun addImage(image: Image) {
-        if (image !in _images) {
-            _images.add(image)
-            Database.addImage(image)
-        }
-    }
-
-    fun generateQRCode(){
-       // generate QR Code library function
-    }
-
-    suspend fun updateRating(rating: Int) {
-        this.rating.addRating(rating)
-        Database.updateCampsite(this)
-    }
 }

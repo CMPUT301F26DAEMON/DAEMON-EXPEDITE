@@ -1,0 +1,98 @@
+// AI use: some functions in this file were written with help from Anthropic, Claude Code,
+// "Implement the campsite details, policies and map screens from our Figma design", 2026-11-02.
+// The design came from our team; we reviewed, edited and tested the code.
+
+package com.example.daemon_expedite.ui_components
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+
+/**
+ * Card showing who owns a campsite, with an optional button to message them or (on the admin
+ * view) a red button to delete them.
+ *
+ * Built from the "Expedite/Card/Owner" component in the Figma file.
+ *
+ * @param name Owner's name.
+ * @param modifier [Modifier] applied to the card.
+ * @param photoUrl Download URL of the owner's profile photo. When null, a green circle with a
+ *   person icon is shown instead.
+ * @param onMessageClick Called when the message button is tapped. Null hides the button.
+ * @param onDeleteClick Called when the red delete button is tapped. Null hides the button.
+ */
+@Composable
+fun OwnerCard(
+    name: String,
+    modifier: Modifier = Modifier,
+    photoUrl: String? = null,
+    onMessageClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(BorderStroke(1.dp, AppColors.OutlineButton), shape)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (photoUrl != null) {
+            ProfileImage(imageUrl = photoUrl, size = 48.dp, contentDescription = "Photo of $name")
+        } else {
+            // No photo uploaded: the green circle with a person icon from the Figma.
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(AppColors.Primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(AppIcons.Profile, contentDescription = null, tint = AppColors.TextOnPrimary, modifier = Modifier.size(20.dp))
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text("CAMPSITE OWNER", style = AppTextStyles.Overline, color = AppColors.Secondary)
+            Text(name, style = AppTextStyles.ValueEmphasis, color = AppColors.TextPrimary)
+        }
+        if (onMessageClick != null) {
+            IconButton(onClick = onMessageClick) {
+                Icon(AppIcons.Chat, contentDescription = "Message $name", tint = AppColors.TextPrimary, modifier = Modifier.size(24.dp))
+            }
+        }
+        if (onDeleteClick != null) {
+            IconButton(onClick = onDeleteClick) {
+                Icon(AppIcons.Dustbin, contentDescription = "Delete owner $name", tint = AppColors.Danger, modifier = Modifier.size(24.dp))
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380)
+@Composable
+private fun OwnerCardPreview() {
+    OwnerCard(name = "Maya", onMessageClick = {}, modifier = Modifier.padding(12.dp))
+}

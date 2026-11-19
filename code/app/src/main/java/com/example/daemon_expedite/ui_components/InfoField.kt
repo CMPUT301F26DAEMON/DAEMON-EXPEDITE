@@ -1,13 +1,12 @@
 package com.example.daemon_expedite.ui_components
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
 import android.R.attr.fontWeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,7 +17,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.ui_components.AppColors.TextSecondary
-import androidx.compose.ui.text.font.FontWeight
 
 /**
  * A card with label and corresponding information.
@@ -53,39 +51,42 @@ fun InfoCard(
         modifier = Modifier
             .width(customWidth.dp)
             .height(customHeight.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = AppColors.FillSubtle),
-        border = BorderStroke(1.dp, AppColors.OutlineSubtle)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = AppColors.FillField),
+        border = BorderStroke(1.dp, AppColors.OutlineField)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = AppColors.TextOnPrimary
+                    tint = AppColors.TextPrimary,
+                    modifier = Modifier.size(20.dp)
                 )
 
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label.uppercase(),
-                    fontFamily = AppFonts.Inter,
-                    fontSize = 12.sp,
-                    color = AppColors.TextSecondary
-                )
+            // Same label behaviour as the editable fields: with no value, the label sits in line
+            // with the icon; with a value, it's the small label above it.
+            FloatingLabel(
+                label = label,
+                floated = value.isNotBlank(),
+                inlineStyle = AppTextStyles.ValueMedium,
+                floatedStyle = AppTextStyles.Overline.copy(letterSpacing = 0.sp),
+                modifier = Modifier.weight(1f),
+            ) {
                 Text(
                     text = value,
-                    fontFamily = AppFonts.Inter,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 18.sp,
-                    color = AppColors.TextPrimary
+                    style = AppTextStyles.ValueEmphasis,
+                    color = AppColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -121,8 +122,8 @@ private fun InfoCardPreview() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             InfoCard("Name", "Maya Bennett", showDelete = false, showEdit = false)
-            InfoCard("Name", "Maya Bennett", Icons.Default.Person, showDelete = false, showEdit = true)
-            InfoCard("Name", "Maya Bennett", Icons.Default.Person, showDelete = true, showEdit = false)
+            InfoCard("Name", "Maya Bennett", AppIcons.Profile, showDelete = false, showEdit = true)
+            InfoCard("Name", "Maya Bennett", AppIcons.Profile, showDelete = true, showEdit = false)
         }
     }
 }

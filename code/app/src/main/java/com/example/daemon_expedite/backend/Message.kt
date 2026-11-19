@@ -1,6 +1,7 @@
 package com.example.daemon_expedite.backend
 
-class Message(
+data class Message(
     val id: Id,
     val message: String,
+    val sender: Id,
 )

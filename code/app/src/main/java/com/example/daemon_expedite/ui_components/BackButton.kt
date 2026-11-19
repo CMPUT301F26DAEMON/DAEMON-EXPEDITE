@@ -1,12 +1,12 @@
 package com.example.daemon_expedite.ui_components
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 
 /**
- * A  back button
+ * Round back button from the Figma "Back action": 40dp, faint fill and hairline border.
  *
  * @param onClick Action to perform when the button is clicked.
  */
@@ -31,15 +31,18 @@ fun BackButton(
         onClick = onClick,
         shape = CircleShape,
         colors = IconButtonDefaults.iconButtonColors(
-            contentColor = AppColors.TextOnPrimary,
-            containerColor = AppColors.OutlineStrong
-        )
+            contentColor = AppColors.TextPrimary,
+            containerColor = AppColors.FillSubtle
+        ),
+        modifier = Modifier
+            .size(40.dp)
+            .border(1.dp, AppColors.OutlineSubtle, CircleShape),
 
     ) {
         Icon(
             imageVector = ArrowBack,
             contentDescription = "Go back",
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
     }
 }

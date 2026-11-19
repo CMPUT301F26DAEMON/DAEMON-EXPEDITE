@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "lotteries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "drawn", "order": "ASCENDING" },
+        { "fieldPath": "cancelled", "order": "ASCENDING" },
+        { "fieldPath": "entryEnd", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

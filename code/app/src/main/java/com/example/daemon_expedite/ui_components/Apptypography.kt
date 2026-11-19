@@ -56,6 +56,9 @@ object AppTextStyles {
     /** Screen titles such as "My Reservations" and big headings. Fraunces Bold 24. */
     val PageTitle = TextStyle(fontFamily = AppFonts.Fraunces, fontWeight = FontWeight.Bold, fontSize = 24.sp)
 
+    /** Compact screen titles such as "Find your next hideaway". Fraunces Bold 22, 28 line height. */
+    val PageTitleSmall = TextStyle(fontFamily = AppFonts.Fraunces, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp)
+
     /** Multi-line version of [PageTitle] with a 1.4 line height. */
     val PageTitleMultiline = PageTitle.copy(lineHeight = 1.4.em)
 
@@ -105,8 +108,14 @@ object AppTextStyles {
     /** Multi-line version of [Caption] with a 1.4 line height. */
     val CaptionMultiline = Caption.copy(lineHeight = 1.4.em)
 
+    /** Centred title in the screen header. Inter SemiBold 17. */
+    val ScreenTitle = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+
     /** Status bar clock. Inter Medium 14. */
     val StatusBar = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+
+    /** List item names and plain-text button labels such as "Back to explore". Inter Medium 14. */
+    val LabelMedium = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.Medium, fontSize = 14.sp)
 
     /** Profile values such as name and email. Inter Medium 15. */
     val ValueMedium = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.Medium, fontSize = 15.sp)
@@ -119,6 +128,9 @@ object AppTextStyles {
 
     /** Addresses and small titles. Inter SemiBold 14. */
     val TitleSmall = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+
+    /** Card titles such as the lottery card heading. Inter SemiBold 16. */
+    val TitleMedium = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
 
     /** Tab and toggle labels. Inter SemiBold 13. */
     val TabLabel = TextStyle(fontFamily = AppFonts.Inter, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)

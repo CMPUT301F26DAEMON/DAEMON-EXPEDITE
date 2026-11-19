@@ -1,5 +1,6 @@
 package com.example.daemon_expedite.ui_components
 
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -79,6 +80,10 @@ fun ProfileImage(
             placeholder = fallback,
             error = fallback,
             fallback = fallback,
+            // Coil shows the fallback silently on failure, so log why (URL, HTTP error, etc.).
+            onError = { state ->
+                Log.w("ProfileImage", "Couldn't load $imageUrl", state.result.throwable)
+            },
             modifier = Modifier
                 .matchParentSize()
                 .clip(CircleShape)
@@ -96,7 +101,7 @@ fun ProfileImage(
                     .offset(x = buttonOffset, y = buttonOffset)
                     .size(buttonSize)
                     .clip(CircleShape)
-                    .background(AppColors.Background) // dark ring separating button from photo
+                    .background(AppColors.SurfaceDeep) // dark ring separating button from photo
                     .clickable(role = Role.Button, onClickLabel = "Edit profile picture", onClick = onEditClick)
                     .padding(buttonRingWidth)
                     .background(AppColors.Primary, CircleShape),

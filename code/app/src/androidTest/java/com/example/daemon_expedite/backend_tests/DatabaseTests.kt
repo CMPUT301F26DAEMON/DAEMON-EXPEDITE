@@ -1,10 +1,14 @@
 package com.example.daemon_expedite.backend_tests
 
+import androidx.compose.ui.input.key.Key.Companion.I
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.Image
+import com.example.daemon_expedite.backend.NotFoundException
 import com.example.daemon_expedite.backend.User
 import com.google.firebase.auth.FirebaseAuth
+import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNotNull
 import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.runBlocking
@@ -34,18 +38,29 @@ class DatabaseTest {
         runBlocking {
             Database.init()
             val randomId = "01a17b5a-7d88-75c9-98a0-831fa7ffc7ce"
+            val parsedRandomId = Id(Uuid.parse(randomId))
+            val imageId = Id()
+            val randomImageObject =
+                Image(imageId, parsedRandomId, "/home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/res/drawable/logo.png")
             val user =
                 User(
                     Id(Uuid.parse(randomId)),
                     "test",
                     "test",
                     "test",
-                    Id(Uuid.parse(randomId)),
+                    true,
+                    randomImageObject,
                     List(1) { Id(Uuid.parse(randomId)) },
                     List(1) { Id(Uuid.parse(randomId)) },
                     List(1) { Id(Uuid.parse(randomId)) },
                 )
             Database.addUser(user)
+            val getUser = Database.fetchUser(Id(Uuid.parse(randomId)))
+            assertEquals(randomId, getUser["id"])
+            assertEquals("test", getUser["name"])
+            assertEquals("test", getUser["email"])
+            assertEquals("test", getUser["phoneNumber"])
+            assertEquals(randomImageObject.id.value.toString(), getUser["profileImage"])
         }
     }
 
@@ -58,6 +73,39 @@ class DatabaseTest {
                     "campsites/01a18eca-6027-7c70-82a8-12b2a05cf4c2/01a18f07-3600-76fc-bd41-e46057e7da7d.jpg",
                 ),
             )
+        }
+    }
+
+    @Test
+    fun test_deleteUser() {
+        runBlocking {
+            Database.init()
+            val randomId = "01a17b5a-7d88-75c9-98a0-831fa7ffc7ce"
+            val parsedRandomId = Id(Uuid.parse(randomId))
+            val imageId = Id()
+            val randomImageObject =
+                Image(imageId, parsedRandomId, "/home/Uday/AndroidStudioProjects/DAEMON-EXPEDITE/code/app/src/main/res/assets/images.jpg")
+            val user =
+                User(
+                    Id(Uuid.parse(randomId)),
+                    "test",
+                    "test",
+                    "test",
+                    true,
+                    randomImageObject,
+                    List(1) { Id(Uuid.parse(randomId)) },
+                    List(1) { Id(Uuid.parse(randomId)) },
+                    List(1) { Id(Uuid.parse(randomId)) },
+                )
+            Database.addUser(user)
+            Database.deleteUser(user)
+            try {
+                Database.fetchUser(user.id)
+            } catch (e: NotFoundException) {
+                // test passed
+            } catch (e: Exception) {
+                assert(false) // test failed here
+            }
         }
     }
 }

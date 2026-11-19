@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
@@ -18,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.R
+import com.example.daemon_expedite.ui_components.AppColors
 
 /**
  * Displays the initial loading screen for the EXPEDITE application.
@@ -29,13 +29,13 @@ fun InitLoadScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xff212121)),
+            .background(AppColors.Background),
         contentAlignment = Alignment.Center
     ){
         Canvas(
             modifier = Modifier.fillMaxSize()
         ){
-            val circleColor = Color(0xFF2B302E)
+            val circleColor = AppColors.Contour
             val center = Offset(
                 x = size.width * 0.20f,
                 y = size.height * 0.48f
