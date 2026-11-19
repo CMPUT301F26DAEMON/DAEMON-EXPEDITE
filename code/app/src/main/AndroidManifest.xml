@@ -8,11 +8,8 @@
     <!-- "Use my location" on the Select location map. Only asked for when tapped. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Lottery results and campsite owner messages. Android 13+ also asks the user at runtime. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-        android:name=".ExpediteApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -40,23 +37,6 @@
                     <data android:scheme="expedite" />
                 </intent-filter>
         </activity>
-
-        <!-- Receives Firebase Cloud Messaging pushes. Not exported: only Firebase starts it. -->
-        <service
-            android:name=".push.ExpediteMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
-
-        <!-- Used when the system shows a push itself (app in the background). -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_notification" />
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="lottery_updates" />
     </application>
 
 </manifest>

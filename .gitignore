@@ -2,9 +2,6 @@
 .gradle/
 build/
 
-# Cloud Functions packages (recreated with `npm install` in functions/)
-functions/node_modules/
-
 # Local configuration file (sdk path, etc)
 local.properties
 
