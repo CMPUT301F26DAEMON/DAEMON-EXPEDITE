@@ -39,6 +39,7 @@ fun GreenButton(
     onClick: () -> Unit,
     icon: ImageVector? = null,
     buttonText: String,
+    buttonFontSize: Int = 18,
     customHeight: Int = 56,
     customWidth: Int = 356,
     enabled: Boolean = true,
@@ -69,7 +70,7 @@ fun GreenButton(
         Text(
             text = buttonText,
             fontFamily = Fraunces,
-            fontSize = 18.sp
+            fontSize = buttonFontSize.sp
         )
     }
 }

@@ -1,6 +1,6 @@
 # EXPEDITE Terms of Service & Privacy Policy
 
-*Last updated: November 2024*
+*Last updated: November 2026*
 
 Welcome to **EXPEDITE**. By using our application, booking campsites, or participating in campsite lotteries, you agree to these Terms of Service and Privacy Policy.
 

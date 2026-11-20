@@ -40,15 +40,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
-import com.example.daemon_expedite.R
 import com.example.daemon_expedite.backend.Database
-import com.example.daemon_expedite.backend.Database.isAdmin
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.push.rememberNotificationPermissionRequest
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBar
-import java.util.Map.entry
 
 /** Route names for every screen in the app. Add new screens here. */
 object Routes {
@@ -644,11 +641,16 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 LaunchedEffect(user) { user?.let(ownerViewModel::load) }
                 val query by ownerViewModel.query.collectAsState()
                 val campsites by ownerViewModel.campsites.collectAsState()
+                val activeLotteryCount by ownerViewModel.activeLotteryCount.collectAsState()
+                val bookedStayCount by ownerViewModel.bookedStayCount.collectAsState()
                 CampsiteOwnerMainPage(
                     profileImageUrl = photoUrl,
+                    ownerName = user?.name.orEmpty(),
                     searchQuery = query,
                     onSearchQueryChange = ownerViewModel::onQueryChange,
                     campsites = campsites,
+                    activeLotteryCount = activeLotteryCount,
+                    bookedStayCount = bookedStayCount,
                     onRetry = { user?.let { ownerViewModel.load(it, force = true) } },
                     onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
                     onProfileClick = { navController.navigate(Routes.OWNER_PROFILE) },
@@ -897,27 +899,26 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onShowQrCodeClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteQr(it.data.id)) }
                     },
-                    onDeleteConfirmed = {
-                        detail.delete { result ->
-                            when (result) {
-                                DeleteResult.DELETED -> {
-                                    toast("Campsite deleted")
-                                    // Reload the owner so their campsite list no longer has it.
-                                    user?.let { ownerViewModel.load(it, force = true) }
-                                    navController.popBackStack()
-                                }
+                ) {
+                    detail.delete { result ->
+                        when (result) {
+                            DeleteResult.DELETED -> {
+                                toast("Campsite deleted")
+                                // Reload the owner so their campsite list no longer has it.
+                                user?.let { ownerViewModel.load(it, force = true) }
+                                navController.popBackStack()
+                            }
 
-                                DeleteResult.LOTTERY_RUNNING -> {
-                                    toast("This campsite has a lottery running. Delete it after the lottery ends.")
-                                }
+                            DeleteResult.LOTTERY_RUNNING -> {
+                                toast("This campsite has a lottery running. Delete it after the lottery ends.")
+                            }
 
-                                DeleteResult.FAILED -> {
-                                    toast("Couldn't delete campsite. Check your connection and try again.")
-                                }
+                            DeleteResult.FAILED -> {
+                                toast("Couldn't delete campsite. Check your connection and try again.")
                             }
                         }
-                    },
-                )
+                    }
+                }
             }
 
             composable(Routes.CAMPSITE_QR) { entry ->

@@ -5,14 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.NotFoundException
-import com.google.firebase.FirebaseException
 import com.example.daemon_expedite.backend.Owner
 import com.example.daemon_expedite.backend.User
+import com.google.firebase.FirebaseException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Clock
 
 /**
  * Data for the campsite owner screens: the owner record and their registered campsites.
@@ -31,6 +32,12 @@ class OwnerViewModel : ViewModel() {
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
+
+    private val _activeLotteryCount = MutableStateFlow(0)
+    val activeLotteryCount: StateFlow<Int> = _activeLotteryCount.asStateFlow()
+
+    private val _bookedStayCount = MutableStateFlow(0)
+    val bookedStayCount: StateFlow<Int> = _bookedStayCount.asStateFlow()
 
     private var loadedFor: User? = null
 
@@ -69,6 +76,8 @@ class OwnerViewModel : ViewModel() {
                 _owner.value = UiState.Loading
                 _campsites.value = UiState.Loading
                 _query.value = ""
+                _activeLotteryCount.value = 0
+                _bookedStayCount.value = 0
             }
             onResult(ok)
         }
@@ -104,6 +113,17 @@ class OwnerViewModel : ViewModel() {
                     null
                 }
             }
+        }
+
+        try {
+            val lotteries = Database.fetchOwnerLotteries(owner.id)
+            val now = Clock.System.now()
+            _activeLotteryCount.value = lotteries.count { !it.phase(now).isPast && !it.cancelled }
+            _bookedStayCount.value = lotteries.sumOf { it.bookings.size }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Couldn't load owner lotteries for counts", e)
         }
     }
 

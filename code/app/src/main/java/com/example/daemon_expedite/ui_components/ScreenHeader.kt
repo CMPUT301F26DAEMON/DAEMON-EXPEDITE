@@ -30,6 +30,7 @@ fun ScreenHeader(
     title: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    actions: (@Composable () -> Unit)? = null,
 ) {
     Box(
         modifier = modifier
@@ -46,11 +47,16 @@ fun ScreenHeader(
             color = AppColors.TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            // Kept clear of the 40dp back button on both sides so it stays centred.
+            // Kept clear of the back button and right action buttons so it stays centred.
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(horizontal = 48.dp),
+                .padding(horizontal = if (actions != null) 72.dp else 48.dp),
         )
+        if (actions != null) {
+            Box(Modifier.align(Alignment.CenterEnd)) {
+                actions()
+            }
+        }
     }
 }
 

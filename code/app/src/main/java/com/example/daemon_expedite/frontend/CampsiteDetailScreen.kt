@@ -153,6 +153,7 @@ internal fun <T> DetailPageScaffold(
     state: UiState<T>,
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
+    actions: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.(T) -> Unit,
 ) {
     Column(
@@ -162,7 +163,7 @@ internal fun <T> DetailPageScaffold(
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
-        ScreenHeader(title = title, onBackClick = onBackClick)
+        ScreenHeader(title = title, onBackClick = onBackClick, actions = actions)
         when (state) {
             UiState.Loading -> Centered { CircularProgressIndicator(color = AppColors.Primary) }
 
