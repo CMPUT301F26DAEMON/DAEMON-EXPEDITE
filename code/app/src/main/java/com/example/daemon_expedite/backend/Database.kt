@@ -182,6 +182,8 @@ interface DatabaseInterface {
         userId: Id,
         notificationIds: List<Id>,
     )
+
+    suspend fun saveOwnFcmToken(token: String): Boolean
 }
 
 /**
@@ -1755,6 +1757,36 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     private fun notificationRef(id: Id) = db.collection("notifications").document(id.value.toString())
 
     /**
+     * Saves [token] as the signed-in user's `fcmToken`: the address Cloud Functions send push
+     * notifications to (see push/ExpediteMessagingService).
+     *
+     * One field, not a list: each install signs in anonymously as its own user, so a user only
+     * ever has one device, and a new token replaces the old one instead of piling up.
+     * [updateUser] and [addUser] write explicit field lists without it, so they never erase it.
+     *
+     * Looks the user up by `authId` rather than taking an [Id], because the messaging service
+     * calls this without a loaded [User].
+     *
+     * @return false if the user has no document yet (first launch, before it is created).
+     */
+    override suspend fun saveOwnFcmToken(token: String): Boolean {
+        val authId = auth.currentUser?.uid ?: return false
+        val userRef =
+            db
+                .collection("users")
+                .whereEqualTo("authId", authId)
+                .limit(1)
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+                ?.reference
+                ?: return false
+        userRef.update("fcmToken", token).await()
+        return true
+    }
+
+    /**
      * Sends a notification from owner [senderId] to everyone on [lotteryId]'s waiting list.
      *
      * Stores the notification once in `notifications/<id>`, then adds its id to each entrant's
@@ -2124,6 +2156,17 @@ object Database {
         userId: Id,
         notificationIds: List<Id>,
     ) = db.markNotificationsRead(userId, notificationIds)
+
+    /**
+     * Saves this device's push token on the signed-in user. See [DatabaseInner.saveOwnFcmToken].
+     *
+     * Unlike the other functions, this one can be called before [init]: the messaging service
+     * can get a new token while the app is closed, when nothing has set up the database yet.
+     */
+    suspend fun saveOwnFcmToken(token: String): Boolean {
+        if (!::db.isInitialized) init()
+        return db.saveOwnFcmToken(token)
+    }
 }
 
 // region Lottery document helpers
