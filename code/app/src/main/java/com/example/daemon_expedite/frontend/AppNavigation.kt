@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import com.example.daemon_expedite.push.rememberNotificationPermissionRequest
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.MessageCardOwner
 
 /** Route names for every screen in the app. Add new screens here. */
 object Routes {
@@ -61,6 +63,7 @@ object Routes {
     const val RESERVATIONS = "reservations"
     const val ENTRANT_LOTTERIES = "entrant_lotteries"
     const val ENTRANT_NOTIFICATIONS = "entrant_notifications"
+    const val ENTRANT_MESSAGES = "entrant_messages"
 
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
 
@@ -84,6 +87,7 @@ object Routes {
     const val OWNER_PROFILE = "owner_profile"
     const val OWNER_LOTTERIES = "owner_lotteries"
     const val OWNER_NOTIFICATIONS = "owner_notifications"
+    const val OWNER_MESSAGES = "owner_messages"
     const val LOTTERY_ID_ARG = "lotteryId"
 
     // A lottery winner's booking screen. The campsite is the one picked first.
@@ -109,6 +113,14 @@ object Routes {
     fun ownerLotteryWaitlist(id: Id) = "owner_lottery/${id.value}/waitlist"
 
     fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
+
+    const val CHAT_ID_ARG = "chatId"
+    const val USER_ID_ARG = "userId"
+    const val MESSAGE_DETAIL_BY_CHAT = "chat/id/{$CHAT_ID_ARG}"
+    const val MESSAGE_DETAIL_BY_USER = "chat/user/{$USER_ID_ARG}"
+
+    fun messageDetailForChat(chatId: Id) = "chat/id/${chatId.value}"
+    fun messageDetailForUser(userId: Id) = "chat/user/${userId.value}"
 
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
@@ -365,6 +377,80 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 )
             }
 
+            composable(Routes.ENTRANT_MESSAGES) {
+                val messagingVM: EntrantMessagingViewModel = viewModel()
+                LaunchedEffect(Unit) { messagingVM.load() }
+                val state by messagingVM.chats.collectAsState()
+
+                EntrantMessagingPage(
+                    onExploreClick = { openTab(RoleTabs.ENTRANT, 0) },
+                    onReservationsClick = { openTab(RoleTabs.ENTRANT, 1) },
+                    onLotteriesClick = { openTab(RoleTabs.ENTRANT, 2) },
+                    onNotificationsClick = { openTab(RoleTabs.ENTRANT, 4) },
+                    messagesContent = {
+                        when (state) {
+                            UiState.Loading -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillParentMaxSize(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        CircularProgressIndicator(color = AppColors.Primary)
+                                    }
+                                }
+                            }
+
+                            is UiState.Error -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillParentMaxSize(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "${(state as UiState.Error).message}. Tap to try again.",
+                                            style = AppTextStyles.BodyMedium,
+                                            color = AppColors.TextSecondary,
+                                            modifier = Modifier.clickable { messagingVM.retry() }.padding(12.dp),
+                                        )
+                                    }
+                                }
+                            }
+
+                            is UiState.Content -> {
+                                val chatList = (state as UiState.Content).data
+                                if (chatList.isEmpty()) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillParentMaxSize(),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                text = "No messages yet",
+                                                style = AppTextStyles.BodyMedium,
+                                                color = AppColors.TextMuted,
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    items(chatList, key = { it.chatId.value.toString() }) { chatUi ->
+                                        MessageCardOwner(
+                                            senderName = chatUi.otherUserName,
+                                            lastMessage = chatUi.lastMessageText,
+                                            timestamp = chatUi.timestampStr,
+                                            imageUrl = chatUi.otherUserPhotoUrl,
+                                            isUnread = chatUi.isUnread,
+                                            onClick = {
+                                                navController.navigate(Routes.messageDetailForChat(chatUi.chatId))
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+
             composable(Routes.RESERVATIONS) {
                 val reservations: EntrantReservationsViewModel = viewModel()
                 // Waits for the user to load, since the reservation ids are stored on the user.
@@ -455,8 +541,16 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                             details.lotteryId?.let { navController.navigate(Routes.bookLotteryStay(it, details.id)) }
                         }
                     },
-                    // TODO: open messages once they're built.
-                    onMessageOwnerClick = { showComingSoon("Messages") },
+                    onMessageOwnerClick = {
+                        (state as? UiState.Content)?.let { content ->
+                            val ownerId = content.data.ownerId
+                            if (ownerId != null) {
+                                navController.navigate(Routes.messageDetailForUser(ownerId))
+                            } else {
+                                toast("Cannot open chat with owner")
+                            }
+                        }
+                    },
                 )
             }
 
@@ -661,6 +755,92 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             composable(Routes.OWNER_NOTIFICATIONS) {
                 // A tab: the bar's Home tab goes home, so there's no back button.
                 NotificationsTab(userId = user?.id)
+            }
+
+            composable(Routes.OWNER_MESSAGES) {
+                val messagingVM: OwnerMessagingViewModel = viewModel()
+                LaunchedEffect(Unit) { messagingVM.load() }
+                val state by messagingVM.chats.collectAsState()
+
+                OwnerMessagingPage(
+                    onMySitesClick = { openTab(RoleTabs.OWNER, 0) },
+                    onReservationsClick = { openTab(RoleTabs.OWNER, 1) },
+                    onNotificationsClick = { openTab(RoleTabs.OWNER, 3) },
+                    onLotteriesClick = { openTab(RoleTabs.OWNER, 4) },
+                    messagesContent = {
+                        when (state) {
+                            UiState.Loading -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillParentMaxSize(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        CircularProgressIndicator(color = AppColors.Primary)
+                                    }
+                                }
+                            }
+
+                            is UiState.Error -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillParentMaxSize(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "${(state as UiState.Error).message}. Tap to try again.",
+                                            style = AppTextStyles.BodyMedium,
+                                            color = AppColors.TextSecondary,
+                                            modifier = Modifier.clickable { messagingVM.retry() }.padding(12.dp),
+                                        )
+                                    }
+                                }
+                            }
+
+                            is UiState.Content -> {
+                                val chatList = (state as UiState.Content).data
+                                if (chatList.isEmpty()) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillParentMaxSize(),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                text = "No messages yet",
+                                                style = AppTextStyles.BodyMedium,
+                                                color = AppColors.TextMuted,
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    items(chatList, key = { it.chatId.value.toString() }) { chatUi ->
+                                        MessageCardOwner(
+                                            senderName = chatUi.otherUserName,
+                                            lastMessage = chatUi.lastMessageText,
+                                            timestamp = chatUi.timestampStr,
+                                            imageUrl = chatUi.otherUserPhotoUrl,
+                                            isUnread = chatUi.isUnread,
+                                            onClick = {
+                                                navController.navigate(Routes.messageDetailForChat(chatUi.chatId))
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.MESSAGE_DETAIL_BY_CHAT) {
+                MessageScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.MESSAGE_DETAIL_BY_USER) {
+                MessageScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
             }
 
             composable(Routes.OWNER_PROFILE) {
@@ -924,7 +1104,8 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
 
             composable(Routes.CAMPSITE_QR) { entry ->
                 val campsiteId = entry.arguments?.getString(Routes.CAMPSITE_ID_ARG).orEmpty()
-                val detailEntry = remember(entry) { runCatching { navController.getBackStackEntry(Routes.OWNER_CAMPSITE_DETAIL) }.getOrNull() }
+                val detailEntry =
+                    remember(entry) { runCatching { navController.getBackStackEntry(Routes.OWNER_CAMPSITE_DETAIL) }.getOrNull() }
                 val detailVM: OwnerCampsiteDetailViewModel? = detailEntry?.let { viewModel(it) }
                 val detailState = detailVM?.details?.collectAsState()?.value
                 val campsiteTitle = (detailState as? UiState.Content)?.data?.name ?: "Campsite QR Code"

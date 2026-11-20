@@ -40,7 +40,7 @@ internal class RoleTabs(
                 home = Routes.HOME,
                 labels = listOf("Explore", "Reservations", "Lotteries", "Messages", "Notifications"),
                 icons = listOf(AppIcons.Home, AppIcons.Reservation, AppIcons.LotteryTicket, AppIcons.Chat, AppIcons.BellIcon),
-                routes = listOf(Routes.HOME, Routes.RESERVATIONS, Routes.ENTRANT_LOTTERIES, null, Routes.ENTRANT_NOTIFICATIONS),
+                routes = listOf(Routes.HOME, Routes.RESERVATIONS, Routes.ENTRANT_LOTTERIES, Routes.ENTRANT_MESSAGES, Routes.ENTRANT_NOTIFICATIONS),
             )
 
         /** Like the entrant bar, the owner's home is the first tab. */
@@ -49,7 +49,7 @@ internal class RoleTabs(
                 home = Routes.OWNER_HOME,
                 labels = listOf("Home", "Reservations", "Messages", "Notifications", "Lotteries"),
                 icons = listOf(AppIcons.Home, AppIcons.Reservation, AppIcons.Chat, AppIcons.BellIcon, AppIcons.LotteryTicket),
-                routes = listOf(Routes.OWNER_HOME, null, null, Routes.OWNER_NOTIFICATIONS, Routes.OWNER_LOTTERIES),
+                routes = listOf(Routes.OWNER_HOME, null, Routes.OWNER_MESSAGES, Routes.OWNER_NOTIFICATIONS, Routes.OWNER_LOTTERIES),
             )
 
         /** Like the entrant bar, the admin's home is the first tab. */

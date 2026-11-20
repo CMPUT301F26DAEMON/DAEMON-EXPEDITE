@@ -1752,6 +1752,50 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return fetchChat(Id(Uuid.parse(chatDoc.id)), lastMessage)
     }
 
+    suspend fun createChatAndUploadMessage(
+        chatId: Id,
+        userA: Id,
+        userB: Id,
+        message: Message,
+    ) {
+        val a = userA.value.toString()
+        val b = userB.value.toString()
+        val id = chatId.value.toString()
+
+        val chatMap = mapOf("userA" to a, "userB" to b)
+        db
+            .collection("chats")
+            .document(id)
+            .set(chatMap)
+            .await()
+
+        // Each ref paired with the field that stores its chat ids.
+        val targets =
+            listOf(
+                db.collection("users").document(a) to "chats",
+                db.collection("owners").document(a) to "ownerChats",
+                db.collection("users").document(b) to "chats",
+                db.collection("owners").document(b) to "ownerChats",
+            )
+
+        db
+            .runTransaction { tx ->
+                // 1. All reads first.
+                val exists = targets.map { (ref, _) -> tx.get(ref).exists() }
+
+                // 2. Then all writes.
+                targets.forEachIndexed { i, (ref, field) ->
+                    if (exists[i]) {
+                        tx.update(ref, field, FieldValue.arrayUnion(id))
+                    } else {
+                        tx.set(ref, mapOf(field to listOf(id)), SetOptions.merge())
+                    }
+                }
+            }.await()
+
+        uploadMessage(message, chatId)
+    }
+
     // region Notifications
 
     private fun notificationRef(id: Id) = db.collection("notifications").document(id.value.toString())
@@ -2115,6 +2159,19 @@ object Database {
     suspend fun isAdmin(userId: Id): Boolean = db.isAdmin(userId)
 
     suspend fun fetchChat(chatId: Id): Chat = db.fetchChat(chatId)
+
+    suspend fun fetchChatWithUserId(
+        userA: Id,
+        userB: Id,
+        lastMessage: Message? = null,
+    ): Chat = db.fetchChatWithUserId(userA, userB, lastMessage)
+
+    suspend fun createChatAndUploadMessage(
+        chatId: Id,
+        userA: Id,
+        userB: Id,
+        message: Message,
+    ) = db.createChatAndUploadMessage(chatId, userA, userB, message)
 
     fun chatListener(
         chatId: Id,

@@ -1,7 +1,6 @@
 package com.example.daemon_expedite.ui_components
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,8 +28,11 @@ import androidx.compose.ui.unit.dp
  * @param senderName Name of the person
  * @param lastMessage Display latest message
  * @param timestamp Time and date of message
+ * @param onClick Called when tapped
+ * @param modifier [Modifier] applied to root
  * @param isUnread green dot if message unread
- * @param profileImageRes Optional drawable for the profile picture
+ * @param imageUrl Web address of the profile photo. Loaded with Coil.
+ * @param profileImageRes Optional drawable for the profile picture fallback
  * @param showDivider Whether to draw a separator line below card
  */
 @Composable
@@ -41,47 +43,44 @@ fun MessageCardOwner(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isUnread: Boolean = false,
+    imageUrl: String? = null,
     @DrawableRes profileImageRes: Int? = null,
-    showDivider: Boolean = true
+    showDivider: Boolean = true,
 ) {
-
     Column(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 83.dp)
-                .clickable(onClick = onClick)
-                .padding(vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 83.dp)
+                    .clickable(onClick = onClick)
+                    .padding(vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // Profile picture
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(AppColors.SurfaceDisabled),
-                contentAlignment = Alignment.Center
-            ) {
-
-                if (profileImageRes != null) {
-
-                    Image(
-                        painter = painterResource(id = profileImageRes),
-                        contentDescription = "$senderName profile picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                } else {
-
+            if (imageUrl != null || profileImageRes != null) {
+                ProfileImage(
+                    imageUrl = imageUrl,
+                    size = 40.dp,
+                    contentDescription = "$senderName profile picture",
+                    fallbackRes = profileImageRes ?: com.example.daemon_expedite.R.drawable.mock_profile,
+                )
+            } else {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(AppColors.SurfaceDisabled),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         imageVector = AppIcons.Profile,
                         contentDescription = null,
                         tint = AppColors.Secondary,
-                        modifier = Modifier.size(23.dp)
+                        modifier = Modifier.size(23.dp),
                     )
                 }
             }
@@ -89,21 +88,19 @@ fun MessageCardOwner(
             // Sender name, timestamp, and most recent message
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-
                     Text(
                         text = senderName,
                         style = AppTextStyles.ValueEmphasis,
                         color = AppColors.TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -111,49 +108,52 @@ fun MessageCardOwner(
                     Text(
                         text = timestamp,
                         style = AppTextStyles.BodySmall,
-                        color = if (isUnread) {
-                            AppColors.Secondary
-                        } else {
-                            AppColors.TextMuted
-                        },
-                        maxLines = 1
+                        color =
+                            if (isUnread) {
+                                AppColors.Secondary
+                            } else {
+                                AppColors.TextMuted
+                            },
+                        maxLines = 1,
                     )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-
                     Text(
                         text = lastMessage,
-                        style = AppTextStyles.BodyMedium.copy(
-                            fontWeight = if (isUnread) {
-                                FontWeight.Medium
+                        style =
+                            AppTextStyles.BodyMedium.copy(
+                                fontWeight =
+                                    if (isUnread) {
+                                        FontWeight.Medium
+                                    } else {
+                                        FontWeight.Normal
+                                    },
+                            ),
+                        color =
+                            if (isUnread) {
+                                AppColors.TextPrimary
                             } else {
-                                FontWeight.Normal
-                            }
-                        ),
-                        color = if (isUnread) {
-                            AppColors.TextPrimary
-                        } else {
-                            AppColors.TextSecondary
-                        },
+                                AppColors.TextSecondary
+                            },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
 
                     // Unread message indicator
                     if (isUnread) {
-
                         Spacer(modifier = Modifier.width(10.dp))
 
                         Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(AppColors.Primary)
+                            modifier =
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(AppColors.Primary),
                         )
                     }
                 }
@@ -162,10 +162,9 @@ fun MessageCardOwner(
 
         // Divider between conversations
         if (showDivider) {
-
             HorizontalDivider(
                 thickness = 1.dp,
-                color = AppColors.OutlineSubtle
+                color = AppColors.OutlineSubtle,
             )
         }
     }
@@ -177,24 +176,23 @@ fun MessageCardOwner(
 @Preview(
     showBackground = true,
     widthDp = 405,
-    heightDp = 340
+    heightDp = 340,
 )
 @Composable
 private fun MessageCardPreview() {
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppColors.Background)
-            .padding(horizontal = 28.dp, vertical = 16.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(AppColors.Background)
+                .padding(horizontal = 28.dp, vertical = 16.dp),
     ) {
-
         MessageCardOwner(
             senderName = "Maya Bennett",
             lastMessage = "Perfect, we’ll arrive around 3 PM. See you soon!",
             timestamp = "9:41 AM",
             isUnread = true,
-            onClick = {}
+            onClick = {},
         )
 
         MessageCardOwner(
@@ -202,7 +200,7 @@ private fun MessageCardPreview() {
             lastMessage = "Hello, where is the campsite?",
             timestamp = "Yesterday",
             isUnread = true,
-            onClick = {}
+            onClick = {},
         )
         MessageCardOwner(
             senderName = "Keya",
@@ -210,7 +208,7 @@ private fun MessageCardPreview() {
             timestamp = "11 Oct",
             isUnread = false,
             showDivider = false,
-            onClick = {}
+            onClick = {},
         )
     }
 }
