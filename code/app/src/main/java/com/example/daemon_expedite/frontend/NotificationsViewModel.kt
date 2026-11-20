@@ -13,11 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * Data for [NotificationsScreen]: the signed-in user's notifications, newest first.
@@ -92,12 +87,10 @@ class NotificationsViewModel : ViewModel() {
                 .mapNotNull { (id, name) -> name?.takeIf { it.isNotBlank() }?.let { id to it } }
                 .toMap()
 
-        val now = Instant.now()
         notifications.map { n ->
             NotificationEntry(
                 sender = headingFor(n) ?: ownerNames[n.senderId] ?: "Campsite owner",
                 message = n.text,
-                timestamp = relativeTime(n.id.getTime(), now),
                 id = n.id,
                 title = n.title,
                 isNew = !n.isRead,
@@ -115,17 +108,3 @@ internal fun campsitesHeading(names: List<String>): String? =
         1 -> names.single()
         else -> "${names.first()} and ${names.size - 1} more"
     }
-
-private val DATE = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
-
-/** "Just now", "5m ago", "3h ago", "2d ago", then a date like "Nov 2". */
-internal fun relativeTime(time: Instant, now: Instant): String {
-    val elapsed = Duration.between(time, now)
-    return when {
-        elapsed.toMinutes() < 1 -> "Just now"
-        elapsed.toHours() < 1 -> "${elapsed.toMinutes()}m ago"
-        elapsed.toDays() < 1 -> "${elapsed.toHours()}h ago"
-        elapsed.toDays() < 7 -> "${elapsed.toDays()}d ago"
-        else -> DATE.format(time.atZone(ZoneId.systemDefault()))
-    }
-}

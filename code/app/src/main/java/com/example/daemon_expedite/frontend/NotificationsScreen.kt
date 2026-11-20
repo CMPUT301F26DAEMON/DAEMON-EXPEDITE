@@ -48,7 +48,6 @@ import com.example.daemon_expedite.ui_components.NotificationCard
 data class NotificationEntry(
     val sender: String,
     val message: String,
-    val timestamp: String,
     val id: Id = Id(),
     val title: String? = null,
     val isNew: Boolean = false,
@@ -157,7 +156,6 @@ fun NotificationsScreen(
             NotificationCard(
                 sender = notification.sender,
                 message = notification.message,
-                timestamp = notification.timestamp,
                 title = notification.title,
                 isNew = notification.isNew,
                 onClick = {
@@ -193,24 +191,20 @@ private fun NotificationsScreenPreview() {
             NotificationEntry(
                 sender = "Pine Creek Hideaway",
                 message = "You won the lottery for Jun 12 - Jun 14. Accept your spot within 48 hours.",
-                timestamp = "2h ago",
                 title = "Lottery results",
                 isNew = true
             ),
             NotificationEntry(
                 sender = "Maple Hollow",
-                message = "The lottery you joined closes tomorrow at midnight.",
-                timestamp = "5h ago"
+                message = "The lottery you joined closes tomorrow at midnight."
             ),
             NotificationEntry(
                 sender = "Lakeside Retreat",
-                message = "Your reservation for Jul 3 - Jul 5 was cancelled by the owner.",
-                timestamp = "Yesterday"
+                message = "Your reservation for Jul 3 - Jul 5 was cancelled by the owner."
             ),
             NotificationEntry(
                 sender = "Expedite",
-                message = "Welcome! Turn on notifications to hear about lottery results.",
-                timestamp = "Nov 2"
+                message = "Welcome! Turn on notifications to hear about lottery results."
             )
         ))
     )

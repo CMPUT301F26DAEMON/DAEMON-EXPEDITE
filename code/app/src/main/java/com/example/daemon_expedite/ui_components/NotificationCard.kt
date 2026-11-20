@@ -25,17 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * One notification: who sent it, the message, and when. Tapping it calls [onClick].
+ * One notification: who sent it and the message. Tapping it calls [onClick].
  *
- * Takes plain text rather than a model object so it can be reused anywhere; format the
- * timestamp before passing it in.
+ * Takes plain text rather than a model object so it can be reused anywhere.
  *
  * Example:
  * ```
  * NotificationCard(
  *     sender = "Pine Creek Hideaway",
  *     message = "You won the lottery for Jun 12 - Jun 14.",
- *     timestamp = "2h ago",
+ *
  *     onClick = { /* open the reservation */ },
  * )
  * ```
@@ -44,7 +43,6 @@ import androidx.compose.ui.unit.sp
  * @param message The notification text. Wraps onto as many lines as it needs.
  * @param title Optional heading shown between the sender and the message.
  * @param isNew Shows a green dot next to the sender for notifications the user hasn't seen.
- * @param timestamp When it was sent, already formatted, for example "2h ago".
  * @param onClick Called when the card is tapped.
  * @param modifier Optional [Modifier] for the card.
  */
@@ -52,7 +50,6 @@ import androidx.compose.ui.unit.sp
 fun NotificationCard(
     sender: String,
     message: String,
-    timestamp: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
@@ -112,14 +109,6 @@ fun NotificationCard(
             fontSize = 12.sp,
             lineHeight = 17.sp
         )
-
-        Spacer(Modifier.height(6.dp))
-
-        Text(
-            text = timestamp,
-            color = AppColors.Secondary,
-            fontSize = 11.sp
-        )
     }
 }
 
@@ -130,7 +119,6 @@ private fun NotificationCardPreview() {
         NotificationCard(
             sender = "Pine Creek Hideaway",
             message = "You won the lottery for Jun 12 - Jun 14. Accept your spot within 48 hours.",
-            timestamp = "2h ago",
             onClick = {},
             title = "Lottery results",
             isNew = true,
@@ -139,7 +127,6 @@ private fun NotificationCardPreview() {
         NotificationCard(
             sender = "Expedite",
             message = "Short message.",
-            timestamp = "Yesterday",
             onClick = {},
         )
     }
