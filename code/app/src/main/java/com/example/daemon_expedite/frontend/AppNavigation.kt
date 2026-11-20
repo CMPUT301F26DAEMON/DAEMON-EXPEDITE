@@ -673,6 +673,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     // Read-only page: photo and details are changed from the entrant profile.
                     onBackClick = { navController.popBackStack() },
                     onRoleSelected = { switchRole(it) },
+                    onPoliciesClick = { navController.navigate(Routes.POLICIES) },
                     onDeleteProfile = {
                         // Owner page: delete only the owner side, then go back to being an entrant.
                         ownerViewModel.deleteOwnerProfile { ok ->

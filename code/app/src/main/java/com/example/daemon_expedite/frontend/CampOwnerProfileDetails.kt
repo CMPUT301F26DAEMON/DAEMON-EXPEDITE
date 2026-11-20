@@ -1,17 +1,23 @@
 package com.example.daemon_expedite.frontend
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.ui_components.*
@@ -27,6 +33,7 @@ import com.example.daemon_expedite.ui_components.*
  * @param isAdmin Adds the Admin option to the role toggle. Only true for users in "admins".
  * @param currentRole The view this page was opened from, shown as selected in the role toggle.
  * @param onRoleSelected Called when another role is tapped (switches views straight away).
+ * @param onPoliciesClick Called when the App Policies link is tapped.
  * @param onDeleteProfile Called after the user confirms deleting the owner profile. Pass null
  *   to hide the Delete Profile button (admin status is managed in Firebase, not in the app).
  */
@@ -40,6 +47,7 @@ fun ProfileDetailsScreen(
     currentRole: ProfileRole = ProfileRole.OWNER,
     onBackClick: () -> Unit = {},
     onRoleSelected: (ProfileRole) -> Unit = {},
+    onPoliciesClick: () -> Unit = {},
     onDeleteProfile: (() -> Unit)? = {}
 ) {
     var showDeleteDialog by rememberSaveable {
@@ -191,6 +199,34 @@ fun ProfileDetailsScreen(
                     buttonText = "Delete Profile",
                     customHeight = 58,
                     customWidth = contentWidth.value.toInt()
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
+
+            // App Policies Button / Link at the bottom
+            Row(
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClick = onPoliciesClick)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = AppIcons.Info,
+                    contentDescription = null,
+                    tint = AppColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "App Policies",
+                    style = AppTextStyles.BodySmall,
+                    color = AppColors.TextSecondary,
+                    textDecoration = TextDecoration.Underline
                 )
             }
         }
