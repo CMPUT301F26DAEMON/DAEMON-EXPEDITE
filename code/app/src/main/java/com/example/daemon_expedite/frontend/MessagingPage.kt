@@ -85,7 +85,7 @@ class OwnerMessagingViewModel : ViewModel() {
                                             Database.getImage(image.path)
                                         }
                                     }
-                                    val lastMsg = chat.messages.lastOrNull()
+                                    val lastMsg = chat.messages.maxByOrNull { it.id.getTime() }
                                     val lastMsgText = lastMsg?.message ?: "No messages"
                                     val timeStr = lastMsg?.let { formatMessageTime(it.id.getTime()) } ?: ""
 
@@ -142,7 +142,7 @@ class EntrantMessagingViewModel : ViewModel() {
                                             Database.getImage(image.path)
                                         }
                                     }
-                                    val lastMsg = chat.messages.lastOrNull()
+                                    val lastMsg = chat.messages.maxByOrNull { it.id.getTime() }
                                     val lastMsgText = lastMsg?.message ?: "No messages"
                                     val timeStr = lastMsg?.let { formatMessageTime(it.id.getTime()) } ?: ""
 
