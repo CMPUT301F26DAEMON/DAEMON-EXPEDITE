@@ -81,6 +81,7 @@ data class CampsiteDetails(
     val stayPeriods: List<DatePeriod> = emptyList(),
     val availableNights: List<ClosedRange<LocalDate>> = emptyList(),
     val bookedNights: List<ClosedRange<LocalDate>> = emptyList(),
+    val waitlistCount: Int? = null,
 )
 
 /**
@@ -265,6 +266,7 @@ internal suspend fun Campsite.toDetails(
             lotteryBookingText = booking.await(),
             stayPeriods = lottery?.stayPeriods.orEmpty(),
             availableNights = lottery?.let { BookingRules.freeNightRanges(it, id) }.orEmpty(),
+            waitlistCount = lottery?.waitingList?.users?.size,
         )
     }
 

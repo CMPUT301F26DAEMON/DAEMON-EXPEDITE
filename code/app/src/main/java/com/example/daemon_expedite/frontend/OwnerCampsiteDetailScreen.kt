@@ -4,22 +4,42 @@
 
 package com.example.daemon_expedite.frontend
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.daemon_expedite.ui_components.AppColors
+import com.example.daemon_expedite.ui_components.AppFonts
 import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.CampsiteOverview
 import com.example.daemon_expedite.ui_components.ConfirmDialog
-import com.example.daemon_expedite.ui_components.GreenButton
 import com.example.daemon_expedite.ui_components.LotteryStatus
 import com.example.daemon_expedite.ui_components.RedButton
 
@@ -27,7 +47,8 @@ import com.example.daemon_expedite.ui_components.RedButton
  * An owner's view of one of their own campsites. Opened by tapping a campsite on Owner Home.
  *
  * Built from the "Campsite Detail: owner view" frame in the Figma file, plus Edit and Delete
- * buttons (not in the design). Delete asks for confirmation first.
+ * buttons. Edit and Show QR code actions are located on the right side of the top title bar.
+ * Delete asks for confirmation first.
  *
  * @param state The campsite to show, or loading / error.
  * @param isDeleting True while the campsite is being deleted; the delete button is disabled.
@@ -53,7 +74,35 @@ fun OwnerCampsiteDetailScreen(
 ) {
     var askDelete by rememberSaveable { mutableStateOf(false) }
 
-    DetailPageScaffold("Campsite Details", state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
+    DetailPageScaffold(
+        title = "Campsite Details",
+        state = state,
+        onBackClick = onBackClick,
+        onRetry = onRetry,
+        actions = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onShowQrCodeClick, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        imageVector = AppIcons.QRCode,
+                        contentDescription = "Show QR code",
+                        tint = AppColors.TextPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                IconButton(onClick = onEditClick, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        imageVector = AppIcons.EditPencilOutlined,
+                        contentDescription = "Edit campsite",
+                        tint = AppColors.TextPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        },
+    ) { details ->
         CampsiteOverview(
             name = details.name,
             imageUrls = details.imageUrls,
@@ -71,10 +120,25 @@ fun OwnerCampsiteDetailScreen(
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val width = maxWidth.value.toInt()
+            val count = details.waitlistCount
+            val subtitle = if (count != null) {
+                when (count) {
+                    0 -> "No entrants on waitlist yet"
+                    1 -> "1 entrant on waitlist"
+                    else -> "$count entrants on waitlist"
+                }
+            } else {
+                "View waitlist entrants"
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                GreenButton(onClick = onViewWaitlistClick, icon = AppIcons.Waitlist, buttonText = "View Waitlist", customWidth = width)
-                GreenButton(onClick = onEditClick, icon = AppIcons.EditPencilOutlined, buttonText = "Edit campsite", customWidth = width)
-                GreenButton(onClick = onShowQrCodeClick, icon = AppIcons.QRCode, buttonText = "Show QR code", customWidth = width)
+                BlackButton(
+                    onClick = onViewWaitlistClick,
+                    icon = AppIcons.Waitlist,
+                    buttonText = "View Waitlist",
+                    subtitleText = subtitle,
+                    customWidth = width,
+                )
                 RedButton(
                     onClick = { if (!isDeleting) askDelete = true },
                     icon = AppIcons.Dustbin,
@@ -95,6 +159,76 @@ fun OwnerCampsiteDetailScreen(
                     onDeleteConfirmed()
                 },
                 onDismiss = { askDelete = false },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BlackButton(
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    buttonText: String,
+    subtitleText: String? = null,
+    customWidth: Int = 356,
+    enabled: Boolean = true,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .width(customWidth.dp)
+            .height(if (subtitleText != null) 64.dp else 56.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AppColors.Background,
+            contentColor = AppColors.TextOnPrimary,
+            disabledContainerColor = AppColors.SurfaceDisabled,
+            disabledContentColor = AppColors.TextSecondary,
+        ),
+        border = BorderStroke(1.dp, AppColors.OutlineStrong),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize),
+                )
+                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = buttonText,
+                    fontFamily = AppFonts.Inter,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.TextOnPrimary,
+                    textAlign = TextAlign.Start,
+                )
+                if (subtitleText != null) {
+                    Text(
+                        text = subtitleText,
+                        style = AppTextStyles.Caption,
+                        color = AppColors.TextSecondary,
+                        textAlign = TextAlign.Start,
+                    )
+                }
+            }
+            Icon(
+                imageVector = AppIcons.ArrowForward,
+                contentDescription = null,
+                tint = AppColors.TextPrimary,
+                modifier = Modifier.size(18.dp),
             )
         }
     }
