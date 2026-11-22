@@ -22,6 +22,23 @@ import kotlin.time.toKotlinInstant
  */
 data class Booking(val user: Id, val campsite: Id, val period: DatePeriod, val reservation: Id? = null)
 
+/** Where a [CampsiteInvite] stands. */
+enum class InviteStatus { PENDING, ACCEPTED, DECLINED }
+
+/**
+ * A request from a lottery's creator to add another owner's campsite to it.
+ *
+ * @property campsite The campsite asked for.
+ * @property campsiteOwner The campsite's owner, who accepts or declines. Copied from
+ *   [Campsite.ownerId] so invites can be found by owner without loading the campsite.
+ * @property status Accepted is final: a co-owner can't leave once they accept.
+ */
+data class CampsiteInvite(
+    val campsite: Id,
+    val campsiteOwner: Id,
+    val status: InviteStatus = InviteStatus.PENDING,
+)
+
 /**
  * Where a lottery is in its life. Worked out from its dates by [Lottery.phase]; only
  * [Lottery.drawn] and [Lottery.cancelled] are stored.
@@ -68,8 +85,13 @@ enum class LotteryPhase {
  *
  * A campsite can only be in one lottery that isn't past (see [LotteryPhase.isPast]).
  *
+ * Several owners can share a lottery: the creator invites other owners' campsites (see
+ * [invite]) and each owner accepts or declines before entries close. Only the creator
+ * edits, cancels and messages the waiting list.
+ *
  * @property ownerId The owner who created it.
- * @property campsites Campsites in the lottery. All belong to [ownerId].
+ * @property campsites Campsites in the lottery: the creator's own, plus invited ones once accepted.
+ * @property invites Invites sent to other owners, in any status.
  * @property entryStart When entrants can start joining (start of the owner's first entry day).
  * @property entryEnd When joining closes and winners are drawn (end of the owner's last entry day).
  * @property stayPeriods The nights winners can book, sorted and not overlapping. Need not be
@@ -87,6 +109,7 @@ class Lottery(
     val id: Id = Id(),
     val ownerId: Id,
     campsites: List<Id>,
+    invites: List<CampsiteInvite> = emptyList(),
     entryStart: Instant,
     entryEnd: Instant,
     stayPeriods: List<DatePeriod>,
@@ -118,15 +141,80 @@ class Lottery(
         private set
     var cancelled: Boolean = cancelled
         private set
+    var invites: List<CampsiteInvite> = invites.toList()
+        private set
 
     /** The optional waitlist limit, or null for no limit. */
     val waitlistCapacity: Int? get() = waitingList.capacity.takeIf { it != Int.MAX_VALUE }
+
+    /** The creator plus every owner who accepted an invite. */
+    val ownerIds: Set<Id>
+        get() = setOf(ownerId) + invites.filter { it.status == InviteStatus.ACCEPTED }.map { it.campsiteOwner }
+
+    /** Owners who still have to answer an invite. */
+    val pendingOwners: Set<Id>
+        get() = invites.filter { it.status == InviteStatus.PENDING }.map { it.campsiteOwner }.toSet()
+
+    /** Campsites invited but not answered yet. Not part of [campsites]. */
+    val pendingCampsites: List<Id>
+        get() = invites.filter { it.status == InviteStatus.PENDING }.map { it.campsite }
+
+    /** The owner of [campsite], which must be in [campsites]: a co-owner's if it came from an invite. */
+    fun ownerOf(campsite: Id): Id =
+        invites.firstOrNull { it.campsite == campsite && it.status == InviteStatus.ACCEPTED }?.campsiteOwner ?: ownerId
+
+    /** Invites can be sent and answered until entries close, unless it was cancelled. */
+    fun canChangeInvites(now: Instant = Clock.System.now()): Boolean = !cancelled && now < entryEnd
+
+    /**
+     * Invites [campsite] from another owner. Only changes memory; save afterwards.
+     *
+     * @return false if entries have closed, the lottery was cancelled, the campsite is the
+     *   creator's own, already in the lottery, or was invited before (in any status).
+     */
+    fun invite(campsite: Campsite, now: Instant = Clock.System.now()): Boolean {
+        if (!canChangeInvites(now)) return false
+        if (campsite.ownerId == ownerId || campsite.id in campsites) return false
+        if (invites.any { it.campsite == campsite.id }) return false
+        invites = invites + CampsiteInvite(campsite.id, campsite.ownerId)
+        return true
+    }
+
+    /**
+     * [by] accepts the invite for [campsite], adding it to [campsites]. Final: there is no way
+     * to leave afterwards. Only changes memory; save afterwards.
+     *
+     * @return false if entries have closed, the lottery was cancelled, there is no pending
+     *   invite for [campsite], or [by] doesn't own it.
+     */
+    fun acceptInvite(campsite: Id, by: Id, now: Instant = Clock.System.now()): Boolean {
+        val invite = pendingInvite(campsite, by, now) ?: return false
+        invites = invites.map { if (it == invite) it.copy(status = InviteStatus.ACCEPTED) else it }
+        campsites = campsites + campsite
+        return true
+    }
+
+    /** [by] declines the invite for [campsite]. Same rules as [acceptInvite]. */
+    fun declineInvite(campsite: Id, by: Id, now: Instant = Clock.System.now()): Boolean {
+        val invite = pendingInvite(campsite, by, now) ?: return false
+        invites = invites.map { if (it == invite) it.copy(status = InviteStatus.DECLINED) else it }
+        return true
+    }
+
+    private fun pendingInvite(campsite: Id, by: Id, now: Instant): CampsiteInvite? {
+        if (!canChangeInvites(now)) return null
+        return invites.firstOrNull {
+            it.campsite == campsite && it.campsiteOwner == by && it.status == InviteStatus.PENDING
+        }
+    }
 
     /** First night anyone can stay. Booking closes when this day starts. */
     val firstStayNight: LocalDate get() = stayPeriods.first().start
 
     /** Check-out day of the last stay. The lottery is finished once this day starts. */
     val lastCheckOut: LocalDate get() = stayPeriods.maxOf { it.end }
+
+
 
     /** First day entrants can join, in [zone]. */
     fun entryFirstDay(zone: ZoneId): LocalDate = entryStart.toJavaInstant().atZone(zone).toLocalDate()

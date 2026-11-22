@@ -94,15 +94,15 @@ open class Owner(
     fun removeCampsite(campsite: Campsite): Boolean = _ownerCampsites.remove(campsite.id)
 
     /**
-     * Records a lottery created by this owner in memory. Call it after [Database.createLottery],
-     * which saves the lottery and records it on the owner in one write.
+     * Records a lottery this owner created or co-owns, in memory. Call it after
+     * [Database.createLottery], which saves the lottery and records it on the owner in one write.
      *
-     * @param lottery Lottery. Its [Lottery.ownerId] must be this owner.
+     * @param lottery Lottery. This owner must be in its [Lottery.ownerIds].
      * @return false if the lottery was already recorded.
      */
     fun addOwnerLottery(lottery: Lottery): Boolean {
         if (lottery.id in _ownerLotteries) return false
-        require(lottery.ownerId == id) { "Lottery ${lottery.id} belongs to another owner" }
+        require(id in lottery.ownerIds) { "Lottery ${lottery.id} belongs to another owner" }
         return _ownerLotteries.add(lottery.id)
     }
 
