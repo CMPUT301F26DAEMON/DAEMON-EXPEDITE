@@ -4,19 +4,11 @@
 
 package com.example.daemon_expedite.frontend
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,9 +18,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -40,6 +29,7 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.CampsiteLinkCard
 import com.example.daemon_expedite.ui_components.CampsitePill
 import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.DateRangeCalendar
@@ -185,7 +175,7 @@ fun EntrantLotteryDetailScreen(
 
         Section("Campsites") {
             details.campsites.forEach { campsite ->
-                CampsiteRow(campsite.name, onClick = { onCampsiteClick(campsite.id) })
+                CampsiteLinkCard(campsite.name, onClick = { onCampsiteClick(campsite.id) })
             }
         }
 
@@ -296,38 +286,6 @@ private fun Section(
     }
 }
 
-/** A campsite in the lottery; tapping it opens the campsite's page. */
-@Composable
-private fun CampsiteRow(
-    name: String,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(16.dp)
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .background(AppColors.SurfaceDeep)
-                .border(1.dp, AppColors.OutlineSubtle, shape)
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(AppIcons.Campsite, contentDescription = null, tint = AppColors.Secondary, modifier = Modifier.size(20.dp))
-        Text(
-            text = name,
-            style = AppTextStyles.ValueEmphasis,
-            color = AppColors.TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(AppIcons.ArrowForward, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(18.dp))
-    }
-}
-
 @Preview(widthDp = 412, heightDp = 1500)
 @Composable
 private fun EntrantLotteryDetailScreenPreview() {
@@ -350,6 +308,9 @@ private fun EntrantLotteryDetailScreenPreview() {
                     stayPeriods = stays,
                     stayTexts = listOf("16 Oct → 18 Oct · 2 nights", "23 Oct → 25 Oct · 2 nights"),
                     drawText = "12/20 joined · 4 winners to draw",
+                    joinedText = "12 / 20 joined",
+                    winnerCount = 4,
+                    drawResultText = null,
                     canEdit = true,
                     canCancel = true,
                     deletesOnCancel = false,
