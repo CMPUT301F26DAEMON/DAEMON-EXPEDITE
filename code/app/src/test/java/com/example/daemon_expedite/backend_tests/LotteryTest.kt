@@ -4,6 +4,8 @@
 
 package com.example.daemon_expedite.backend_tests
 
+import android.location.Location
+import com.example.daemon_expedite.backend.Campsite
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Lottery
@@ -16,6 +18,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.mockk.mockk
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.time.Instant
@@ -278,6 +281,104 @@ class LotteryTest {
     fun checkEdit_closedLotteryCannotBeEdited() {
         assertNotNull(edit(LotteryPhase.DRAWING).entryPeriod)
         assertNotNull(edit(LotteryPhase.CANCELLED).entryPeriod)
+    }
+
+    // endregion
+
+    // region Invites
+
+    private val creator = Id()
+    private val otherOwner = Id()
+
+    private fun campsite(owner: Id) = Campsite(
+        name = "Site",
+        description = "",
+        location = mockk<Location>(relaxed = true),
+        maxOccupancy = 4,
+        pricePerNight = 50,
+        ownerId = owner,
+        address = "",
+    )
+
+    /** Entries 1 to 5 Oct (closing at midnight starting 6 Oct). */
+    private fun shared(cancelled: Boolean = false) = Lottery(
+        ownerId = creator,
+        campsites = listOf(Id()),
+        entryStart = midnight(day(10, 1)),
+        entryEnd = midnight(day(10, 6)),
+        stayPeriods = listOf(period(10, 16, 10, 18)),
+        winnerCount = 2,
+        cancelled = cancelled,
+    )
+
+    private val beforeClose = midnight(day(10, 3))
+    private val afterClose = midnight(day(10, 6))
+
+    @Test
+    fun invite_addsPendingInviteButNotCampsite() {
+        val lottery = shared()
+        val site = campsite(otherOwner)
+
+        assertTrue(lottery.invite(site, beforeClose))
+        assertEquals(listOf(site.id), lottery.pendingCampsites)
+        assertEquals(setOf(otherOwner), lottery.pendingOwners)
+        assertFalse(site.id in lottery.campsites)
+        assertEquals(setOf(creator), lottery.ownerIds)
+    }
+
+    @Test
+    fun invite_refusedForOwnCampsiteRepeatOrAfterEntriesClose() {
+        val lottery = shared()
+        val site = campsite(otherOwner)
+
+        assertFalse(lottery.invite(campsite(creator), beforeClose))
+        assertFalse(lottery.invite(site, afterClose))
+        assertTrue(lottery.invite(site, beforeClose))
+        assertFalse(lottery.invite(site, beforeClose))
+        assertFalse(shared(cancelled = true).invite(campsite(otherOwner), beforeClose))
+    }
+
+    @Test
+    fun acceptInvite_addsCampsiteAndCoOwner() {
+        val lottery = shared()
+        val site = campsite(otherOwner)
+        lottery.invite(site, beforeClose)
+
+        assertTrue(lottery.acceptInvite(site.id, otherOwner, beforeClose))
+        assertTrue(site.id in lottery.campsites)
+        assertEquals(setOf(creator, otherOwner), lottery.ownerIds)
+        assertTrue(lottery.pendingCampsites.isEmpty())
+        assertEquals(otherOwner, lottery.ownerOf(site.id))
+        assertEquals(creator, lottery.ownerOf(lottery.campsites.first()))
+    }
+
+    @Test
+    fun acceptInvite_onlyByCampsiteOwnerBeforeEntriesClose() {
+        val lottery = shared()
+        val site = campsite(otherOwner)
+        lottery.invite(site, beforeClose)
+
+        assertFalse(lottery.acceptInvite(site.id, creator, beforeClose))
+        assertFalse(lottery.acceptInvite(site.id, otherOwner, afterClose))
+        assertFalse(site.id in lottery.campsites)
+    }
+
+    @Test
+    fun answeredInviteIsFinal() {
+        val lottery = shared()
+        val accepted = campsite(otherOwner)
+        val declined = campsite(otherOwner)
+        lottery.invite(accepted, beforeClose)
+        lottery.invite(declined, beforeClose)
+
+        assertTrue(lottery.acceptInvite(accepted.id, otherOwner, beforeClose))
+        assertTrue(lottery.declineInvite(declined.id, otherOwner, beforeClose))
+
+        // A co-owner can't back out, and a declined invite can't be accepted later.
+        assertFalse(lottery.declineInvite(accepted.id, otherOwner, beforeClose))
+        assertFalse(lottery.acceptInvite(declined.id, otherOwner, beforeClose))
+        assertTrue(accepted.id in lottery.campsites)
+        assertFalse(declined.id in lottery.campsites)
     }
 
     // endregion

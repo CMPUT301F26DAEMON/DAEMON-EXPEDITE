@@ -49,6 +49,14 @@ class BookingRejectedException(
     message: String,
 ) : Exception(message)
 
+/**
+ * Thrown when a campsite invite can't be sent, accepted or declined, for example entries have
+ * closed or the campsite is already in another lottery. [message] is written to be shown to the user.
+ */
+class InviteRejectedException(
+    message: String,
+) : Exception(message)
+
 /** Thrown when joining a lottery whose waitlist limit has been reached. */
 class LotteryFullException(
     val lotteryId: Id,

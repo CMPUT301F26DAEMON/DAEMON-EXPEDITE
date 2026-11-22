@@ -93,6 +93,26 @@ interface DatabaseInterface {
 
     suspend fun updateLotterySettings(edited: Lottery)
 
+    suspend fun sendCampsiteInvite(
+        lotteryId: Id,
+        inviterId: Id,
+        campsite: Campsite,
+    )
+
+    suspend fun acceptCampsiteInvite(
+        lotteryId: Id,
+        campsiteId: Id,
+        ownerId: Id,
+    )
+
+    suspend fun declineCampsiteInvite(
+        lotteryId: Id,
+        campsiteId: Id,
+        ownerId: Id,
+    )
+
+    suspend fun fetchPendingInvites(ownerId: Id): List<Lottery>
+
     suspend fun bookLotteryStay(
         lotteryId: Id,
         userId: Id,
@@ -952,15 +972,19 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return parseLottery(id, data)
     }
 
-    /** Every lottery created by [ownerId], in no particular order. Unreadable ones are skipped. */
-    override suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery> =
-        db
-            .collection("lotteries")
-            .whereEqualTo("owner", ownerId.value.toString())
-            .get()
-            .await()
-            .documents
+    /**
+     * Every lottery [ownerId] created or co-owns, in no particular order. Unreadable ones are
+     * skipped. Also queries `owner`, because lotteries saved before `owners` existed lack it.
+     */
+    override suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery> {
+        val lotteries = db.collection("lotteries")
+        val idStr = ownerId.value.toString()
+        val created = lotteries.whereEqualTo("owner", idStr).get().await().documents
+        val shared = lotteries.whereArrayContains("owners", idStr).get().await().documents
+        return (created + shared)
+            .distinctBy { it.id }
             .mapNotNull { parseLotteryOrNull(it.id, it.data) }
+    }
 
     /**
      * Every lottery that includes [campsiteId], past ones too. Unreadable ones are skipped.
@@ -998,11 +1022,15 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .runTransaction { tx ->
                 val data = tx.get(ref).data ?: throw NotFoundException("Lottery ${edited.id.value} not found")
                 val current = parseLottery(edited.id, data)
+                // A co-owner may have accepted an invite while the creator had the form open.
+                // Co-owners can't be removed, so their campsites are always kept.
+                val coOwned = current.campsites.filter { current.ownerOf(it) != current.ownerId }
+                val campsites = (edited.campsites + coOwned).distinct()
                 val problems =
                     LotteryRules.checkEdit(
                         original = current,
                         phase = current.phase(),
-                        campsites = edited.campsites.toSet(),
+                        campsites = campsites.toSet(),
                         entryFirstDay = edited.entryFirstDay(zone),
                         entryLastDay = edited.entryLastDay(zone),
                         stayPeriods = edited.stayPeriods,
@@ -1012,7 +1040,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                         zone = zone,
                     )
                 if (!problems.isEmpty) throw LotteryEditRejectedException(edited.id, problems)
-                val all = lotteryToMap(edited)
+                val all = lotteryToMap(edited) + ("campsites" to campsites.map { it.value.toString() })
                 val settings = listOf("campsites", "entryStart", "entryEnd", "stayPeriods", "winnerCount", "waitlistCapacity")
                 tx.update(ref, settings.associateWith { all[it] })
                 null
@@ -1043,7 +1071,9 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
                     phase == LotteryPhase.UPCOMING -> {
                         tx.delete(ref)
-                        tx.update(ownerRef(lottery.ownerId), "ownerLotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
+                        lottery.ownerIds.forEach {
+                            tx.update(ownerRef(it), "ownerLotteries", FieldValue.arrayRemove(lotteryId.value.toString()))
+                        }
                         CancelOutcome.DELETED
                     }
 
@@ -1054,6 +1084,123 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 }
             }.await()
     }
+
+    // region Campsite invites
+
+    /**
+     * The creator [inviterId] invites another owner's [campsite] into their lottery. Runs as a
+     * transaction on the latest copy, and writes only the invite fields.
+     *
+     * Whether the campsite is free is checked when the invite is accepted, not now: it may be
+     * in a lottery that finishes before then.
+     *
+     * @throws InviteRejectedException if [inviterId] isn't the creator, entries have closed,
+     *   the lottery was cancelled, or the campsite is the creator's, already in it or already invited.
+     */
+    override suspend fun sendCampsiteInvite(
+        lotteryId: Id,
+        inviterId: Id,
+        campsite: Campsite,
+    ) {
+        val ref = lotteryRef(lotteryId)
+        db
+            .runTransaction { tx ->
+                val lottery = parseLottery(lotteryId, tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found"))
+                if (inviterId != lottery.ownerId) throw InviteRejectedException("Only the lottery's creator can invite campsites")
+                lottery.checkInvitesOpen()
+                if (!lottery.invite(campsite)) {
+                    throw InviteRejectedException(
+                        if (campsite.ownerId == lottery.ownerId) {
+                            "Add your own campsites by editing the lottery"
+                        } else {
+                            "This campsite is already in the lottery or has already been invited"
+                        },
+                    )
+                }
+                tx.update(ref, inviteFields(lottery))
+                null
+            }.await()
+    }
+
+    /**
+     * [ownerId] accepts the invite for their [campsiteId]. Adds the campsite to the lottery and
+     * the lottery to the owner's `ownerLotteries` in one transaction. Final: there is no leaving.
+     *
+     * The campsite must not be in another lottery that isn't past. Firestore transactions can't
+     * run queries, so that is checked just before; the same small gap exists when creating a lottery.
+     *
+     * @throws InviteRejectedException if the campsite is busy, entries have closed, the lottery
+     *   was cancelled, or there is no pending invite for this campsite and owner.
+     */
+    override suspend fun acceptCampsiteInvite(
+        lotteryId: Id,
+        campsiteId: Id,
+        ownerId: Id,
+    ) {
+        val busy = fetchLotteriesForCampsite(campsiteId).any { it.id != lotteryId && !it.phase().isPast }
+        if (busy) throw InviteRejectedException("This campsite is already in another lottery")
+
+        val ref = lotteryRef(lotteryId)
+        db
+            .runTransaction { tx ->
+                val lottery = parseLottery(lotteryId, tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found"))
+                lottery.checkInvitesOpen()
+                if (!lottery.acceptInvite(campsiteId, ownerId)) throw InviteRejectedException(NO_PENDING_INVITE)
+                tx.update(ref, inviteFields(lottery) + ("campsites" to lottery.campsites.map { it.value.toString() }))
+                tx.update(ownerRef(ownerId), "ownerLotteries", FieldValue.arrayUnion(lotteryId.value.toString()))
+                null
+            }.await()
+    }
+
+    /**
+     * [ownerId] declines the invite for their [campsiteId]. The creator can't invite it again.
+     *
+     * @throws InviteRejectedException if entries have closed, the lottery was cancelled, or
+     *   there is no pending invite for this campsite and owner.
+     */
+    override suspend fun declineCampsiteInvite(
+        lotteryId: Id,
+        campsiteId: Id,
+        ownerId: Id,
+    ) {
+        val ref = lotteryRef(lotteryId)
+        db
+            .runTransaction { tx ->
+                val lottery = parseLottery(lotteryId, tx.get(ref).data ?: throw NotFoundException("Lottery ${lotteryId.value} not found"))
+                lottery.checkInvitesOpen()
+                if (!lottery.declineInvite(campsiteId, ownerId)) throw InviteRejectedException(NO_PENDING_INVITE)
+                tx.update(ref, inviteFields(lottery))
+                null
+            }.await()
+    }
+
+    /**
+     * Lotteries with an invite [ownerId] hasn't answered, in no particular order. Their invites
+     * are in [Lottery.invites] (filter by `campsiteOwner == ownerId` and pending). Lotteries
+     * whose entries have closed or that were cancelled are left out, since those invites can't
+     * be answered any more. Unreadable ones are skipped.
+     */
+    override suspend fun fetchPendingInvites(ownerId: Id): List<Lottery> =
+        db
+            .collection("lotteries")
+            .whereArrayContains("pendingOwners", ownerId.value.toString())
+            .get()
+            .await()
+            .documents
+            .mapNotNull { parseLotteryOrNull(it.id, it.data) }
+            .filter { it.canChangeInvites() }
+
+    /** Throws the reason invites can't change any more, if they can't. */
+    private fun Lottery.checkInvitesOpen() {
+        if (cancelled) throw InviteRejectedException("This lottery was cancelled")
+        if (!canChangeInvites()) throw InviteRejectedException("Entries have closed, so invites can't change any more")
+    }
+
+    /** The fields an invite change writes: the invites and the flat lists queried from them. */
+    private fun inviteFields(lottery: Lottery): Map<String, Any?> =
+        lotteryToMap(lottery).filterKeys { it in setOf("invites", "owners", "pendingOwners") }
+
+    // endregion
 
     private fun lotteryToMap(lottery: Lottery): Map<String, Any?> =
         mapOf(
@@ -1071,6 +1218,16 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             "declined" to lottery.declined.map { it.value.toString() },
             "drawn" to lottery.drawn,
             "cancelled" to lottery.cancelled,
+            "invites" to lottery.invites.map {
+                mapOf(
+                    "campsite" to it.campsite.value.toString(),
+                    "campsiteOwner" to it.campsiteOwner.value.toString(),
+                    "status" to it.status.name,
+                )
+            },
+            // Flat copies of what's in "invites", only so whereArrayContains can find them.
+            "owners" to lottery.ownerIds.map { it.value.toString() },
+            "pendingOwners" to lottery.pendingOwners.map { it.value.toString() },
         )
 
     /**
@@ -1133,6 +1290,20 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             declined = ids("declined"),
             drawn = data["drawn"] as? Boolean ?: false,
             cancelled = data["cancelled"] as? Boolean ?: false,
+            invites =
+                (data["invites"] as? List<*>)?.map {
+                    val m = it as? Map<*, *> ?: fail("invites")
+                    CampsiteInvite(
+                        campsite = idOf(m["campsite"], "invites"),
+                        campsiteOwner = idOf(m["campsiteOwner"], "invites"),
+                        status =
+                            try {
+                                InviteStatus.valueOf(m["status"] as String)
+                            } catch (e: Exception) {
+                                fail("invites")
+                            },
+                    )
+                } ?: emptyList(),
         )
     }
 
@@ -1228,7 +1399,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val lotteryRef = lotteryRef(lotteryId)
         val userRef = db.collection("users").document(userId.value.toString())
         val lotteryData = lotteryRef.get().await().data ?: throw NotFoundException("Lottery ${lotteryId.value} not found")
-        if (lotteryData["owner"] as? String == userId.value.toString()) {
+        if (userId in parseLottery(lotteryId, lotteryData).ownerIds) {
             throw Exception("cant add owner to their own lottery")
         }
         db
@@ -1304,7 +1475,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     "reservations",
                     FieldValue.arrayUnion(reservation.id.value.toString()),
                 )
-                tx.update(ownerRef(lottery.ownerId), "ownerReservations", FieldValue.arrayUnion(reservation.id.value.toString()))
+                tx.update(ownerRef(lottery.ownerOf(campsiteId)), "ownerReservations", FieldValue.arrayUnion(reservation.id.value.toString()))
                 null
             }.await()
         return reservation
@@ -2134,6 +2305,30 @@ object Database {
 
     suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery> = db.fetchOwnerLotteries(ownerId)
 
+    /** Invites another owner's campsite into a lottery. See [DatabaseInner.sendCampsiteInvite]. */
+    suspend fun sendCampsiteInvite(
+        lotteryId: Id,
+        inviterId: Id,
+        campsite: Campsite,
+    ) = db.sendCampsiteInvite(lotteryId, inviterId, campsite)
+
+    /** Accepts an invite, adding the campsite to the lottery. See [DatabaseInner.acceptCampsiteInvite]. */
+    suspend fun acceptCampsiteInvite(
+        lotteryId: Id,
+        campsiteId: Id,
+        ownerId: Id,
+    ) = db.acceptCampsiteInvite(lotteryId, campsiteId, ownerId)
+
+    /** Declines an invite. See [DatabaseInner.declineCampsiteInvite]. */
+    suspend fun declineCampsiteInvite(
+        lotteryId: Id,
+        campsiteId: Id,
+        ownerId: Id,
+    ) = db.declineCampsiteInvite(lotteryId, campsiteId, ownerId)
+
+    /** Lotteries with invites [ownerId] still has to answer. See [DatabaseInner.fetchPendingInvites]. */
+    suspend fun fetchPendingInvites(ownerId: Id): List<Lottery> = db.fetchPendingInvites(ownerId)
+
     suspend fun fetchLotteriesForCampsite(campsiteId: Id): List<Lottery> = db.fetchLotteriesForCampsite(campsiteId)
 
     suspend fun updateLottery(lottery: Lottery) {
@@ -2257,6 +2452,8 @@ object Database {
 }
 
 // region Lottery document helpers
+
+private const val NO_PENDING_INVITE = "This invite was already answered or isn't for your campsite"
 
 private fun Instant.toTimestamp(): Timestamp = Timestamp(epochSeconds, nanosecondsOfSecond)
 
