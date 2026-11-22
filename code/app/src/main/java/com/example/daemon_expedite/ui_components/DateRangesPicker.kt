@@ -150,6 +150,12 @@ fun DateRangesPicker(
     }
 }
 
+/**
+ * A pill showing one selected date range and its number of nights, e.g. "16 Oct → 18 Oct · 2 nights".
+ *
+ * @param range The date range to show.
+ * @param onRemove Called when the chip is tapped to remove it. When null, the chip can't be tapped and has no ✕ icon.
+ */
 @Composable
 private fun RangeChip(range: ClosedRange<LocalDate>, onRemove: (() -> Unit)?) {
     val nights = ChronoUnit.DAYS.between(range.start, range.endInclusive).toInt()
@@ -174,10 +180,13 @@ private fun RangeChip(range: ClosedRange<LocalDate>, onRemove: (() -> Unit)?) {
     }
 }
 
+/** Short date format used in chips, e.g. "16 Oct". */
 private val SHORT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 
+/** Formats the date with [SHORT]. */
 private fun LocalDate.short() = format(SHORT)
 
+/** Returns "1 night" or "N nights". */
 private fun nightsText(nights: Int) = if (nights == 1) "1 night" else "$nights nights"
 
 @Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380, heightDp = 700)

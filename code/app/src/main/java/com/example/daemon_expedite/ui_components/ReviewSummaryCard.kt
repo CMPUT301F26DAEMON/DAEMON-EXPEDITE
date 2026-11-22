@@ -14,7 +14,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.R
 import com.example.daemon_expedite.backend.Rating
-//Reusable review card for reviewing campsite
+/**
+ * A reusable card showing one entrant's review of a campsite.
+ *
+ * Displays the reviewer's profile picture and name, a row of stars for the score,
+ * an optional date, and the written review (if there is one).
+ *
+ * @param rating The [Rating] being shown; its score fills the stars and its description is the review text.
+ * @param authorName The reviewer's display name.
+ * @param modifier Modifier applied to the card.
+ * @param dateText Optional pre-formatted date shown after the stars (e.g. "Nov 2, 2026"). Hidden when null or blank.
+ * @param profileImageUrl Optional URL of the reviewer's profile picture.
+ * @param fallbackImageRes Drawable shown when [profileImageUrl] is null or fails to load.
+ */
 @Composable
 fun ReviewCard(
     rating: Rating,
@@ -33,6 +45,19 @@ fun ReviewCard(
         modifier = modifier,
     )
 }
+
+/**
+ * Stateless layout behind [ReviewCard]. Takes plain values instead of a [Rating]
+ * so previews can render it without building backend objects.
+ *
+ * @param authorName The reviewer's display name.
+ * @param score Star score; clamped to 0..[Rating.MAX_RATING].
+ * @param description The written review. Hidden when null or blank.
+ * @param dateText Optional date shown after the stars. Hidden when null or blank.
+ * @param profileImageUrl Optional URL of the reviewer's profile picture.
+ * @param fallbackImageRes Drawable shown when there is no profile picture.
+ * @param modifier Modifier applied to the card.
+ */
 @Composable
 private fun ReviewCardContent(
     authorName: String,
@@ -121,7 +146,7 @@ private fun ReviewCardContent(
         }
     }
 }
-//Sample Previews
+/** Preview: a 5-star review with a written description. */
 @Preview(
     name = "Maya Patel - 5 Stars",
     showBackground = true,
@@ -139,6 +164,7 @@ private fun MayaReviewPreview() {
         )
     }
 }
+/** Preview: a 5-star review with no description, so only the header row shows. */
 @Preview(name="Alex Morgan - 5 Stars",showBackground = true,widthDp = 390)
 @Composable
 private fun AlexReviewPreview(){
@@ -151,6 +177,7 @@ private fun AlexReviewPreview(){
         )
     }
 }
+/** Preview: a 4-star review, showing an outlined (unfilled) star. */
 @Preview(name = "Jordan Lee - 4 Stars",showBackground= true,widthDp = 390)
 @Composable
 private fun JordanReviewPreview() {
@@ -163,6 +190,7 @@ private fun JordanReviewPreview() {
         )
     }
 }
+/** Preview: another 5-star review with a description. */
 @Preview(name= "Sam Rivera - 5 Stars",showBackground=true,widthDp = 390)
 @Composable
 private fun SamReviewPreview(){
@@ -175,6 +203,11 @@ private fun SamReviewPreview(){
         )
     }
 }
+/**
+ * Wraps preview content in the app background with padding so the card is shown as it looks on screen.
+ *
+ * @param content The preview content to show.
+ */
 @Composable
 private fun ReviewPreviewBackground(
     content: @Composable () -> Unit,

@@ -126,6 +126,7 @@ private object EsriPlaceNames : OnlineTileSourceBase(
     override fun getTileURLString(index: Long): String = esriUrl(baseUrl, index)
 }
 
+/** Builds an Esri tile URL. Esri orders tiles as zoom/y/x, unlike osmdroid's default zoom/x/y. */
 private fun esriUrl(base: String, index: Long) =
     "$base${MapTileIndex.getZoom(index)}/${MapTileIndex.getY(index)}/${MapTileIndex.getX(index)}"
 
@@ -176,6 +177,15 @@ fun MapControls(
     }
 }
 
+/**
+ * One tappable button in the map's control stack (zoom in, zoom out, or go to my location).
+ *
+ * @param icon The icon to show.
+ * @param description Accessibility label for the button.
+ * @param onClick Called when the button is tapped.
+ * @param height Height of the button in dp.
+ * @param tint Icon color. Defaults to [AppColors.TextOnPrimary].
+ */
 @Composable
 private fun MapControlButton(
     icon: ImageVector,

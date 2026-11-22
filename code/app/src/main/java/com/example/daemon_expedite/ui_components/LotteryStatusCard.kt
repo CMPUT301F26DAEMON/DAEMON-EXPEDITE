@@ -268,6 +268,11 @@ private fun CardFrame(
     }
 }
 
+/**
+ * A full-width greyed-out button that cannot be tapped, shown when an action isn't available yet.
+ *
+ * @param text The label shown on the button.
+ */
 @Composable
 private fun DisabledButton(text: String) {
     val shape = RoundedCornerShape(16.dp)
@@ -300,6 +305,14 @@ private fun LotteryStatusCardPreview() {
     }
 }
 
+/**
+ * A full-width outlined row button with white text, an icon on the left and a chevron on the right.
+ *
+ * @param text The label shown on the button.
+ * @param onclick Called when the button is tapped.
+ * @param leftIcon The icon shown before the label. Defaults to [AppIcons.Reservation].
+ * @param rightIcon The icon shown at the end of the row. Defaults to [AppIcons.ChevronRight].
+ */
 @Composable
 fun blackButtonWitWhiteText(
     text: String = "",

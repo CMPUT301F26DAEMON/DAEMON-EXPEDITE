@@ -57,6 +57,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
+/**
+ * Every icon used in the app, in one place. Screens and components use these names
+ * instead of referencing Material icons directly, so an icon can be swapped app-wide by changing it here.
+ */
 object AppIcons {
     val Search = Icons.Default.Search
     val Filter = Icons.Default.Tune

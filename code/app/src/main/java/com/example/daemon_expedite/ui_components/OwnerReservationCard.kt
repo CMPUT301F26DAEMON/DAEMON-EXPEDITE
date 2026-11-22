@@ -299,6 +299,13 @@ fun OwnerReservationCard(
 }
 
 
+/**
+ * A small pill showing the reservation's status.
+ *
+ * @param label The status text to show.
+ * @param isCancelled True gives the badge a red (danger) outline instead of the normal accent outline.
+ * @param modifier Modifier applied to the badge.
+ */
 @Composable
 private fun ReservationStatusBadge(
     label: String,
