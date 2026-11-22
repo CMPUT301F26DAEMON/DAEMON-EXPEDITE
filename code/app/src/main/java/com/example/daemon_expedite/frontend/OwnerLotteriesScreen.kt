@@ -29,18 +29,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
+import com.example.daemon_expedite.ui_components.CollaborationRequestCard
 import com.example.daemon_expedite.ui_components.LotteryCard
 import com.example.daemon_expedite.ui_components.PillVariant
 import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
 import com.example.daemon_expedite.ui_components.YellowButton
 
 /**
- * The owner's lotteries, with Active and Past tabs and a "Create New Lottery" button.
+ * The owner's lotteries, with Active, Past and Requests tabs and a "Create New Lottery" button
+ * (not on Requests, as in the "My Lotteries · Requests" frame).
  * Opened from the Lotteries tab of the owner's bottom bar, which AppNavigation draws on top.
  *
  * Based on the "Lotteries · Active" owner frame in the Figma file, with lottery cards in place
@@ -50,6 +53,7 @@ import com.example.daemon_expedite.ui_components.YellowButton
  * @param onRetry Called when the error message is tapped.
  * @param onLotteryClick Called with the id of the tapped lottery.
  * @param onCreateClick Called when "Create New Lottery" is tapped.
+ * @param onRequestClick Called with the id of the lottery whose collaboration request was tapped.
  */
 @Composable
 fun OwnerLotteriesScreen(
@@ -57,6 +61,7 @@ fun OwnerLotteriesScreen(
     onRetry: () -> Unit,
     onLotteryClick: (Id) -> Unit,
     onCreateClick: () -> Unit,
+    onRequestClick: (Id) -> Unit,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
@@ -79,7 +84,7 @@ fun OwnerLotteriesScreen(
         )
 
         ToggleButtonWithContent(
-            options = listOf("Active", "Past"),
+            options = listOf("Active", "Past", "Requests"),
             selectedIndex = tab,
             onOptionSelected = { tab = it },
             modifier = Modifier
@@ -98,7 +103,9 @@ fun OwnerLotteriesScreen(
                         modifier = Modifier.clickable(onClick = onRetry).padding(12.dp),
                     )
                 }
-                is UiState.Content -> LotteryList(
+                is UiState.Content -> if (index == REQUESTS_TAB) {
+                    RequestList(state.data.requests, onRequestClick)
+                } else LotteryList(
                     lotteries = if (index == 0) state.data.active else state.data.past,
                     emptyText = if (index == 0) {
                         "No active lotteries. Create one to let entrants join."
@@ -110,18 +117,20 @@ fun OwnerLotteriesScreen(
             }
         }
 
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 28.dp, vertical = 16.dp),
-        ) {
-            YellowButton(
-                onClick = onCreateClick,
-                icon = AppIcons.AddCircle,
-                buttonText = "Create New Lottery",
-                customHeight = 58,
-                customWidth = maxWidth.value.toInt(),
-            )
+        if (tab != REQUESTS_TAB) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp, vertical = 16.dp),
+            ) {
+                YellowButton(
+                    onClick = onCreateClick,
+                    icon = AppIcons.AddCircle,
+                    buttonText = "Create New Lottery",
+                    customHeight = 58,
+                    customWidth = maxWidth.value.toInt(),
+                )
+            }
         }
 
         // Room for the shared bottom bar AppNavigation draws on top.
@@ -160,6 +169,51 @@ private fun LotteryList(
     }
 }
 
+private const val REQUESTS_TAB = 2
+
+/** The Requests tab: a heading, then one card per lottery with invites waiting. */
+@Composable
+private fun RequestList(
+    requests: List<CollaborationRequest>,
+    onRequestClick: (Id) -> Unit,
+) {
+    if (requests.isEmpty()) {
+        Centered {
+            Text("No pending requests.", style = AppTextStyles.BodyMedium, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
+        }
+        return
+    }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 10.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Column(modifier = Modifier.padding(bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text(
+                    "Collaboration requests",
+                    style = AppTextStyles.HeadingMedium.copy(lineHeight = 29.sp),
+                    color = AppColors.TextPrimary,
+                )
+                Text(
+                    "Other owners have invited your campsites to join their lotteries.",
+                    style = AppTextStyles.BodyMedium.copy(lineHeight = 20.3.sp),
+                    color = AppColors.TextSecondary,
+                )
+            }
+        }
+        items(requests, key = { it.id.value.toString() }) { request ->
+            CollaborationRequestCard(
+                title = request.title,
+                invitedByText = request.invitedByText,
+                staysText = request.staysText,
+                awaitingText = request.awaitingText,
+                onClick = { onRequestClick(request.id) },
+            )
+        }
+    }
+}
+
 @Composable
 private fun Centered(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { content() }
@@ -188,5 +242,6 @@ private fun OwnerLotteriesScreenPreview() {
         onRetry = {},
         onLotteryClick = {},
         onCreateClick = {},
+        onRequestClick = {},
     )
 }

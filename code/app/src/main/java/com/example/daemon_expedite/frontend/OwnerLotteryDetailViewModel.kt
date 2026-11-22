@@ -10,6 +10,7 @@ import com.example.daemon_expedite.backend.CancelOutcome
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.InviteStatus
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.LotteryNotCancellableException
 import com.example.daemon_expedite.backend.LotteryPhase
@@ -45,6 +46,10 @@ import kotlin.time.toJavaInstant
  * @property canEdit True before the draw (see [LotteryPhase.UPCOMING] and [LotteryPhase.OPEN]).
  * @property canCancel See [LotteryPhase.canCancel].
  * @property deletesOnCancel True if cancelling deletes it, because it hasn't opened yet.
+ * @property isCollaborator True when the viewer co-owns it rather than created it: no editing or cancelling.
+ * @property invitedByText For a collaborator (or an invited owner), e.g. "Invited by Alex Chen".
+ * @property pendingCampsites The viewer's campsites invited but not answered yet.
+ * @property stayRangeText First night to last check-out, e.g. "16 Oct – 18 Oct".
  */
 data class LotteryDetails(
     val id: Id,
@@ -68,6 +73,10 @@ data class LotteryDetails(
     val opensText: String? = null,
     val bookByText: String? = null,
     val bookingText: String? = null,
+    val isCollaborator: Boolean = false,
+    val invitedByText: String? = null,
+    val pendingCampsites: List<CampsiteOption> = emptyList(),
+    val stayRangeText: String = "",
 )
 
 /** Outcome of [OwnerLotteryDetailViewModel.cancel]. */
@@ -89,7 +98,8 @@ enum class CancelResult {
  * Data for the owner's lottery details page, plus cancelling it.
  *
  * The lottery id comes from the navigation route (see [Routes.OWNER_LOTTERY_DETAIL]).
- * Call [load] every time the page is shown, so changes saved on the edit screen show up.
+ * Call [load] every time the page is shown, so changes saved on the edit screen show up. Pass
+ * the signed-in owner's id, so a co-owned lottery shows the collaborator view.
  */
 class OwnerLotteryDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
 
@@ -101,15 +111,18 @@ class OwnerLotteryDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
     private val _isCancelling = MutableStateFlow(false)
     val isCancelling: StateFlow<Boolean> = _isCancelling.asStateFlow()
 
+    private var viewerId: Id? = null
+
     /** Loads (or reloads) the lottery. What is on screen stays there while it reloads. */
-    fun load() {
+    fun load(viewerId: Id? = this.viewerId) {
+        this.viewerId = viewerId
         val id = lotteryId ?: run {
             _details.value = UiState.Error("Couldn't find this lottery")
             return
         }
         viewModelScope.launch {
             if (_details.value !is UiState.Content) _details.value = UiState.Loading
-            val fresh = loadAsUiState("Couldn't load this lottery") { fetch(id) }
+            val fresh = loadAsUiState("Couldn't load this lottery") { fetch(id, viewerId) }
             if (fresh is UiState.Content || _details.value !is UiState.Content) _details.value = fresh
         }
     }
@@ -141,13 +154,39 @@ class OwnerLotteryDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
         }
     }
 
-    private suspend fun fetch(id: Id): LotteryDetails = coroutineScope {
-        val lottery = Database.fetchLottery(id)
-        val names = lottery.campsites.map { campsiteId ->
-            async { campsiteId to quietly("Couldn't load campsite $campsiteId") { Database.fetchCampsite(campsiteId).name } }
-        }.awaitAll().mapNotNull { (campsiteId, name) -> name?.let { campsiteId to it } }.toMap()
-        lottery.toLotteryDetails(names)
+    private suspend fun fetch(id: Id, viewerId: Id?): LotteryDetails = fetchOwnerLotteryDetails(id, viewerId)
+}
+
+/**
+ * Loads a lottery and formats it for an owner's page. When [viewerId] isn't the creator, it is
+ * formatted for that owner: as a collaborator, with who invited them and their pending campsites.
+ */
+internal suspend fun fetchOwnerLotteryDetails(id: Id, viewerId: Id?): LotteryDetails = coroutineScope {
+    val lottery = Database.fetchLottery(id)
+    val invitedViewer = viewerId != null && viewerId != lottery.ownerId
+    val creatorName = if (invitedViewer) {
+        async { quietly("Couldn't load owner ${lottery.ownerId}") { Database.fetchUser(lottery.ownerId)["name"] } }
+    } else {
+        null
     }
+    val names = (lottery.campsites + lottery.pendingCampsites).distinct().map { campsiteId ->
+        async { campsiteId to quietly("Couldn't load campsite $campsiteId") { Database.fetchCampsite(campsiteId).name } }
+    }.awaitAll().mapNotNull { (campsiteId, name) -> name?.let { campsiteId to it } }.toMap()
+    val details = lottery.toLotteryDetails(names)
+    if (!invitedViewer) return@coroutineScope details
+
+    val mine = lottery.invites.filter { it.campsiteOwner == viewerId && it.status == InviteStatus.PENDING }.map { it.campsite }
+    val name = creatorName?.await()?.takeIf { it.isNotBlank() } ?: "another owner"
+    details.copy(
+        // Counts the viewer's invited campsites too, as on the Requests tab.
+        title = campsiteTitle((lottery.campsites + mine).mapNotNull { names[it] }),
+        isCollaborator = viewerId in lottery.ownerIds,
+        invitedByText = "Invited by $name",
+        pendingCampsites = mine.map { CampsiteOption(it, names[it] ?: "Deleted campsite") },
+        canEdit = false,
+        canCancel = false,
+        phaseNote = if (lottery.cancelled) "The creator cancelled this lottery." else details.phaseNote,
+    )
 }
 
 /**
@@ -213,6 +252,7 @@ internal fun Lottery.toLotteryDetails(
         endsText = ends,
         opensText = opens,
         bookByText = firstNight,
+        stayRangeText = "${firstStayNight.shortDate(thisYear)} – ${lastCheckOut.shortDate(thisYear)}",
         bookingText = viewerId?.let { v -> bookings.firstOrNull { it.user == v }?.let { "Booked · ${it.period.start.shortDate(thisYear)} → ${it.period.end.shortDate(thisYear)}" } },
     )
 }

@@ -30,13 +30,17 @@ import androidx.compose.ui.unit.sp
  * @param name The campsite's name. Long names are cut off with an ellipsis.
  * @param onClick Called when the card is tapped.
  * @param modifier [Modifier] applied to the card.
+ * @param pendingText When set, the campsite isn't in the lottery yet: the name and pin are
+ *   dimmed and this text is shown under the name, e.g. "Pending approval".
  */
 @Composable
 fun CampsiteLinkCard(
     name: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    pendingText: String? = null,
 ) {
+    val contentColor = if (pendingText == null) AppColors.TextPrimary else AppColors.TextMuted
     val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = modifier
@@ -48,15 +52,19 @@ fun CampsiteLinkCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(AppIcons.MapPin, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(19.dp))
-        Text(
-            text = name,
-            style = AppTextStyles.TitleSmall.copy(lineHeight = 20.sp),
-            color = AppColors.TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        Icon(AppIcons.MapPin, contentDescription = null, tint = contentColor, modifier = Modifier.size(19.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = name,
+                style = AppTextStyles.TitleSmall.copy(lineHeight = 20.sp),
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (pendingText != null) {
+                Text(pendingText, style = AppTextStyles.Caption, color = AppColors.TextMuted)
+            }
+        }
         Icon(AppIcons.ChevronRight, contentDescription = null, tint = AppColors.TextMuted, modifier = Modifier.size(16.dp))
     }
 }
@@ -67,5 +75,6 @@ private fun CampsiteLinkCardPreview() {
     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         CampsiteLinkCard(name = "Pine Creek Hideaway", onClick = {})
         CampsiteLinkCard(name = "Maple Campsite", onClick = {})
+        CampsiteLinkCard(name = "Birch Hollow", onClick = {}, pendingText = "Pending approval")
     }
 }
