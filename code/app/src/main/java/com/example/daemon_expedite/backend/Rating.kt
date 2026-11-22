@@ -1,7 +1,13 @@
 package com.example.daemon_expedite.backend
 
+import java.time.LocalDate
+
 /**
  * One review of a campsite: a star score and optional text, left by an entrant after a stay.
+ *
+ * The rules for rating a stay ([rateProblem], [cleanReview]) are pure functions on the
+ * companion, so they're easy to test, and run again inside the rating transaction
+ * (see [Database.rateStay]).
  *
  * @property id Unique identifier for the rating record.
  * @property campsiteId The campsite being reviewed.
@@ -26,5 +32,27 @@ class Rating(
     companion object {
         /** Highest rating allowed; matches the 5 stars in RatingPopup. */
         const val MAX_RATING = 5
+
+        /** Longest review text kept; anything longer is cut off. */
+        const val MAX_REVIEW_LENGTH = 1000
+
+        /**
+         * Checks whether [user] may rate [reservation] on [today], given the campsite's
+         * [existing] ratings. Returns a message saying why not, or null if they can.
+         *
+         * A stay can be rated once, by the person who booked it, after its check-out day has
+         * arrived, and only if it wasn't cancelled.
+         */
+        fun rateProblem(reservation: Reservation, user: Id, existing: List<Rating>, today: LocalDate): String? = when {
+            reservation.reservedBy != user -> "Only the person who stayed can rate it"
+            reservation.isCancelled -> "Cancelled stays can't be rated"
+            !reservation.isPast(today) -> "You can rate your stay once it's over"
+            existing.any { it.reservationId == reservation.id } -> "You've already rated this stay"
+            else -> null
+        }
+
+        /** Trims [text] and caps it at [MAX_REVIEW_LENGTH]; blank text becomes null (stars only). */
+        fun cleanReview(text: String?): String? =
+            text?.trim()?.take(MAX_REVIEW_LENGTH)?.takeIf { it.isNotEmpty() }
     }
 }

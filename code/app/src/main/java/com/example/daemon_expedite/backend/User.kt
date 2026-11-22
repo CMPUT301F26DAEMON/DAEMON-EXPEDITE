@@ -60,12 +60,6 @@ open class User(
         notificationsEnabled = enabled
     }
 
-    /** Records [lottery] in memory. Returns false if it was already recorded. */
-    fun addLottery(lottery: Lottery): Boolean {
-        if (lottery.id in _lotteries) return false
-        return _lotteries.add(lottery.id)
-    }
-
     /**
      * Remembers that this user joined [lotteryId]'s waiting list.
      */
@@ -79,9 +73,6 @@ open class User(
     fun leaveLottery(lotteryId: Id) {
         _lotteries.remove(lotteryId)
     }
-
-    /** Forgets [lottery] in memory. Returns false if it wasn't recorded. */
-    fun removeLottery(lottery: Lottery): Boolean = _lotteries.remove(lottery.id)
 
     /**
      * Records [reservation] in memory. Returns false if it was already recorded.

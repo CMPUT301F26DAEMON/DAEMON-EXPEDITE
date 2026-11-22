@@ -8,7 +8,6 @@ import com.example.daemon_expedite.backend.Chat
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Image
-import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.Notification
 import com.example.daemon_expedite.backend.Reservation
 import com.example.daemon_expedite.backend.User
@@ -18,7 +17,6 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
-import kotlin.time.Instant
 
 /**
  * Unit tests for [User]. The model only changes in-memory state; saving is done by
@@ -43,17 +41,6 @@ class UserTest {
         reservations = reservations,
         chats = chats,
     )
-
-    private fun lottery(id: Id = Id()) =
-        Lottery(
-            id = id,
-            ownerId = Id(),
-            campsites = listOf(Id()),
-            entryStart = Instant.fromEpochSeconds(0),
-            entryEnd = Instant.fromEpochSeconds(1),
-            stayPeriods = listOf(stay),
-            winnerCount = 1,
-        )
 
     // region Profile
 
@@ -101,39 +88,6 @@ class UserTest {
     // endregion
 
     // region Lists (lotteries, reservations, chats)
-
-    @Test
-    fun addLottery_newIsAdded() {
-        val user = user()
-        val lottery = lottery()
-
-        assertTrue(user.addLottery(lottery))
-        assertEquals(listOf(lottery.id), user.lotteryIds)
-    }
-
-    @Test
-    fun addLottery_duplicateIsIgnored() {
-        val lottery = lottery()
-        val user = user(lotteries = listOf(lottery.id))
-
-        assertFalse(user.addLottery(lottery))
-        assertEquals(listOf(lottery.id), user.lotteryIds)
-    }
-
-    @Test
-    fun removeLottery_presentIsRemoved() {
-        val lottery = lottery()
-        val user = user(lotteries = listOf(lottery.id))
-
-        assertTrue(user.removeLottery(lottery))
-        assertTrue(user.lotteryIds.isEmpty())
-    }
-
-    @Test
-    fun removeLottery_absentDoesNothing() {
-        val user = user()
-        assertFalse(user.removeLottery(lottery()))
-    }
 
     @Test
     fun addReservation_newIsAddedDuplicateIgnored() {
