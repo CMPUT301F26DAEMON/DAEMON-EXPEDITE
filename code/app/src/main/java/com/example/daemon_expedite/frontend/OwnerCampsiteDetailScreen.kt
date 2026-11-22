@@ -59,6 +59,7 @@ import com.example.daemon_expedite.ui_components.RedButton
  * @param onEditClick Called when "Edit campsite" is tapped.
  * @param onShowQrCodeClick Called when "Show QR code" is tapped.
  * @param onDeleteConfirmed Called after the owner confirms the delete dialog.
+ * @param onReviewsClick Called when the rating line ("★ 4.9 · 24 reviews ›") is tapped.
  */
 @Composable
 fun OwnerCampsiteDetailScreen(
@@ -70,6 +71,7 @@ fun OwnerCampsiteDetailScreen(
     onViewWaitlistClick: () -> Unit,
     onEditClick: () -> Unit,
     onShowQrCodeClick: () -> Unit = {},
+    onReviewsClick: () -> Unit = {},
     onDeleteConfirmed: () -> Unit,
 ) {
     var askDelete by rememberSaveable { mutableStateOf(false) }
@@ -113,6 +115,7 @@ fun OwnerCampsiteDetailScreen(
             maxOccupancy = details.maxOccupancy,
             pricePerNight = details.pricePerNight,
             onViewMapClick = onViewMapClick,
+            onReviewsClick = onReviewsClick,
             pill = { LotteryPill(details.lotteryStatus) },
         )
 
