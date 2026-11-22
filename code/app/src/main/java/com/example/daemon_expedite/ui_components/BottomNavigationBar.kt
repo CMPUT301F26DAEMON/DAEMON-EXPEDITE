@@ -39,7 +39,10 @@ import androidx.compose.ui.unit.sp
 /** Height of the bar's tab row, not counting the system navigation bar below it. */
 val BottomNavBarHeight = 66.dp
 
+/** Height of each tab item inside the bar. */
 private val ItemHeight = 56.dp
+
+/** Horizontal padding at the left and right edges of the bar. */
 private val SidePadding = 8.dp
 
 /**

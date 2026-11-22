@@ -16,13 +16,34 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.daemon_expedite.backend.Campsite
 import com.example.daemon_expedite.backend.Rating
 
-//Reusable rating summary card
+/**
+ * A reusable card summarizing all the ratings for a campsite.
+ *
+ * The left side shows the average score in large text, a row of stars (average rounded
+ * to the nearest whole star) and the total review count. The right side shows one bar
+ * per star level, filled in proportion to how many reviews gave that score.
+ *
+ * @param scores Every individual star score for the campsite (1..[Rating.MAX_RATING]).
+ * @param modifier Modifier applied to the card.
+ */
 @Composable
-fun RatingSummaryCard(campsite: Campsite,modifier: Modifier = Modifier){
-    RatingSummaryCardContent(scores= campsite.ratings.map { it.score },averageRating=campsite.averageRating(),modifier = modifier)}
+fun RatingSummaryCard(scores: List<Int>, modifier: Modifier = Modifier) {
+    RatingSummaryCardContent(
+        scores = scores,
+        averageRating = if (scores.isEmpty()) 0.0 else scores.average(),
+        modifier = modifier,
+    )
+}
+
+/**
+ * Layout behind [RatingSummaryCard], given the scores and their average.
+ *
+ * @param scores Every individual star score (1..[Rating.MAX_RATING]).
+ * @param averageRating The average of [scores], shown to one decimal place.
+ * @param modifier Modifier applied to the card.
+ */
 @Composable
 private fun RatingSummaryCardContent(
     scores: List<Int>,

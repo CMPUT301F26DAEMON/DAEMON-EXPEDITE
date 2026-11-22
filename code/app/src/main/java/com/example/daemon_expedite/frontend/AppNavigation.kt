@@ -66,6 +66,7 @@ object Routes {
     const val ENTRANT_MESSAGES = "entrant_messages"
 
     const val CAMPSITE_POLICIES = "campsite/{$CAMPSITE_ID_ARG}/policies"
+    const val CAMPSITE_REVIEWS = "campsite/{$CAMPSITE_ID_ARG}/reviews"
 
     // Map view takes the coordinates in the route, so both details screens can open it.
     const val LATITUDE_ARG = "latitude"
@@ -76,6 +77,9 @@ object Routes {
     fun campsiteDetail(id: Id) = "campsite/${id.value}"
 
     fun campsitePolicies(id: Id) = "campsite/${id.value}/policies"
+
+    /** The [CAMPSITE_REVIEWS] route for one campsite. */
+    fun campsiteReviews(id: Id) = "campsite/${id.value}/reviews"
 
     fun campsiteMap(
         latitude: Double,
@@ -532,8 +536,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onPoliciesClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
                     },
-                    // TODO: open the campsite reviews page (Figma "Pine Creek Hideaway · Reviews (v2)") once it's built.
-                    onReviewsClick = { showComingSoon("Reviews") },
+                    onReviewsClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteReviews(it.data.id)) }
+                    },
                     onJoinLotteryClick = { lotteryAction(join = true) },
                     onLeaveLotteryClick = { lotteryAction(join = false) },
                     onBookClick = {
@@ -576,6 +581,19 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 CampsitePoliciesScreen(
                     policies = policies,
                     onBackClick = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.CAMPSITE_REVIEWS) {
+                // Reads the campsite id from the route.
+                val reviews: CampsiteReviewsViewModel = viewModel()
+                // Runs each time the page comes back, so new reviews show up.
+                LaunchedEffect(Unit) { reviews.load() }
+                val state by reviews.ratings.collectAsState()
+                CampsiteReviews(
+                    state = state,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = reviews::load,
                 )
             }
 
@@ -1077,6 +1095,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onEditClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.editCampsite(it.data.id)) }
                     },
+                    onReviewsClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteReviews(it.data.id)) }
+                    },
                     onShowQrCodeClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteQr(it.data.id)) }
                     },
@@ -1253,6 +1274,9 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     },
                     onPoliciesClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
+                    },
+                    onReviewsClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteReviews(it.data.id)) }
                     },
                     onDeleteCampsiteConfirmed = {
                         detail.deleteCampsite { ok ->

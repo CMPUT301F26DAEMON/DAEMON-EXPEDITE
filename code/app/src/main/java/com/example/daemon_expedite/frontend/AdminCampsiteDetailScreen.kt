@@ -32,6 +32,7 @@ import com.example.daemon_expedite.ui_components.RedButton
  * @param onPoliciesClick Called when "Campsite Policies" is tapped.
  * @param onDeleteCampsiteConfirmed Called after the admin confirms deleting the campsite.
  * @param onDeleteOwnerConfirmed Called after the admin confirms deleting the campsite's owner.
+ * @param onReviewsClick Called when the rating line ("★ 4.9 · 24 reviews ›") is tapped.
  */
 @Composable
 fun AdminCampsiteDetailScreen(
@@ -43,6 +44,7 @@ fun AdminCampsiteDetailScreen(
     onPoliciesClick: () -> Unit,
     onDeleteCampsiteConfirmed: () -> Unit,
     onDeleteOwnerConfirmed: () -> Unit,
+    onReviewsClick: () -> Unit = {},
 ) {
     var askDeleteCampsite by rememberSaveable { mutableStateOf(false) }
     var askDeleteOwner by rememberSaveable { mutableStateOf(false) }
@@ -60,6 +62,7 @@ fun AdminCampsiteDetailScreen(
             maxOccupancy = details.maxOccupancy,
             pricePerNight = details.pricePerNight,
             onViewMapClick = onViewMapClick,
+            onReviewsClick = onReviewsClick,
             pill = { LotteryPill(details.lotteryStatus) },
         )
 

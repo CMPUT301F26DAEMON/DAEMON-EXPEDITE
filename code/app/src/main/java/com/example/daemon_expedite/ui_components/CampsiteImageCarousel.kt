@@ -124,6 +124,13 @@ fun CampsiteImageCarousel(
     }
 }
 
+/**
+ * A round button for moving to the previous or next image in the carousel.
+ *
+ * @param icon The arrow icon to show.
+ * @param label Accessibility label describing the action (e.g. "Next photo").
+ * @param onClick Called when the button is tapped.
+ */
 @Composable
 private fun CarouselArrow(icon: ImageVector, label: String, onClick: () -> Unit) {
     Box(

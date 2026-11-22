@@ -144,6 +144,7 @@ fun <T> MultiSelectField(
 /** Rows shown before the menu starts scrolling. */
 const val MAX_VISIBLE_OPTIONS = 4
 
+/** Height of one option row in the dropdown menu. */
 private val OPTION_HEIGHT = 52.dp
 
 /** Material's DropdownMenu pads its list by 8 dp at the top and bottom. */

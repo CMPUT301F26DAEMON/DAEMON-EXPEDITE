@@ -182,6 +182,13 @@ private fun MonthHeader(month: YearMonth, onPrevious: () -> Unit, onNext: () -> 
     }
 }
 
+/**
+ * A round button for moving the calendar to the previous or next month.
+ *
+ * @param icon The chevron icon to show.
+ * @param label Accessibility label describing the action (e.g. "Next month").
+ * @param onClick Called when the button is tapped.
+ */
 @Composable
 private fun MonthNavButton(icon: ImageVector, label: String, onClick: () -> Unit) {
     Box(

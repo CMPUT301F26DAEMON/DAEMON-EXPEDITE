@@ -21,8 +21,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-//Reusable message input bar for messaging
-
+/**
+ * A reusable pill-shaped text field with a send button, used on the messaging screens.
+ *
+ * The text is trimmed before sending, and empty or whitespace-only messages are ignored.
+ *
+ * @param message The current text in the field.
+ * @param onMessageChange Called with the new text whenever the user types.
+ * @param onSendClick Called with the trimmed message when the user taps send or presses the keyboard's send action.
+ * @param modifier Modifier applied to the bar.
+ */
 @Composable
 fun MessageInputBar(
     message: String,

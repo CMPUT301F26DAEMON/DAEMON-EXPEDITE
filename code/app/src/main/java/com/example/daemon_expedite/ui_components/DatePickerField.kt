@@ -123,10 +123,13 @@ fun DatePickerField(
     }
 }
 
+/** How the selected date is shown in the field, e.g. "Sat, 21 Nov 2026". */
 private val FIELD_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, d MMM yyyy")
 
+/** Converts a date to the UTC-midnight epoch millis that Material's DatePicker expects. */
 private fun LocalDate.toUtcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 
+/** Converts DatePicker's UTC epoch millis back to a date. Uses UTC so the day doesn't shift with the device's time zone. */
 private fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 @Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 412)
