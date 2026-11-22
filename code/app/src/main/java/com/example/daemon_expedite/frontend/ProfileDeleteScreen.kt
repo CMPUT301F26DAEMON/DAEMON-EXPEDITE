@@ -25,7 +25,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BottomNavBar
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.ProfileImage
 data class AdminProfile(
     val id: String,
@@ -55,17 +55,31 @@ private val sampleProfiles = listOf(
         email = "keya@gmail.com"
     )
 )
+/**
+ * The admin's Profiles tab: every user, searchable by name, phone or email.
+ *
+ * Tap a profile to select it, then the dustbin to delete it (after a confirmation dialog).
+ * Opened from the admin bottom bar, which AppNavigation draws over this screen, so the screen
+ * has no bar or back button of its own. [ProfileDeleteScreenViewModel] does the loading and deleting.
+ *
+ * @param state The profiles to list, or a loading/error state.
+ * @param onRetry Called when the error message is tapped.
+ * @param onDeleteConfirmed Called with the profile's id once the admin confirms the delete.
+ * @param isDeleting True while a delete runs; the dustbin does nothing meanwhile.
+ * @param initialSelectedProfileId Profile selected at first (for previews).
+ * @param initialShowDeleteDialog Whether the delete dialog is open at first (for previews).
+ */
 @Composable
 fun AdminProfilesScreen(
-    profiles: List<AdminProfile> = sampleProfiles,
-    onCampsitesClick: () -> Unit = {},
-    onMessagesClick: () -> Unit = {},
-    onProfilesClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onImagesClick: () -> Unit = {},
+    state: UiState<List<AdminProfile>> = UiState.Content(sampleProfiles),
+    onRetry: () -> Unit = {},
+    onDeleteConfirmed: (String) -> Unit = {},
+    isDeleting: Boolean = false,
     initialSelectedProfileId: String? = null,
     initialShowDeleteDialog: Boolean = false
 ) {
+    val profiles = (state as? UiState.Content)?.data.orEmpty()
+
     var searchQuery by rememberSaveable {
         mutableStateOf("")
     }
@@ -83,45 +97,15 @@ fun AdminProfilesScreen(
                 profile.phone.contains(searchQuery, ignoreCase = true) ||
                 profile.email.contains(searchQuery, ignoreCase = true)}
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = AppColors.Background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            BottomNavBar(
-                labels = listOf(
-                    "Campsites",
-                    "Messages",
-                    "Profiles",
-                    "Notifications",
-                    "Images"
-                ),
-                icons = listOf(
-                    AppIcons.Campsite,
-                    AppIcons.Chat,
-                    AppIcons.Profile,
-                    AppIcons.BellIcon,
-                    AppIcons.AddPhoto
-                ),
-                onClicks = listOf(
-                    onCampsitesClick,
-                    onMessagesClick,
-                    onProfilesClick,
-                    onNotificationsClick,
-                    onImagesClick
-                )
-            )
-        }
-    ) {paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .background(AppColors.Background)
                 .statusBarsPadding()
                 .padding(
                     start = 22.dp,
                     end = 22.dp,
-                    top = 22.dp
+                    top = 24.dp
                 )
         ) {Text(text = "Profiles", style = AppTextStyles.PageTitle,color = AppColors.TextOnPrimary)
 
@@ -143,7 +127,7 @@ fun AdminProfilesScreen(
                 }
                 IconButton(
                     onClick = { // Delete icon changes red
-                        if (selectedProfile != null) {
+                        if (selectedProfile != null && !isDeleting) {
                             showDeleteDialog = true
                         }
                     },
@@ -164,55 +148,85 @@ fun AdminProfilesScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    bottom = 12.dp
-                )
-            ) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                when {
+                    state is UiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AppColors.Primary)
+                    }
 
-                itemsIndexed(
-                    items = filteredProfiles,
-                    key = { _, profile -> profile.id }
-                ) { index, profile ->
-
-                    val isSelected =
-                        selectedProfileId == profile.id
-
-                    AdminProfileRow(
-                        profile = profile,
-                        isSelected = isSelected,
-                        onClick = {
-                            selectedProfileId =
-                                if (isSelected) {
-                                    null
-                                } else {
-                                    profile.id
-                                }
-                        }
-                    )
-
-                    if (index < filteredProfiles.lastIndex) { // Divider
-                        HorizontalDivider(
-                            modifier = Modifier.padding(
-                                horizontal = 10.dp
-                            ),
-                            thickness = 1.dp,
-                            color = AppColors.OutlineSubtle
+                    state is UiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "${state.message}. Tap to try again.",
+                            style = AppTextStyles.BodyMedium,
+                            color = AppColors.TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.clickable(onClick = onRetry).padding(12.dp),
                         )
+                    }
+
+                    filteredProfiles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (searchQuery.isBlank()) "No profiles to show" else "No profiles match \"$searchQuery\"",
+                            style = AppTextStyles.BodyMedium,
+                            color = AppColors.TextSecondary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            bottom = 12.dp
+                        )
+                    ) {
+
+                        itemsIndexed(
+                            items = filteredProfiles,
+                            key = { _, profile -> profile.id }
+                        ) { index, profile ->
+
+                            val isSelected =
+                                selectedProfileId == profile.id
+
+                            AdminProfileRow(
+                                profile = profile,
+                                isSelected = isSelected,
+                                onClick = {
+                                    selectedProfileId =
+                                        if (isSelected) {
+                                            null
+                                        } else {
+                                            profile.id
+                                        }
+                                }
+                            )
+
+                            if (index < filteredProfiles.lastIndex) { // Divider
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(
+                                        horizontal = 10.dp
+                                    ),
+                                    thickness = 1.dp,
+                                    color = AppColors.OutlineSubtle
+                                )
+                            }
+                        }
                     }
                 }
             }
+
+            // Room for the shared bottom bar AppNavigation draws on top.
+            BottomNavBarSpacer()
         }
-    }
     //  Delete dialog
     if (showDeleteDialog && selectedProfile != null) {
         AdminDeleteProfileDialog(
             profileName = selectedProfile.name,
 
             onConfirm = {
-                // Deletion for later implement
                 showDeleteDialog = false
+                selectedProfileId = null
+                onDeleteConfirmed(selectedProfile.id)
             },
 
             onDismiss = {
@@ -340,21 +354,27 @@ private fun AdminProfileRow(  //Display 1 profile
                 overflow = TextOverflow.Ellipsis
             )
 
-            Text(
-                text = profile.phone,
-                style = AppTextStyles.Caption,
-                color = AppColors.TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Only lines with content are drawn, so the column (centred in the row) stays
+            // centred when the phone number or email is missing.
+            if (profile.phone.isNotBlank()) {
+                Text(
+                    text = profile.phone,
+                    style = AppTextStyles.Caption,
+                    color = AppColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
-            Text(
-                text = profile.email,
-                style = AppTextStyles.Caption,
-                color = AppColors.TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (profile.email.isNotBlank()) {
+                Text(
+                    text = profile.email,
+                    style = AppTextStyles.Caption,
+                    color = AppColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

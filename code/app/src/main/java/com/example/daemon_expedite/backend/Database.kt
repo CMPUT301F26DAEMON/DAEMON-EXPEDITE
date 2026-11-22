@@ -2030,6 +2030,9 @@ object Database {
 
     suspend fun deleteUser(user: Id) = db.deleteUser(user)
 
+    /** Every user, as maps with id, name, email, phoneNumber and profileImage. */
+    suspend fun fetchAllUsers(): List<Map<String, String>> = db.fetchAllUsers()
+
     suspend fun fetchOwnUser(): User = db.fetchOwnUser()
 
     suspend fun addOwner(owner: Owner) {
