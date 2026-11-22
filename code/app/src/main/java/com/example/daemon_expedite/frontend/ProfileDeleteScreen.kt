@@ -26,6 +26,7 @@ import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
+import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.ProfileImage
 data class AdminProfile(
     val id: String,
@@ -220,15 +221,17 @@ fun AdminProfilesScreen(
         }
     //  Delete dialog
     if (showDeleteDialog && selectedProfile != null) {
-        AdminDeleteProfileDialog(
-            profileName = selectedProfile.name,
-
+        ConfirmDialog(
+            title = "Delete this profile?",
+            message = "${selectedProfile.name}'s account, reservations " +
+                "and messages will be permanently removed. This can't be undone.",
+            confirmText = "Yes, delete profile",
+            dismissText = "Keep profile",
             onConfirm = {
                 showDeleteDialog = false
                 selectedProfileId = null
                 onDeleteConfirmed(selectedProfile.id)
             },
-
             onDismiss = {
                 showDeleteDialog = false
             }
@@ -374,133 +377,6 @@ private fun AdminProfileRow(  //Display 1 profile
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
-        }
-    }
-}
-@Composable
-private fun AdminDeleteProfileDialog(
-    profileName: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false
-        )
-    ) {
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(AppColors.Scrim),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(onClick = onDismiss)
-            )
-
-            val dialogShape = RoundedCornerShape(19.dp)
-
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 346.dp)
-                    .fillMaxWidth(0.88f)
-                    .clip(dialogShape)
-                    .background(AppColors.SurfaceOverlay)
-                    .border(
-                        width = 1.dp,
-                        color = AppColors.OutlineSubtle,
-                        shape = dialogShape
-                    )
-                    .padding(18.dp),
-
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) { //Trash icon
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(AppColors.DangerTint)
-                        .border(
-                            width = 1.dp,
-                            color = AppColors.Danger,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    Icon(
-                        imageVector = AppIcons.Dustbin,
-                        contentDescription = "Delete",
-                        tint = AppColors.Danger,
-                        modifier = Modifier.size(19.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(2.dp))
-                // Popup
-                Text(
-                    text = "Delete this profile?",
-                    style = AppTextStyles.HeadingMedium,
-                    color = AppColors.TextOnPrimary,
-                    textAlign = TextAlign.Center
-                )
-                // Warning
-                Text(
-                    text = "$profileName's account, reservations " +
-                            "and messages will be permanently removed. " +
-                            "This can't be undone.",
-                    style = AppTextStyles.BodySmallMultiline,
-                    color = AppColors.TextSecondary,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedButton(  //Confirmation
-                    onClick = onConfirm,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(15.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        color = AppColors.Danger
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = AppColors.DangerTint,
-                        contentColor = AppColors.Danger
-                    )
-                ) {Text(
-                        text = "Yes, delete profile",
-                        style = AppTextStyles.LabelMedium
-                    )
-                }
-                // Keep profile
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(15.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        color = AppColors.OutlineStrong
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = AppColors.SurfaceDeep,
-                        contentColor = AppColors.TextOnPrimary
-                    )
-                ) {
-
-                    Text(
-                        text = "Keep profile",
-                        style = AppTextStyles.BodyMedium
-                    )
-                }
             }
         }
     }

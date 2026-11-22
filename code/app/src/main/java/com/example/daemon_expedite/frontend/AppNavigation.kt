@@ -144,6 +144,7 @@ object Routes {
     const val ADMIN_PROFILE = "admin_profile"
     const val ADMIN_NOTIFICATIONS = "admin_notifications"
     const val ADMIN_PROFILES = "admin_profiles"
+    const val ADMIN_IMAGES = "admin_images"
     const val ADMIN_CAMPSITE_DETAIL = "admin_campsite/{$CAMPSITE_ID_ARG}"
 
     fun adminCampsiteDetail(id: Id) = "admin_campsite/${id.value}"
@@ -1246,6 +1247,30 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onDeleteConfirmed = { id ->
                         profiles.deleteProfile(id) { ok ->
                             toast(if (ok) "Profile deleted" else "Couldn't delete profile. Check your connection and try again.")
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.ADMIN_IMAGES) {
+                // A tab: no back button. Reloads every time it is shown.
+                val images: AdminImageScreenViewModel = viewModel()
+                LaunchedEffect(Unit) { images.load() }
+                val state by images.images.collectAsState()
+                val deleting by images.isDeleting.collectAsState()
+                AdminImagesScreen(
+                    state = state,
+                    isDeleting = deleting,
+                    onRetry = images::load,
+                    onDeleteConfirmed = { ids ->
+                        images.deleteImages(ids) { failed ->
+                            toast(
+                                when {
+                                    failed == 0 -> if (ids.size == 1) "Image deleted" else "Images deleted"
+                                    failed == ids.size -> "Couldn't delete. Check your connection and try again."
+                                    else -> "$failed of ${ids.size} images couldn't be deleted"
+                                },
+                            )
                         }
                     },
                 )

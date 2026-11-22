@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -20,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.*
 
 /**
@@ -234,30 +233,16 @@ fun ProfileDetailsScreen(
 
     // Asks before deleting. This only removes the owner side; the entrant profile is kept.
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete owner profile?", style = AppTextStyles.HeadingSmall) },
-            text = {
-                Text(
-                    "Your campsites and their lotteries and reservations will be deleted. " +
-                        "Your entrant profile stays, and you can become an owner again later.",
-                    style = AppTextStyles.Body
-                )
+        ConfirmDialog(
+            title = "Delete owner profile?",
+            message = "Your campsites and their lotteries and reservations will be deleted. " +
+                "Your entrant profile stays, and you can become an owner again later.",
+            confirmText = "Yes, delete owner profile",
+            onConfirm = {
+                showDeleteDialog = false
+                onDeleteProfile?.invoke()
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteDialog = false
-                    onDeleteProfile?.invoke()
-                }) {
-                    Text(text = "Delete", style = AppTextStyles.ButtonLabel, color = AppColors.Danger)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel", style = AppTextStyles.ButtonLabel) }
-            },
-            containerColor = AppColors.SurfaceDeep,
-            titleContentColor = AppColors.TextPrimary,
-            textContentColor = AppColors.TextSecondary
+            onDismiss = { showDeleteDialog = false },
         )
     }
 }

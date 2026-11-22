@@ -1583,6 +1583,30 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         if (image != null) deleteStorageFiles(listOf(image.path))
     }
 
+    /**
+     * Deletes an image and every reference to it, for an admin removing it as moderation.
+     *
+     * Unlike [deleteImage], the caller doesn't need to know where the image is used: any user
+     * whose `profileImage` is this image has it cleared, and it is removed from every campsite's
+     * `images` list. The references and the record go in one batched write, so nothing is left
+     * pointing at a missing image. The Storage file is deleted afterwards (best effort).
+     */
+    suspend fun deleteImageEverywhere(id: Id) {
+        val idStr = id.value.toString()
+        val image = fetchImageOrNull(idStr)
+        val users = db.collection("users").whereEqualTo("profileImage", idStr).get().await()
+        val campsites = db.collection("campsites").whereArrayContains("images", idStr).get().await()
+        db
+            .batch()
+            .apply {
+                users.documents.forEach { update(it.reference, "profileImage", null) }
+                campsites.documents.forEach { update(it.reference, "images", FieldValue.arrayRemove(idStr)) }
+                delete(imageRef(id))
+            }.commit()
+            .await()
+        if (image != null) deleteStorageFiles(listOf(image.path))
+    }
+
     override suspend fun uploadMessage(
         message: Message,
         chatId: Id,
@@ -2153,6 +2177,9 @@ object Database {
 
     /** Deletes an image's record and its Storage file. Remove references to it first. */
     suspend fun deleteImage(id: Id) = db.deleteImage(id)
+
+    /** Deletes an image and clears every user and campsite that uses it. For admins. */
+    suspend fun deleteImageEverywhere(id: Id) = db.deleteImageEverywhere(id)
 
     suspend fun getImage(path: String): String = db.getImage(path)
 

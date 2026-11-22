@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -22,52 +24,60 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
+import coil3.compose.rememberAsyncImagePainter
 import com.example.daemon_expedite.R
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BackButton
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
+import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.SearchBar
 
 /**
  * Represents an image displayed in the admin gallery.
  *
  * @param id Unique identifier for the image.
- * @param imageRes Drawable resource used to display the image.
  * @param uploaderName Name of the user who uploaded the image.
- * @param uploadDate Date the image was uploaded.
+ * @param imageUrl Download URL of the image. Takes priority over [imageRes].
+ * @param imageRes Drawable resource to show instead, for previews.
  */
 data class AdminImage(
     val id: String,
-    val imageRes: Int,
     val uploaderName: String,
-    val uploadDate: String
+    val imageUrl: String? = null,
+    val imageRes: Int? = null,
 )
 
+/** What the image loader should load for [image]: its URL, or its drawable in previews. */
+private val AdminImage.model: Any? get() = imageUrl ?: imageRes
+
 /**
- * Admin Images screen for viewing and selecting uploaded images.
+ * The admin's Images tab: a searchable three-column gallery of every uploaded image.
  *
- * Displays a searchable three-column gallery.
- * Tapping an image selects or deselects it for deletion.
- * Long-pressing an image shows an enlarged preview with uploader details.
- * Releasing the press closes the preview.
+ * Tapping an image selects or deselects it; the dustbin deletes the selection after a
+ * confirmation. Long-pressing an image shows an enlarged preview until the press is released.
  *
- * Image loading, deletion, and navigation are handled externally.
+ * Opened from the admin bottom bar, which AppNavigation draws over this screen, so there is no
+ * back button. [AdminImageScreenViewModel] does the loading and deleting.
  *
- * @param images Images displayed in the gallery.
- * @param onBackClick Called when the back button is tapped.
- * @param onDeleteClick Called with selected image IDs when delete is tapped.
+ * @param state The images to show, or a loading/error state.
+ * @param onRetry Called when the error message is tapped.
+ * @param onDeleteConfirmed Called with the selected image ids once the admin confirms.
+ * @param isDeleting True while a delete runs; the dustbin is disabled meanwhile.
  */
 @Composable
 fun AdminImagesScreen(
-    images: List<AdminImage> = emptyList(),
-    onBackClick: () -> Unit = {},
-    onDeleteClick: (Set<String>) -> Unit = {}
+    state: UiState<List<AdminImage>> = UiState.Content(emptyList()),
+    onRetry: () -> Unit = {},
+    onDeleteConfirmed: (Set<String>) -> Unit = {},
+    isDeleting: Boolean = false,
 ) {
+    val images = (state as? UiState.Content)?.data.orEmpty()
+
     var searchQuery by remember { mutableStateOf("") }
 
     // IDs of selected images
@@ -76,6 +86,8 @@ fun AdminImagesScreen(
     }
 
     val isSelectionMode = selectedImageIds.isNotEmpty()
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     // Image shown while long-pressing
     var previewImage by remember {
@@ -102,41 +114,29 @@ fun AdminImagesScreen(
                 .statusBarsPadding()
         ) {
 
-            // Header
-            Box(
+            // Header: left-aligned title, delete button on the right
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
-                    .padding(horizontal = 24.dp)
+                    .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
-                // Existing teammate BackButton
-                Box(
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    BackButton(onClick = onBackClick)
-                }
-
-                // Centered title
                 Text(
                     text = "Images",
-                    style = AppTextStyles.ScreenTitle,
+                    style = AppTextStyles.PageTitle,
                     color = AppColors.TextPrimary,
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.weight(1f)
                 )
 
-                // Delete button
+                val canDelete = isSelectionMode && !isDeleting
                 IconButton(
-                    onClick = {
-                        onDeleteClick(selectedImageIds)
-                    },
-                    enabled = isSelectionMode,
+                    onClick = { showDeleteDialog = true },
+                    enabled = canDelete,
                     modifier = Modifier
-                        .align(Alignment.CenterEnd)
                         .size(40.dp)
                         .border(
                             width = 1.dp,
-                            color = if (isSelectionMode) {
+                            color = if (canDelete) {
                                 AppColors.Danger
                             } else {
                                 AppColors.OutlineSubtle
@@ -147,7 +147,7 @@ fun AdminImagesScreen(
                     Icon(
                         imageVector = AppIcons.Dustbin,
                         contentDescription = "Delete selected images",
-                        tint = if (isSelectionMode) {
+                        tint = if (canDelete) {
                             AppColors.Danger
                         } else {
                             AppColors.OutlineStrong
@@ -156,8 +156,6 @@ fun AdminImagesScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Existing teammate SearchBar
             Box(
@@ -179,7 +177,8 @@ fun AdminImagesScreen(
             // Image count and selection count
             Text(
                 text = buildString {
-                    append("${images.size} images")
+                    val count = filteredImages.size
+                    append(if (count == 1) "1 image" else "$count images")
 
                     if (isSelectionMode) {
                         append(" · ${selectedImageIds.size} selected")
@@ -192,57 +191,106 @@ fun AdminImagesScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Three-column gallery
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                items(
-                    items = filteredImages,
-                    key = { it.id }
-                ) { image ->
+                when {
+                    state is UiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AppColors.Primary)
+                    }
 
-                    AdminImageThumbnail(
-                        image = image,
-                        isSelectionMode = isSelectionMode,
-                        isSelected = image.id in selectedImageIds,
+                    state is UiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "${state.message}. Tap to try again.",
+                            style = AppTextStyles.BodyMedium,
+                            color = AppColors.TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.clickable(onClick = onRetry).padding(12.dp)
+                        )
+                    }
 
-                        // Tap to select/deselect
-                        onClick = {
-                            selectedImageIds =
-                                if (image.id in selectedImageIds) {
-                                    selectedImageIds - image.id
-                                } else {
-                                    selectedImageIds + image.id
+                    filteredImages.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (searchQuery.isBlank()) "No images to show" else "No images match \"$searchQuery\"",
+                            style = AppTextStyles.BodyMedium,
+                            color = AppColors.TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Three-column gallery
+                    else -> LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp)
+                    ) {
+                        items(
+                            items = filteredImages,
+                            key = { it.id }
+                        ) { image ->
+
+                            AdminImageThumbnail(
+                                image = image,
+                                isSelectionMode = isSelectionMode,
+                                isSelected = image.id in selectedImageIds,
+
+                                // Tap to select/deselect
+                                onClick = {
+                                    selectedImageIds =
+                                        if (image.id in selectedImageIds) {
+                                            selectedImageIds - image.id
+                                        } else {
+                                            selectedImageIds + image.id
+                                        }
+                                },
+
+                                // Long press to open preview
+                                onLongClick = {
+                                    previewImage = image
+                                },
+
+                                // Release finger to close preview
+                                onLongPressRelease = {
+                                    if (previewImage?.id == image.id) {
+                                        previewImage = null
+                                    }
                                 }
-                        },
-
-                        // Long press to open preview
-                        onLongClick = {
-                            previewImage = image
-                        },
-
-                        // Release finger to close preview
-                        onLongPressRelease = {
-                            if (previewImage?.id == image.id) {
-                                previewImage = null
-                            }
+                            )
                         }
-                    )
+                    }
                 }
             }
+
+            // Room for the shared bottom bar AppNavigation draws on top.
+            BottomNavBarSpacer()
         }
 
         // Full image preview while long-pressing
         previewImage?.let { image ->
             AdminImagePreviewOverlay(image = image)
         }
+    }
+
+    if (showDeleteDialog && isSelectionMode) {
+        val count = selectedImageIds.size
+        ConfirmDialog(
+            title = if (count == 1) "Delete this image?" else "Delete $count images?",
+            message = "They will be removed from any profile or campsite using them. This can't be undone.",
+            confirmText = if (count == 1) "Yes, delete image" else "Yes, delete images",
+            dismissText = "Keep",
+            onConfirm = {
+                showDeleteDialog = false
+                onDeleteConfirmed(selectedImageIds)
+                selectedImageIds = emptySet()
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
     }
 }
 
@@ -298,7 +346,7 @@ private fun AdminImageThumbnail(
 
         // Thumbnail image
         Image(
-            painter = painterResource(image.imageRes),
+            painter = rememberAsyncImagePainter(image.model),
             contentDescription =
                 "Image uploaded by ${image.uploaderName}",
             contentScale = ContentScale.Crop,
@@ -397,7 +445,7 @@ private fun AdminImagePreviewOverlay(
                 BoxWithConstraints(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val painter = painterResource(image.imageRes)
+                    val painter = rememberAsyncImagePainter(image.model)
                     val intrinsicSize = painter.intrinsicSize
 
                     val aspectRatio =
@@ -423,29 +471,13 @@ private fun AdminImagePreviewOverlay(
                     )
                 }
 
-                // Uploader name and upload date
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement =
-                        Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Text(
-                        text = image.uploaderName,
-                        style = AppTextStyles.TitleSmall,
-                        color = AppColors.TextOnPrimary
-                    )
-
-                    Text(
-                        text = image.uploadDate,
-                        style = AppTextStyles.BodySmall,
-                        color = AppColors.TextSecondary
-                    )
-                }
+                // Uploader name
+                Text(
+                    text = image.uploaderName,
+                    style = AppTextStyles.TitleSmall,
+                    color = AppColors.TextOnPrimary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -475,12 +507,11 @@ private fun AdminImagesScreenPreview() {
         AdminImage(
             id = index.toString(),
             imageRes = R.drawable.mock_profile_funky,
-            uploaderName = "Sample User ${index + 1}",
-            uploadDate = "Nov 11, 2026"
+            uploaderName = "Sample User ${index + 1}"
         )
     }
 
     AdminImagesScreen(
-        images = sampleImages
+        state = UiState.Content(sampleImages)
     )
 }
