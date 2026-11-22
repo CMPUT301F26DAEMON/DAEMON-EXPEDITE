@@ -38,6 +38,7 @@ fun EntrantCard(
     name: String,
     modifier: Modifier = Modifier,
     onMessageClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
     imageUrl: String? = null
 ) {
     val shape = RoundedCornerShape(24.dp)
@@ -65,6 +66,11 @@ fun EntrantCard(
                 Icon(AppIcons.Chat, contentDescription = "Message $name", tint = AppColors.TextPrimary, modifier = Modifier.size(24.dp))
             }
         }
+        if (onDeleteClick != null) {
+            IconButton(onClick = onDeleteClick) {
+                Icon(AppIcons.Dustbin, contentDescription = "Dustbin $name", tint = AppColors.Danger, modifier = Modifier.size(24.dp))
+            }
+        }
         }
     }
 
@@ -72,5 +78,6 @@ fun EntrantCard(
 @Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 380)
 @Composable
 private fun EntrantCardPreview() {
-    EntrantCard(name = "Keya Malhotra", onMessageClick = {}, modifier = Modifier.padding(12.dp))
+    //EntrantCard(name = "Keya Malhotra", onMessageClick = {}, modifier = Modifier.padding(12.dp))
+    EntrantCard(name = "Keya Malhotra", onDeleteClick = {}, modifier = Modifier.padding(12.dp))
 }

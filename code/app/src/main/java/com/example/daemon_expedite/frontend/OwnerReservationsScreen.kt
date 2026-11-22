@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
+import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.OwnerReservationCard
 import com.example.daemon_expedite.ui_components.OwnerReservationCardStatus
@@ -184,36 +185,16 @@ fun OwnerReservationsScreen(
 
     val pending = reservationToReject
     if (pending != null) {
-        AlertDialog(
-            onDismissRequest = { reservationToReject = null },
-            containerColor = AppColors.Surface,
-            title = {
-                Text(
-                    "Reject reservation?",
-                    style = AppTextStyles.HeadingSmall,
-                    color = AppColors.TextOnPrimary
-                )
+        ConfirmDialog(
+            title = "Reject reservation?",
+            message = "Are you sure you want to reject this reservation?",
+            confirmText = "Yes, reject reservation",
+            icon = AppIcons.Cross,
+            onConfirm = {
+                reservationToReject = null
+                onRejectReservation(pending)
             },
-            text = {
-                Text(
-                    "Are you sure you want to reject this reservation?",
-                    style = AppTextStyles.Body,
-                    color = AppColors.TextSecondary
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    reservationToReject = null
-                    onRejectReservation(pending)
-                }) {
-                    Text("Reject", style = AppTextStyles.ButtonLabel, color = AppColors.Danger)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { reservationToReject = null }) {
-                    Text("Cancel", style = AppTextStyles.ButtonLabel, color = AppColors.TextOnPrimary)
-                }
-            }
+            onDismiss = { reservationToReject = null },
         )
     }
 }

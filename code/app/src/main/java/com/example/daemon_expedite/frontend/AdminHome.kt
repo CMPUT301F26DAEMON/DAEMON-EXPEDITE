@@ -90,7 +90,7 @@ fun AdminHomeScreen(
                 SearchBar(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChange,
-                    placeholderText = "WHERE DO YOU WANT TO GO?",
+                    placeholderText = "Where do you want to go?",
                     showQrIcon = true,
                     onQRCodeClicked = {},
                 )
