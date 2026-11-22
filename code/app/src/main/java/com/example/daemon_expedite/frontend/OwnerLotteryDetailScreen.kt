@@ -1,5 +1,6 @@
 // AI use: some functions in this file were written with help from Anthropic, Claude Code,
 // "Implement the My Lotteries, Create/Edit Lottery and lottery details screens from our design", 2026-11-02.
+// Updated with Claude Code, "Update the lottery details page to match our Figma design", 2026-11-22.
 // The design came from our team; we reviewed, edited and tested the code.
 
 package com.example.daemon_expedite.frontend
@@ -8,12 +9,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -25,15 +28,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.CampsiteLinkCard
 import com.example.daemon_expedite.ui_components.CampsitePill
 import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.DateRangeCalendar
@@ -46,14 +51,14 @@ import java.time.YearMonth
 /**
  * The owner's view of one lottery. Opened by tapping a card on My Lotteries.
  *
- * No Figma frame exists; this follows the campsite details pages. Cancel asks first. A lottery
- * that hasn't opened yet is deleted instead of being kept as cancelled.
+ * Built from the "Lottery Details · Owner" frame in the Figma file. Cancel (not in the design)
+ * asks first. A lottery that hasn't opened yet is deleted instead of being kept as cancelled.
  *
  * @param state The lottery to show, or loading / error.
  * @param isCancelling True while cancelling; the cancel button ignores taps.
  * @param onCampsiteClick Called with the id of a tapped campsite.
  * @param onViewWaitlistClick Called when "View Waitlist" is tapped.
- * @param onEditClick Called when "Edit lottery" is tapped (only shown before the draw).
+ * @param onEditClick Called when the pencil in the header is tapped (only shown before the draw).
  * @param onCancelConfirmed Called after the owner confirms the cancel dialog.
  */
 @Composable
@@ -68,27 +73,41 @@ fun OwnerLotteryDetailScreen(
     onCancelConfirmed: () -> Unit,
 ) {
     var askCancel by rememberSaveable { mutableStateOf(false) }
+    val canEdit = (state as? UiState.Content)?.data?.canEdit == true
 
-    DetailPageScaffold("Lottery Details", state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = details.title,
-                style = AppTextStyles.PageTitleMultiline,
-                color = AppColors.TextPrimary,
-                modifier = Modifier.weight(1f),
-            )
+    DetailPageScaffold(
+        "Lottery Details",
+        state = state,
+        onBackClick = onBackClick,
+        onRetry = onRetry,
+        actions = if (canEdit) {
+            { HeaderIconButton(AppIcons.EditPencilOutlined, "Edit lottery", onEditClick) }
+        } else {
+            null
+        },
+    ) { details ->
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(details.title, style = AppTextStyles.PageTitleMultiline, color = AppColors.TextPrimary)
             CampsitePill(details.status, variant = details.statusVariant)
         }
 
         Section("Campsites") {
             details.campsites.forEach { campsite ->
-                CampsiteRow(campsite.name, onClick = { onCampsiteClick(campsite.id) })
+                CampsiteLinkCard(campsite.name, onClick = { onCampsiteClick(campsite.id) })
             }
         }
 
         Section("Lottery Period") {
-            Text(details.entryText, style = AppTextStyles.ValueMedium, color = AppColors.TextPrimary)
-            Text(details.phaseNote, style = AppTextStyles.BodySmallMultiline, color = AppColors.TextSecondary)
+            Text(
+                details.entryText,
+                style = AppTextStyles.BodyMedium.copy(lineHeight = 21.sp),
+                color = AppColors.TextPrimary,
+            )
+            Text(
+                details.phaseNote,
+                style = AppTextStyles.BodySmall.copy(lineHeight = 19.sp),
+                color = AppColors.TextMuted,
+            )
         }
 
         Section("Stay Periods") {
@@ -99,23 +118,36 @@ fun OwnerLotteryDetailScreen(
                 initialMonth = details.stayPeriods.firstOrNull()?.start?.let(YearMonth::from) ?: YearMonth.now(),
                 addedRanges = details.stayPeriods.map { it.start..it.end },
                 addedRangesColor = AppColors.Primary,
+                footer = if (details.stayTexts.isEmpty()) {
+                    null
+                } else {
+                    {
+                        details.stayTexts.forEach {
+                            Text("Stay nights: $it", style = AppTextStyles.CaptionMultiline, color = AppColors.Secondary)
+                        }
+                    }
+                },
             )
-            details.stayTexts.forEach {
-                Text(it, style = AppTextStyles.BodySmall, color = AppColors.TextPrimary)
-            }
         }
 
         Section("Draw") {
-            Text(details.drawText, style = AppTextStyles.ValueMedium, color = AppColors.TextPrimary)
+            DrawFactsCard(joinedText = details.joinedText, winnerCount = details.winnerCount)
+            details.drawResultText?.let {
+                Text(it, style = AppTextStyles.BodySmall, color = AppColors.TextMuted)
+            }
         }
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val width = maxWidth.value.toInt()
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                GreenButton(onClick = onViewWaitlistClick, icon = AppIcons.Waitlist, buttonText = "View Waitlist", customWidth = width)
-                if (details.canEdit) {
-                    GreenButton(onClick = onEditClick, icon = AppIcons.EditPencilOutlined, buttonText = "Edit lottery", customWidth = width)
-                }
+                GreenButton(
+                    onClick = onViewWaitlistClick,
+                    icon = AppIcons.Waitlist,
+                    buttonText = "View Waitlist",
+                    buttonFontSize = 16,
+                    customHeight = 58,
+                    customWidth = width,
+                )
                 if (details.canCancel) {
                     RedButton(
                         onClick = { if (!isCancelling) askCancel = true },
@@ -158,31 +190,49 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
-/** A campsite in the lottery; tapping it opens the campsite's page. */
+/** Round 40 dp header button, styled like the back button (the "Edit action" in Figma). */
 @Composable
-private fun CampsiteRow(name: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+private fun HeaderIconButton(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(AppColors.FillSubtle)
+            .border(1.dp, AppColors.OutlineSubtle, CircleShape)
+            .clickable(role = Role.Button, onClickLabel = label, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = label, tint = AppColors.TextPrimary, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** Waiting list size on the left, number of winners on the right (the "Draw facts" frame). */
+@Composable
+private fun DrawFactsCard(joinedText: String, winnerCount: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
+            .clip(RoundedCornerShape(16.dp))
             .background(AppColors.SurfaceDeep)
-            .border(1.dp, AppColors.OutlineSubtle, shape)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(AppIcons.Campsite, contentDescription = null, tint = AppColors.Secondary, modifier = Modifier.size(20.dp))
-        Text(
-            text = name,
-            style = AppTextStyles.ValueEmphasis,
-            color = AppColors.TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(AppIcons.ArrowForward, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(18.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            Icon(AppIcons.Guests, contentDescription = null, tint = AppColors.TextPrimary, modifier = Modifier.size(24.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("WAITING LIST", style = AppTextStyles.Overline, color = AppColors.Secondary)
+                Text(joinedText, style = AppTextStyles.ValueEmphasis, color = AppColors.TextPrimary)
+            }
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(winnerCount.toString(), style = AppTextStyles.Amount, color = AppColors.TextPrimary)
+            Text(
+                if (winnerCount == 1) "winner" else "winners",
+                style = AppTextStyles.Caption,
+                color = AppColors.TextPrimary,
+            )
+        }
     }
 }
 
@@ -191,7 +241,6 @@ private fun CampsiteRow(name: String, onClick: () -> Unit) {
 private fun OwnerLotteryDetailScreenPreview() {
     val stays = listOf(
         DatePeriod(LocalDate.of(2026, 10, 16), LocalDate.of(2026, 10, 18)),
-        DatePeriod(LocalDate.of(2026, 10, 23), LocalDate.of(2026, 10, 25)),
     )
     OwnerLotteryDetailScreen(
         state = UiState.Content(
@@ -202,10 +251,13 @@ private fun OwnerLotteryDetailScreenPreview() {
                 statusVariant = PillVariant.Highlight,
                 campsites = listOf(CampsiteOption(Id(), "Pine Creek Hideaway"), CampsiteOption(Id(), "Maple Campsite")),
                 entryText = "Opens 1 Oct · Closes end of 5 Oct",
-                phaseNote = "Entrants can join now. Winners are drawn at the end of 5 Oct.",
+                phaseNote = "Entrants can join while entries are open. Winners are drawn at the end of 5 Oct.",
                 stayPeriods = stays,
-                stayTexts = listOf("16 Oct → 18 Oct · 2 nights", "23 Oct → 25 Oct · 2 nights"),
+                stayTexts = listOf("16 Oct → 18 Oct · 2 nights"),
                 drawText = "12/20 joined · 4 winners to draw",
+                joinedText = "12 / 20 joined",
+                winnerCount = 4,
+                drawResultText = null,
                 canEdit = true,
                 canCancel = true,
                 deletesOnCancel = false,

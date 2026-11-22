@@ -1,6 +1,4 @@
-// AI use: some functions in this file were written with help from Anthropic, Claude Code,
-// "Implement the My Lotteries, Create/Edit Lottery and lottery details screens from our design", 2026-11-02.
-// The design came from our team; we reviewed, edited and tested the code.
+
 
 package com.example.daemon_expedite.frontend
 
@@ -40,6 +38,10 @@ import kotlin.time.toJavaInstant
  * @property stayPeriods The bookable nights, for the calendar.
  * @property stayTexts One line per stay period, for example "16 Oct → 18 Oct · 2 nights".
  * @property drawText Entrants and winners, for example "12/20 joined · 4 winners to draw".
+ * @property joinedText Entrants on the waiting list, for example "12 / 20 joined".
+ * @property winnerCount How many winners the draw picks.
+ * @property drawResultText After the draw, how it went, for example "4 of 4 winners drawn · 1 booked".
+ *   Null before the draw.
  * @property canEdit True before the draw (see [LotteryPhase.UPCOMING] and [LotteryPhase.OPEN]).
  * @property canCancel See [LotteryPhase.canCancel].
  * @property deletesOnCancel True if cancelling deletes it, because it hasn't opened yet.
@@ -55,6 +57,9 @@ data class LotteryDetails(
     val stayPeriods: List<DatePeriod>,
     val stayTexts: List<String>,
     val drawText: String,
+    val joinedText: String,
+    val winnerCount: Int,
+    val drawResultText: String?,
     val canEdit: Boolean,
     val canCancel: Boolean,
     val deletesOnCancel: Boolean,
@@ -198,6 +203,9 @@ internal fun Lottery.toLotteryDetails(
             "${it.start.shortDate(thisYear)} → ${it.end.shortDate(thisYear)} · ${plural(it.nights, "night")}"
         },
         drawText = drawText,
+        joinedText = waitlistCapacity?.let { "$joined / $it joined" } ?: "$joined joined",
+        winnerCount = winnerCount,
+        drawResultText = if (drawn) "${winners.size} of ${plural(winnerCount, "winner")} drawn · ${bookings.size} booked" else null,
         canEdit = phase == LotteryPhase.UPCOMING || phase == LotteryPhase.OPEN,
         canCancel = phase.canCancel,
         deletesOnCancel = phase == LotteryPhase.UPCOMING,

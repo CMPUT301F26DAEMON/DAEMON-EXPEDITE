@@ -123,6 +123,9 @@ class OwnerLotteryDetailViewModelTest {
         val details = lottery().at(midnight(day(10, 7)))
         assertEquals("Entries are closed. Winners are being drawn.", details.phaseNote)
         assertEquals("3/10 joined · 2 winners to draw", details.drawText)
+        assertEquals("3 / 10 joined", details.joinedText)
+        assertEquals(2, details.winnerCount)
+        assertEquals(null, details.drawResultText)
         assertEquals(PillVariant.Highlight, details.statusVariant)
         assertTrue(details.canCancel)
         assertFalse(details.canEdit)
@@ -140,6 +143,7 @@ class OwnerLotteryDetailViewModelTest {
         assertEquals("Booking", details.status)
         assertEquals("Winners are drawn. They can book until the first night, 16 Oct.", details.phaseNote)
         assertEquals("3/10 joined · 2 of 2 winners drawn · 1 booked", details.drawText)
+        assertEquals("2 of 2 winners drawn · 1 booked", details.drawResultText)
         assertTrue(details.canCancel)
         assertFalse(details.canEdit)
     }
@@ -177,6 +181,7 @@ class OwnerLotteryDetailViewModelTest {
     fun noCapacityAndOneWinner() {
         val details = lottery(winnerCount = 1, waitingList = WaitingList()).at(midnight(day(10, 3)))
         assertEquals("0 joined · 1 winner to draw", details.drawText)
+        assertEquals("0 joined", details.joinedText)
     }
 
     @Test

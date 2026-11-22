@@ -9,7 +9,6 @@ import com.example.daemon_expedite.backend.Campsite
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Rating
-import com.example.daemon_expedite.backend.RatingRules
 import com.example.daemon_expedite.backend.Reservation
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
@@ -35,25 +34,25 @@ class RatingRulesTest {
 
     @Test
     fun rate_allowedFromCheckOutDay() {
-        assertNotNull(RatingRules.rateProblem(myStay(), me, emptyList(), day(17))) // still staying
-        assertNull(RatingRules.rateProblem(myStay(), me, emptyList(), day(18)))    // check-out day
-        assertNull(RatingRules.rateProblem(myStay(), me, emptyList(), day(30)))
+        assertNotNull(Rating.rateProblem(myStay(), me, emptyList(), day(17))) // still staying
+        assertNull(Rating.rateProblem(myStay(), me, emptyList(), day(18)))    // check-out day
+        assertNull(Rating.rateProblem(myStay(), me, emptyList(), day(30)))
     }
 
     @Test
     fun rate_onlyByWhoStayed() {
-        assertNotNull(RatingRules.rateProblem(myStay(), stranger, emptyList(), day(20)))
+        assertNotNull(Rating.rateProblem(myStay(), stranger, emptyList(), day(20)))
     }
 
     @Test
     fun rate_notForCancelledStays() {
-        assertNotNull(RatingRules.rateProblem(myStay(cancelled = true), me, emptyList(), day(20)))
+        assertNotNull(Rating.rateProblem(myStay(cancelled = true), me, emptyList(), day(20)))
     }
 
     @Test
     fun rate_oncePerStay() {
         val stay = myStay()
-        assertNotNull(RatingRules.rateProblem(stay, me, listOf(ratingFor(stay)), day(20)))
+        assertNotNull(Rating.rateProblem(stay, me, listOf(ratingFor(stay)), day(20)))
     }
 
     @Test
@@ -61,20 +60,20 @@ class RatingRulesTest {
         // Someone else's review of Pine, and my review of an earlier stay, don't count.
         val other = myStay()
         val existing = listOf(ratingFor(other, author = stranger), ratingFor(other))
-        assertNull(RatingRules.rateProblem(myStay(), me, existing, day(20)))
+        assertNull(Rating.rateProblem(myStay(), me, existing, day(20)))
     }
 
     @Test
     fun cleanReview_blankIsStarsOnly() {
-        assertNull(RatingRules.cleanReview(null))
-        assertNull(RatingRules.cleanReview(""))
-        assertNull(RatingRules.cleanReview("   \n "))
+        assertNull(Rating.cleanReview(null))
+        assertNull(Rating.cleanReview(""))
+        assertNull(Rating.cleanReview("   \n "))
     }
 
     @Test
     fun cleanReview_trimsAndCaps() {
-        assertEquals("Lovely", RatingRules.cleanReview("  Lovely \n"))
-        assertEquals(RatingRules.MAX_REVIEW_LENGTH, RatingRules.cleanReview("a".repeat(5000))!!.length)
+        assertEquals("Lovely", Rating.cleanReview("  Lovely \n"))
+        assertEquals(Rating.MAX_REVIEW_LENGTH, Rating.cleanReview("a".repeat(5000))!!.length)
     }
 
     @Test

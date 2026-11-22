@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -88,6 +89,8 @@ import java.time.format.FormatStyle
  *   Days it returns false for are greyed out.
  * @param addedRangesColor Fill for [addedRanges]. Pass [AppColors.Primary] on read-only calendars
  *   where they are the only thing shown.
+ * @param footer Optional content shown inside the card under the grid, 12 dp below it. For
+ *       93 + *   example a caption listing the stay nights.
  */
 @Composable
 fun DateRangeCalendar(
@@ -101,6 +104,7 @@ fun DateRangeCalendar(
     addedRanges: List<ClosedRange<LocalDate>> = emptyList(),
     addedRangesColor: Color = AppColors.PrimaryMuted,
     isDateEnabled: (LocalDate) -> Boolean = { true },
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     var visibleMonth by rememberSaveable { mutableStateOf(initialMonth) }
 
@@ -145,6 +149,10 @@ fun DateRangeCalendar(
                     }
                 }
             }
+        }
+        if (footer != null) {
+            Spacer(Modifier.height(12.dp))
+            footer()
         }
     }
 }

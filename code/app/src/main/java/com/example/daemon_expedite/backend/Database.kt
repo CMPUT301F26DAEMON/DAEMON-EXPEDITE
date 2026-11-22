@@ -1396,7 +1396,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     /**
      * Saves [userId]'s rating of the stay [reservationId] onto its campsite's `ratings` array.
      *
-     * Runs as a transaction that re-checks [RatingRules.rateProblem] against the campsite's
+     * Runs as a transaction that re-checks [Rating.rateProblem] against the campsite's
      * current ratings, then appends only the new rating with `arrayUnion`. It never rewrites the
      * whole campsite, so two people rating at the same time can't overwrite each other, and the
      * same stay can't be rated twice. The average isn't stored: [Campsite.averageRating]
@@ -1428,7 +1428,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     (campsiteData["ratings"] as? List<*>)
                         ?.mapNotNull { (it as? Map<*, *>)?.let(::parseRating) }
                         ?: emptyList()
-                RatingRules
+                Rating
                     .rateProblem(reservation, userId, existing, LocalDate.now())
                     ?.let { throw BookingRejectedException(it) }
 
@@ -1438,7 +1438,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                         authorId = userId,
                         score = score,
                         reservationId = reservation.id,
-                        description = RatingRules.cleanReview(review),
+                        description = Rating.cleanReview(review),
                     )
                 tx.update(campsiteRef, "ratings", FieldValue.arrayUnion(rating.toMap()))
                 rating
