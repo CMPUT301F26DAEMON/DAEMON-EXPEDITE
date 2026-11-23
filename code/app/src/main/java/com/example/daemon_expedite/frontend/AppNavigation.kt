@@ -43,7 +43,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
-import com.example.daemon_expedite.push.PushDestination
 import com.example.daemon_expedite.push.rememberNotificationPermissionRequest
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -204,15 +203,9 @@ object Routes {
  * them can open any role's home; the tree above only shows the first way in.
  *
  * @param session Created here by default; pass one in for tests.
- * @param pushDestination The screen a tapped push notification asked for, or null.
- * @param onPushDestinationOpened Called once [pushDestination] has been opened.
  */
 @Composable
-fun AppNavigation(
-    session: SessionViewModel = viewModel(),
-    pushDestination: PushDestination? = null,
-    onPushDestinationOpened: () -> Unit = {},
-) {
+fun AppNavigation(session: SessionViewModel = viewModel()) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val sessionState by session.state.collectAsState()
@@ -300,21 +293,6 @@ fun AppNavigation(
             ?.route
     // The role whose bar belongs on this screen, or null for screens without one.
     val barTabs = RoleTabs.forRoute(currentRoute)
-
-    // A tapped push notification opens its screen. Both kinds go to people on a lottery's
-    // waiting list, so both open entrant tabs, even if the user was in the owner or admin view.
-    // Waits until the splash screen has loaded the user and moved on to Home.
-    val pastSplash = currentRoute != null && currentRoute != Routes.SPLASH
-    LaunchedEffect(pushDestination, pastSplash) {
-        if (pushDestination == null || !pastSplash) return@LaunchedEffect
-        val route =
-            when (pushDestination) {
-                PushDestination.LOTTERIES -> Routes.ENTRANT_LOTTERIES
-                PushDestination.NOTIFICATIONS -> Routes.ENTRANT_NOTIFICATIONS
-            }
-        openTab(RoleTabs.ENTRANT, RoleTabs.ENTRANT.indexOf(route))
-        onPushDestinationOpened()
-    }
 
     Box(modifier = Modifier.fillMaxSize().background(AppColors.Background)) {
         NavHost(

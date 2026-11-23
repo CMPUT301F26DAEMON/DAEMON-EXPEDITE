@@ -2,7 +2,6 @@ package com.example.daemon_expedite.backend
 
 import android.location.Location
 
-<<<<<<< Updated upstream
 /**
  * Represents a campsite listing that can be published by an owner and booked through a lottery.
  *
@@ -13,9 +12,6 @@ import android.location.Location
  * @property ownerId Identifier of the owner who manages this campsite.
  * @property ratings Every review left for the campsite; see [averageRating].
  */
-=======
-
->>>>>>> Stashed changes
 class Campsite(
     val id: Id = Id(),
     name: String,
@@ -27,12 +23,8 @@ class Campsite(
     pricePerNight: Int,
     images: List<Image> = emptyList(),
     val ownerId: Id,
-<<<<<<< Updated upstream
     ratings: List<Rating> = emptyList(),
     address: String
-=======
-    rating: Rating
->>>>>>> Stashed changes
 ) {
     var name: String = name
         private set
@@ -46,11 +38,7 @@ class Campsite(
         private set
     var policies: String = policies
         private set
-<<<<<<< Updated upstream
     var address: String = address
-=======
-    var rating: Rating = rating
->>>>>>> Stashed changes
         private set
 
     private val _tags = tags.toMutableList()
@@ -59,21 +47,14 @@ class Campsite(
     private val _images = images.toMutableList()
     val images: List<Image> get() = _images
 
-<<<<<<< Updated upstream
     private val _ratings = ratings.toMutableList()
     val ratings: List<Rating> get() = _ratings
 
     /** Changes the details */
-=======
-    private val _lotteryIds = mutableListOf<Id>()
-    val lotteryIds: List<Id> get() = _lotteryIds
-
->>>>>>> Stashed changes
     fun updateDetails(newName: String, newRate: Int, newMaxOccupancy: Int) {
         this.name = newName
         this.pricePerNight = newRate
         this.maxOccupancy = newMaxOccupancy
-<<<<<<< Updated upstream
     }
 
     /**
@@ -98,32 +79,4 @@ class Campsite(
         return sum.toDouble() / _ratings.size
     }
 
-=======
-
-        Database.updateCampsite(this)
-    }
-
-    fun addLottery(lottery: Lottery) {
-        if (lottery.id !in _lotteryIds) {
-            _lotteryIds.add(lottery.id)
-            Database.addLottery(lottery)
-        }
-    }
-
-    fun addImage(image: Image) {
-        if (image !in _images) {
-            _images.add(image)
-            Database.addImage(image)
-        }
-    }
-
-    fun generateQRCode(){
-       // generate QR Code library function
-    }
-
-    fun updateRating(rating: Int) {
-        this.rating.addRating(rating)
-        Database.updateCampsite(this)
-    }
->>>>>>> Stashed changes
 }

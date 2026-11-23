@@ -4,11 +4,7 @@
 
 package com.example.daemon_expedite.backend
 
-import kotlin.collections.toList
-import kotlin.collections.toMutableList
-
 open class User(
-<<<<<<< Updated upstream
     val id: Id = Id(),
     name: String = "",
     email: String = "",
@@ -19,16 +15,6 @@ open class User(
     reservations: List<Id> = emptyList(),
     chats: List<Id> = emptyList(),
     receivedNotifications: List<Id> = emptyList(),
-=======
-    val id: Id,
-    name: String,
-    email: String,
-    phoneNumber: String,
-    val profileImage: Id,
-    lotteries: List<Id> = emptyList(),
-    reservations: List<Id> = emptyList(),
-    chats: List<Id> = emptyList(),
->>>>>>> Stashed changes
 ) {
     var name: String = name
         private set
@@ -36,7 +22,6 @@ open class User(
         private set
     var phoneNumber: String = phoneNumber
         private set
-<<<<<<< Updated upstream
     var notificationsEnabled: Boolean = notificationsEnabled
         private set
 
@@ -60,39 +45,21 @@ open class User(
         email: String,
         phoneNumber: String,
     ) {
-=======
-
-    var notificationsEnabled: Boolean = true
-        private set
-
-    var isDeleted: Boolean = false
-        private set
-
-    private val lotteries: MutableList<Id> = lotteries.toMutableList()
-    private val reservations: MutableList<Id> = reservations.toMutableList()
-    private val chats: MutableList<Id> = chats.toMutableList()
-
-    fun updateProfile(name: String, email: String, phoneNumber: String) {
->>>>>>> Stashed changes
         this.name = name
         this.email = email
         this.phoneNumber = phoneNumber
     }
 
-<<<<<<< Updated upstream
     /** Sets the profile photo in memory. */
     fun updateProfileImage(image: Image) {
         profileImage = image
     }
 
     /** Turns notifications on or off in memory. */
-=======
->>>>>>> Stashed changes
     fun enableOrDisableNotifications(enabled: Boolean) {
         notificationsEnabled = enabled
     }
 
-<<<<<<< Updated upstream
     /**
      * Remembers that this user joined [lotteryId]'s waiting list.
      */
@@ -140,29 +107,3 @@ open class User(
         _receivedNotifications.clear()
     }
 }
-=======
-    fun addLottery(lottery: Lottery) {
-        if (lottery.id !in lotteries) lotteries.add(lottery.id)
-    }
-
-    fun removeLottery(lottery: Lottery) {
-        lotteries.remove(lottery.id)
-    }
-
-    fun addReservation(reservation: Reservation) {
-        if (reservation.id !in reservations) reservations.add(reservation.id)
-    }
-
-    fun getChats(): List<Id> = chats.toList()
-
-    fun getLotteries(): List<Id> = lotteries.toList()
-    fun getReservations(): List<Id> = reservations.toList()
-
-    fun deleteProfile() {
-        lotteries.clear()
-        reservations.clear()
-        chats.clear()
-        isDeleted = true
-    }
-}
->>>>>>> Stashed changes

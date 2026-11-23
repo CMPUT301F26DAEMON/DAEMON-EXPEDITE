@@ -60,18 +60,14 @@ class ExpediteMessagingService : FirebaseMessagingService() {
         // A push can carry its text in its `notification` part, its `data` part, or both.
         val title = message.notification?.title ?: message.data["title"]
         val body = message.notification?.body ?: message.data["body"] ?: return
-        show(message.messageId.hashCode(), title, body, message.data)
+        show(message.messageId.hashCode(), title, body)
     }
 
     /**
      * Shows a notification in [NotificationChannels.LOTTERY_UPDATES]. [id] identifies it:
      * showing another with the same id replaces it, so each push gets its own.
-     *
-     * [data] is added to the tap intent as extras, the same as Android does for the
-     * notifications it shows itself, so MainActivity can open the right screen
-     * (see [PushDestination]).
      */
-    private fun show(id: Int, title: String?, body: String, data: Map<String, String>) {
+    private fun show(id: Int, title: String?, body: String) {
         // From Android 13 the user must allow notifications. Without that, notify() does nothing,
         // so skip it.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -81,16 +77,12 @@ class ExpediteMessagingService : FirebaseMessagingService() {
         }
 
         // What happens when the notification is tapped: open the app. FLAG_IMMUTABLE is required
-        // from Android 12 and stops other apps from changing the intent. The request code is the
-        // notification's id: PendingIntents with the same code share one set of extras, so with a
-        // fixed code every notification would open whatever the newest one says.
-        val tapIntent = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        data.forEach { (key, value) -> tapIntent.putExtra(key, value) }
+        // from Android 12 and stops other apps from changing the intent.
         val openApp =
             PendingIntent.getActivity(
                 this,
-                id,
-                tapIntent,
+                0,
+                Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
 

@@ -1,6 +1,5 @@
 package com.example.daemon_expedite.backend
 
-<<<<<<< Updated upstream
 /**
  * Represents an image uploaded for a campsite or user profile.
  *
@@ -13,16 +12,3 @@ class Image (
     val uploader: Id,
     val path: String
 )
-=======
-class Image (
-    val id: Id = Id(),
-    uploader: Id,
-    path: String
-){
-    var uploader: Id = uploader
-        private set
-
-    var path: String = path
-        private set
-}
->>>>>>> Stashed changes
