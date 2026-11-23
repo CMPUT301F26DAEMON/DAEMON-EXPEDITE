@@ -1,6 +1,8 @@
 package com.example.daemon_expedite.ui_components
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -27,6 +29,8 @@ import com.example.daemon_expedite.backend.Rating
  * @param imageUrl URL of the reviewer's profile picture. When null (or it fails to load), [fallbackImageRes] is shown.
  * @param modifier Modifier applied to the card.
  * @param fallbackImageRes Drawable shown when there is no profile picture.
+ * @param isSelected Draws the card in the red "selected for deletion" style (admin review moderation).
+ * @param onClick Called when the card is tapped. When null the card isn't clickable.
  */
 @Composable
 fun ReviewCard(
@@ -36,12 +40,18 @@ fun ReviewCard(
     imageUrl: String?,
     modifier: Modifier = Modifier,
     @DrawableRes fallbackImageRes: Int = R.drawable.mock_profile,
+    isSelected: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
+    val shape = RoundedCornerShape(14.dp)
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = AppColors.SurfaceSheet,
-        border = BorderStroke(width = 1.dp, color = AppColors.OutlineCard),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = shape,
+        color = if (isSelected) AppColors.DangerTint else AppColors.SurfaceSheet,
+        border = BorderStroke(width = 1.dp, color = if (isSelected) AppColors.DangerBorder else AppColors.OutlineCard),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

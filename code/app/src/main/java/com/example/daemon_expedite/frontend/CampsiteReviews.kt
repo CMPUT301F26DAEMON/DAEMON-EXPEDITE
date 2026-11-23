@@ -16,13 +16,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.ConfirmDialog
 import com.example.daemon_expedite.ui_components.RatingSummaryCard
 import com.example.daemon_expedite.ui_components.ReviewCard
 import com.example.daemon_expedite.ui_components.ScreenHeader
@@ -34,13 +43,31 @@ import com.example.daemon_expedite.ui_components.ScreenHeader
  * @param state The reviews to show, or the loading / error state (from [CampsiteReviewsViewModel.ratings]).
  * @param onBackClick Called when the back button is tapped.
  * @param onRetry Called when the error message is tapped, to try loading again.
+ * @param canDelete Admin mode: shows a dustbin top right. Tap a review to select it, then the
+ *   dustbin to delete it (after a confirmation dialog), like the admin's Profiles tab.
+ * @param isDeleting True while a delete runs; the dustbin does nothing meanwhile.
+ * @param onDeleteConfirmed Called with the review's id once the admin confirms the delete.
+ * @param initialSelectedReviewId Review selected at first (for previews).
+ * @param initialShowDeleteDialog Whether the delete dialog is open at first (for previews).
  */
 @Composable
 fun CampsiteReviews(
     state: UiState<CampsiteReviewsPage>,
     onBackClick: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    canDelete: Boolean = false,
+    isDeleting: Boolean = false,
+    onDeleteConfirmed: (Id) -> Unit = {},
+    initialSelectedReviewId: String? = null,
+    initialShowDeleteDialog: Boolean = false,
 ) {
+    // Saved as the id's string so it survives rotation (Id isn't Saveable).
+    var selectedReviewId by rememberSaveable { mutableStateOf(initialSelectedReviewId) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(initialShowDeleteDialog) }
+    // Looked up in the current list, so a review that has gone (deleted, reloaded) can't stay selected.
+    val selectedReview = (state as? UiState.Content)?.data?.reviews
+        ?.firstOrNull { it.id.value.toString() == selectedReviewId }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,7 +75,28 @@ fun CampsiteReviews(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        ScreenHeader(title = "Reviews", onBackClick = onBackClick)
+        ScreenHeader(
+            title = "Reviews",
+            onBackClick = onBackClick,
+            actions = if (canDelete) {
+                {
+                    IconButton(
+                        onClick = { if (selectedReview != null && !isDeleting) showDeleteDialog = true },
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = AppIcons.Dustbin,
+                            contentDescription = "Delete review",
+                            // Red once a review is selected, so the admin can see it's tappable.
+                            tint = if (selectedReview != null) AppColors.Danger else AppColors.TextPrimary,
+                            modifier = Modifier.size(23.dp),
+                        )
+                    }
+                }
+            } else {
+                null
+            },
+        )
         when (state) {
             UiState.Loading -> Centered { CircularProgressIndicator(color = AppColors.Primary) }
 
@@ -98,17 +146,42 @@ fun CampsiteReviews(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         items(reviews, key = { it.id.value.toString() }) { review ->
+                            val key = review.id.value.toString()
+                            val isSelected = selectedReviewId == key
                             ReviewCard(
                                 name = review.name,
                                 score = review.score,
                                 review = review.review,
                                 imageUrl = review.imageUrl,
+                                isSelected = isSelected,
+                                // Tapping toggles the selection; only admins can select.
+                                onClick = if (canDelete) {
+                                    { selectedReviewId = if (isSelected) null else key }
+                                } else {
+                                    null
+                                },
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showDeleteDialog && selectedReview != null) {
+        ConfirmDialog(
+            title = "Delete this review?",
+            message = "${selectedReview.name}'s review will be permanently removed " +
+                "and the campsite's rating updated. This can't be undone.",
+            confirmText = "Yes, delete review",
+            dismissText = "Keep review",
+            onConfirm = {
+                showDeleteDialog = false
+                selectedReviewId = null
+                onDeleteConfirmed(selectedReview.id)
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
     }
 }
 
@@ -162,5 +235,27 @@ private fun PreviewCampsiteReviewsEmpty() {
         state = UiState.Content(CampsiteReviewsPage(campsiteName = "Pine Creek Hideaway", reviews = emptyList())),
         onBackClick = {},
         onRetry = {},
+    )
+}
+
+/** Preview of the admin view, with the first review selected so the dustbin is red. */
+@Preview(showBackground = true, backgroundColor = 0xFF121514, widthDp = 390, heightDp = 844)
+@Composable
+private fun PreviewCampsiteReviewsAdminSelected() {
+    val selected = Id()
+    CampsiteReviews(
+        state = UiState.Content(
+            CampsiteReviewsPage(
+                campsiteName = "Pine Creek Hideaway",
+                reviews = listOf(
+                    Reviews(id = selected, name = "Sam Rivera", score = 1, review = "Spam spam spam."),
+                    Reviews(id = Id(), name = "Alex Morgan", score = 5),
+                ),
+            )
+        ),
+        onBackClick = {},
+        onRetry = {},
+        canDelete = true,
+        initialSelectedReviewId = selected.value.toString(),
     )
 }

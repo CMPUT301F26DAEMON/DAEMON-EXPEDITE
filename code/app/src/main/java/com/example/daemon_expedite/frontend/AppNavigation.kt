@@ -154,6 +154,11 @@ object Routes {
 
     fun adminCampsiteDetail(id: Id) = "admin_campsite/${id.value}"
 
+    // Same reviews page as CAMPSITE_REVIEWS, plus selecting and deleting reviews.
+    const val ADMIN_CAMPSITE_REVIEWS = "admin_campsite/{$CAMPSITE_ID_ARG}/reviews"
+
+    fun adminCampsiteReviews(id: Id) = "admin_campsite/${id.value}/reviews"
+
     // Not built yet. When a screen is added, give it a route here and replace the
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
     // const val LOTTERIES = "lotteries"
@@ -1343,6 +1348,26 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 )
             }
 
+            composable(Routes.ADMIN_CAMPSITE_REVIEWS) {
+                // Reads the campsite id from the route, like CAMPSITE_REVIEWS.
+                val reviews: CampsiteReviewsViewModel = viewModel()
+                LaunchedEffect(Unit) { reviews.load() }
+                val state by reviews.ratings.collectAsState()
+                val deleting by reviews.isDeleting.collectAsState()
+                CampsiteReviews(
+                    state = state,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = reviews::load,
+                    canDelete = true,
+                    isDeleting = deleting,
+                    onDeleteConfirmed = { id ->
+                        reviews.deleteReview(id) { ok ->
+                            toast(if (ok) "Review deleted" else "Couldn't delete review. Check your connection and try again.")
+                        }
+                    },
+                )
+            }
+
             composable(Routes.ADMIN_CAMPSITE_DETAIL) {
                 // Reads the campsite id from the route through its SavedStateHandle.
                 val detail: AdminCampsiteDetailViewModel = viewModel()
@@ -1373,7 +1398,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
                     },
                     onReviewsClick = {
-                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteReviews(it.data.id)) }
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.adminCampsiteReviews(it.data.id)) }
                     },
                     onDeleteCampsiteConfirmed = {
                         detail.deleteCampsite { ok ->

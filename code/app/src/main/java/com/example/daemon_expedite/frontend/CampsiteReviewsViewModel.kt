@@ -62,6 +62,35 @@ class CampsiteReviewsViewModel(savedState: SavedStateHandle) : ViewModel() {
         }
     }
 
+    private val _isDeleting = MutableStateFlow(false)
+
+    /** True while an admin's review delete runs. Only one delete runs at a time. */
+    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+
+    /**
+     * Deletes the review [reviewId] (admin only). On success it is removed from the list
+     * straight away, without a reload. Ignored while another delete is running.
+     *
+     * @param onResult Called with true if the review is gone.
+     */
+    fun deleteReview(reviewId: Id, onResult: (Boolean) -> Unit) {
+        val id = campsiteId
+        if (id == null || _isDeleting.value) return onResult(false)
+        _isDeleting.value = true
+        viewModelScope.launch {
+            val ok = runCatchingAll("Deleting review ${reviewId.value} failed") { Database.deleteRating(id, reviewId) }
+            if (ok) {
+                (_ratings.value as? UiState.Content)?.let { current ->
+                    _ratings.value = UiState.Content(
+                        current.data.copy(reviews = current.data.reviews.filter { it.id != reviewId })
+                    )
+                }
+            }
+            _isDeleting.value = false
+            onResult(ok)
+        }
+    }
+
     /**
      * Fetches the campsite's ratings and, for each one, the author's name and picture.
      * Authors are looked up in parallel; if one can't be loaded, that review still shows
