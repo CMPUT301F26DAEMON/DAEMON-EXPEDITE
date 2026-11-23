@@ -4,6 +4,7 @@
 
 package com.example.daemon_expedite.backend
 
+<<<<<<< Updated upstream
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.time.Clock
@@ -272,3 +273,75 @@ enum class CancelOutcome {
     /** It was marked canceled and kept. */
     CANCELLED,
 }
+=======
+import kotlin.time.Clock
+import kotlin.time.Instant
+
+class Lottery(
+    val id: Id = Id(),
+    campsites: List<Id> = emptyList(),
+    maxBookableByASingleUser: Int,
+    registrationStart: Instant,
+    registrationEnd: Instant,
+    bookingStartDate: Instant,
+    bookingEndDate: Instant,
+    winnerCount: Int,
+    winners: List<Id> = emptyList(),
+    lotteryStart: Instant,
+    lotteryEnd: Instant,
+    availableDates: List<Instant> = emptyList(),
+    waitingList: WaitingList = WaitingList()
+) {
+    var maxBookableByASingleUser: Int = maxBookableByASingleUser
+        private set
+    var registrationStart: Instant = registrationStart
+        private set
+    var registrationEnd: Instant = registrationEnd
+        private set
+    var bookingStartDate: Instant = bookingStartDate
+        private set
+    var bookingEndDate: Instant = bookingEndDate
+        private set
+    var winnerCount: Int = winnerCount
+        private set
+    var lotteryStart: Instant = lotteryStart
+        private set
+    var lotteryEnd: Instant = lotteryEnd
+        private set
+    var waitingList: WaitingList = waitingList
+        private set
+
+    private val _campsites = campsites.toMutableList()
+    val campsites: List<Id> get() = _campsites
+
+    private val _winners = winners.toMutableList()
+    val winners: List<Id> get() = _winners
+
+    private val _availableDates = availableDates.toMutableList()
+    val availableDates: List<Instant> get() = _availableDates
+
+    fun isActive(): Boolean {
+        val now = Clock.System.now()
+        return now >= lotteryStart && now < lotteryEnd
+    }
+
+    fun joinWaitingList(user: Id): Boolean {
+        if (!isActive()) return false
+        if (waitingList.add(user)) {
+            Database.addEntrant(id, user)
+            return true
+        }
+        return false
+    }
+
+    fun leaveWaitingList(user: Id): Boolean {
+        if (!isActive()) return false
+        if (waitingList.remove(user)) {
+            Database.removeEntrant(id, user)
+            return true
+        }
+        return false
+    }
+
+}
+>>>>>>> Stashed changes
