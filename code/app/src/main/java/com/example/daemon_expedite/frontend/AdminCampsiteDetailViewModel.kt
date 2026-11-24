@@ -1,17 +1,20 @@
 package com.example.daemon_expedite.frontend
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Campsite
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.LotteryNotCancellableException
 import com.example.daemon_expedite.backend.LotteryPhase
 import com.example.daemon_expedite.ui_components.LotteryStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Data for the admin's view of any campsite, plus deleting the campsite or its owner.
@@ -20,8 +23,7 @@ import kotlinx.coroutines.launch
  * Call [load] every time the screen is shown.
  *
  * Unlike the owner's delete, an admin's delete isn't blocked by a running lottery: removing a
- * campsite is a moderation action. Lottery and booking screens already skip campsites that no
- * longer exist.
+ * campsite is a moderation action, so the lottery is cancelled first (see [deleteCampsite]).
  */
 class AdminCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
 
@@ -66,17 +68,44 @@ class AdminCampsiteDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
         }
     }
 
-    /** Deletes the campsite and its photos. [onResult] gets true if the campsite is gone. */
+    /**
+     * Cancels the campsite's running lottery (if any), then deletes the campsite and its photos.
+     * [onResult] gets true if the campsite is gone.
+     *
+     * The lottery is cancelled first so a failure leaves everything as it was; deleting first
+     * could leave a live lottery pointing at a campsite that no longer exists.
+     */
     fun deleteCampsite(onResult: (Boolean) -> Unit) {
         val campsite = campsite
         if (campsite == null || _isDeleting.value) return onResult(false)
         _isDeleting.value = true
         viewModelScope.launch {
-            val ok = deleteCampsiteAndPhotos(campsite)
+            val ok = cancelCurrentLottery(campsite) && deleteCampsiteAndPhotos(campsite)
             _isDeleting.value = false
             onResult(ok)
         }
     }
+
+    /**
+     * Cancels [campsite]'s lottery that isn't past, if it has one (see [Database.cancelLottery]).
+     * Returns false if the lookup or the cancel failed, so the campsite isn't deleted.
+     * A lottery whose stays have already started can't be cancelled; that isn't a failure.
+     */
+    private suspend fun cancelCurrentLottery(campsite: Campsite): Boolean =
+        try {
+            campsite.currentLottery()?.let { Database.cancelLottery(it.id) }
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Firestore wraps exceptions thrown inside a transaction, so look at the cause too.
+            if (e is LotteryNotCancellableException || e.cause is LotteryNotCancellableException) {
+                true
+            } else {
+                Log.e("AdminCampsiteDetail", "Cancelling the lottery of campsite ${campsite.id} failed", e)
+                false
+            }
+        }
 
     /**
      * Deletes the campsite's owner. [Database.deleteOwner] also removes everything on their owner
