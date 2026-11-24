@@ -141,6 +141,11 @@ interface DatabaseInterface {
         review: String?,
     ): Rating
 
+    suspend fun deleteRating(
+        campsiteId: Id,
+        ratingId: Id,
+    )
+
     suspend fun fetchLottery(id: Id): Lottery
 
     suspend fun updateLottery(lottery: Lottery)
@@ -1654,6 +1659,34 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     }
 
     /**
+     * Removes the rating [ratingId] from campsite [campsiteId]'s `ratings` array (admin moderation).
+     *
+     * Runs as a transaction that re-reads the array and writes it back without the matching
+     * entry. Matching is by the stored `id` field rather than `arrayRemove`, which would need
+     * the exact stored map and silently do nothing if any field differs. Ratings added by
+     * someone else meanwhile make Firestore retry the transaction, so they aren't lost.
+     * Does nothing if the rating is already gone.
+     *
+     * @throws NotFoundException if the campsite no longer exists.
+     */
+    override suspend fun deleteRating(
+        campsiteId: Id,
+        ratingId: Id,
+    ) {
+        val campsiteRef = db.collection("campsites").document(campsiteId.value.toString())
+        val target = ratingId.value.toString()
+        db
+            .runTransaction { tx ->
+                val data =
+                    tx.get(campsiteRef).data
+                        ?: throw NotFoundException("Campsite ${campsiteId.value} not found")
+                val ratings = data["ratings"] as? List<*> ?: emptyList<Any?>()
+                val kept = ratings.filterNot { (it as? Map<*, *>)?.get("id") == target }
+                if (kept.size != ratings.size) tx.update(campsiteRef, "ratings", kept)
+            }.await()
+    }
+
+    /**
      * Uploads the file at a local filesystem [path] as a profile photo.
      * See [uploadProfileImage] for where it is stored.
      */
@@ -2333,6 +2366,12 @@ object Database {
         score: Int,
         review: String?,
     ): Rating = db.rateStay(reservationId, userId, score, review)
+
+    /** Removes one rating from a campsite (admin). See [DatabaseInner.deleteRating]. */
+    suspend fun deleteRating(
+        campsiteId: Id,
+        ratingId: Id,
+    ) = db.deleteRating(campsiteId, ratingId)
 
     /** Saves edited lottery settings without touching its waitlist. See [DatabaseInner.updateLotterySettings]. */
     suspend fun updateLotterySettings(edited: Lottery) = db.updateLotterySettings(edited)

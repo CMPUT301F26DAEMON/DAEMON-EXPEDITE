@@ -43,6 +43,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.push.PushDestination
 import com.example.daemon_expedite.push.rememberNotificationPermissionRequest
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -154,6 +155,11 @@ object Routes {
 
     fun adminCampsiteDetail(id: Id) = "admin_campsite/${id.value}"
 
+    // Same reviews page as CAMPSITE_REVIEWS, plus selecting and deleting reviews.
+    const val ADMIN_CAMPSITE_REVIEWS = "admin_campsite/{$CAMPSITE_ID_ARG}/reviews"
+
+    fun adminCampsiteReviews(id: Id) = "admin_campsite/${id.value}/reviews"
+
     // Not built yet. When a screen is added, give it a route here and replace the
     // matching `showComingSoon(...)` call below with `navController.navigate(...)`.
     // const val LOTTERIES = "lotteries"
@@ -198,9 +204,15 @@ object Routes {
  * them can open any role's home; the tree above only shows the first way in.
  *
  * @param session Created here by default; pass one in for tests.
+ * @param pushDestination The screen a tapped push notification asked for, or null.
+ * @param onPushDestinationOpened Called once [pushDestination] has been opened.
  */
 @Composable
-fun AppNavigation(session: SessionViewModel = viewModel()) {
+fun AppNavigation(
+    session: SessionViewModel = viewModel(),
+    pushDestination: PushDestination? = null,
+    onPushDestinationOpened: () -> Unit = {},
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val sessionState by session.state.collectAsState()
@@ -288,6 +300,21 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
             ?.route
     // The role whose bar belongs on this screen, or null for screens without one.
     val barTabs = RoleTabs.forRoute(currentRoute)
+
+    // A tapped push notification opens its screen. Both kinds go to people on a lottery's
+    // waiting list, so both open entrant tabs, even if the user was in the owner or admin view.
+    // Waits until the splash screen has loaded the user and moved on to Home.
+    val pastSplash = currentRoute != null && currentRoute != Routes.SPLASH
+    LaunchedEffect(pushDestination, pastSplash) {
+        if (pushDestination == null || !pastSplash) return@LaunchedEffect
+        val route =
+            when (pushDestination) {
+                PushDestination.LOTTERIES -> Routes.ENTRANT_LOTTERIES
+                PushDestination.NOTIFICATIONS -> Routes.ENTRANT_NOTIFICATIONS
+            }
+        openTab(RoleTabs.ENTRANT, RoleTabs.ENTRANT.indexOf(route))
+        onPushDestinationOpened()
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(AppColors.Background)) {
         NavHost(
@@ -1343,6 +1370,26 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                 )
             }
 
+            composable(Routes.ADMIN_CAMPSITE_REVIEWS) {
+                // Reads the campsite id from the route, like CAMPSITE_REVIEWS.
+                val reviews: CampsiteReviewsViewModel = viewModel()
+                LaunchedEffect(Unit) { reviews.load() }
+                val state by reviews.ratings.collectAsState()
+                val deleting by reviews.isDeleting.collectAsState()
+                CampsiteReviews(
+                    state = state,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = reviews::load,
+                    canDelete = true,
+                    isDeleting = deleting,
+                    onDeleteConfirmed = { id ->
+                        reviews.deleteReview(id) { ok ->
+                            toast(if (ok) "Review deleted" else "Couldn't delete review. Check your connection and try again.")
+                        }
+                    },
+                )
+            }
+
             composable(Routes.ADMIN_CAMPSITE_DETAIL) {
                 // Reads the campsite id from the route through its SavedStateHandle.
                 val detail: AdminCampsiteDetailViewModel = viewModel()
@@ -1373,7 +1420,7 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.campsitePolicies(it.data.id)) }
                     },
                     onReviewsClick = {
-                        (state as? UiState.Content)?.let { navController.navigate(Routes.campsiteReviews(it.data.id)) }
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.adminCampsiteReviews(it.data.id)) }
                     },
                     onDeleteCampsiteConfirmed = {
                         detail.deleteCampsite { ok ->
