@@ -241,6 +241,13 @@ class Lottery(
         }
 
     /**
+     * True if the owner may cancel it at [now]: before stays start (see [LotteryPhase.canCancel])
+     * and only while no winner has booked, since cancelling would leave their stays standing.
+     */
+    fun canCancel(now: Instant = Clock.System.now(), zone: ZoneId = ZoneId.systemDefault()): Boolean =
+        phase(now, zone).canCancel && bookings.isEmpty()
+
+    /**
      * Adds [user] to the waiting list.
      *
      * @return false if the lottery isn't open, is full, or [user] already joined.

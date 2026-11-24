@@ -171,7 +171,8 @@ class LotteryTest {
         assertNotNull(check(entryFirst = day(9, 30)).entryPeriod) // in the past
         assertNotNull(check(entryFirst = day(10, 5), entryLast = day(10, 4)).entryPeriod) // backwards
         assertNotNull(check(entryLast = day(10, 16)).entryPeriod) // closes on the first stay night
-        assertTrue(check(entryLast = day(10, 15)).isEmpty) // closes the day before
+        assertNotNull(check(entryLast = day(10, 15)).entryPeriod) // closes the day before: no time to book
+        assertTrue(check(entryLast = day(10, 14)).isEmpty) // 15 Oct is a full booking day
     }
 
     @Test

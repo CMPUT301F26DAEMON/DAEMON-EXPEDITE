@@ -1059,6 +1059,11 @@ fun AppNavigation(
                                     toast("Stays have started, so this lottery can't be cancelled any more.")
                                 }
 
+                                CancelResult.HAS_BOOKINGS -> {
+                                    toast("A winner has already booked, so this lottery can't be cancelled.")
+                                    detail.load() // hides the Cancel button
+                                }
+
                                 CancelResult.FAILED -> {
                                     toast("Couldn't cancel the lottery. Check your connection and try again.")
                                 }

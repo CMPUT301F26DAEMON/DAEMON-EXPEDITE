@@ -590,7 +590,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
 
     /**
      * Deletes only the owner profile: the owner record, their campsites (and those campsites'
-     * images, documents and files) and the lotteries they created. The user account is kept, so
+     * images, documents and files) and the lotteries they created. Lotteries they only co-own
+     * are kept, minus their campsites (see [deleteOwnerData]). The user account is kept, so
      * switching to the owner view later creates a fresh owner.
      *
      * Users who joined those lotteries still have the ids in their own `lotteries` list. That
@@ -605,7 +606,13 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * Deletes everything on the owner side for [ownerId], reading the lists from the stored
      * owner document (not from an in-memory [Owner], which could be out of date).
      *
-     * All documents are deleted in one batched write, so either all of them go or none do.
+     * `ownerLotteries` holds both the lotteries they created and the ones they joined by
+     * accepting an invite. Only the ones they created are deleted. A co-owned lottery belongs to
+     * its creator, so it is kept and only this owner's part is taken out: their campsites, the
+     * bookings on them, and their invites (see [lotteryWithoutOwner]).
+     *
+     * Everything is written in one transaction, so either all of it happens or none of it does,
+     * and a booking made on a co-owned lottery meanwhile makes it retry rather than be lost.
      * Storage files are deleted afterward; if that part fails only unused files are left.
      */
     private suspend fun deleteOwnerData(ownerId: Id) {
@@ -618,7 +625,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val lotteryIds = ids("ownerLotteries")
         val reservationIds = ids("ownerReservations")
         val reservationRef = db.collection("reservations")
-        // Collect each campsite's image records first (ids for the batch, paths for Storage).
+        // Collect each campsite's image records first (ids for the write, paths for Storage).
         val images = mutableListOf<Image>()
         for (campsiteId in campsiteIds) {
             val campsiteData =
@@ -633,15 +640,61 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 ?.let(images::addAll)
         }
 
-        val batch = db.batch()
-        batch.delete(ownerDoc.reference)
-        campsiteIds.forEach { batch.delete(db.collection("campsites").document(it)) }
-        lotteryIds.forEach { batch.delete(db.collection("lotteries").document(it)) }
-        images.forEach { batch.delete(imageRef(it.id)) }
-        reservationIds.forEach { batch.delete(reservationRef.document(it)) }
-        batch.commit().await()
+        val ownerIdString = ownerId.value.toString()
+        db
+            .runTransaction { tx ->
+                // Firestore needs every read before the first write.
+                val lotteries = lotteryIds.map { tx.get(db.collection("lotteries").document(it)) }
+
+                for (snapshot in lotteries) {
+                    val data = snapshot.data ?: continue // already gone
+                    if (data["owner"] == ownerIdString) {
+                        tx.delete(snapshot.reference)
+                    } else {
+                        // Co-owned: keep it for its creator. One that can't be read is left alone.
+                        val lottery = parseLotteryOrNull(snapshot.id, data) ?: continue
+                        tx.update(snapshot.reference, lotteryWithoutOwner(lottery, ownerId))
+                    }
+                }
+                tx.delete(ownerDoc.reference)
+                campsiteIds.forEach { tx.delete(db.collection("campsites").document(it)) }
+                images.forEach { tx.delete(imageRef(it.id)) }
+                reservationIds.forEach { tx.delete(reservationRef.document(it)) }
+                null
+            }.await()
 
         deleteStorageFiles(images.map { it.path })
+    }
+
+    /**
+     * The fields to write to co-owned [lottery] once [ownerId] is deleted: their invited
+     * campsites and the bookings on them taken out, and their invites dropped, so they are no
+     * longer listed in `owners` or `pendingOwners`. Winners whose booking is removed can book
+     * again while the booking window is open (their reservation is deleted with the owner's).
+     */
+    private fun lotteryWithoutOwner(
+        lottery: Lottery,
+        ownerId: Id,
+    ): Map<String, Any?> {
+        val theirs = lottery.invites.filter { it.campsiteOwner == ownerId }.map { it.campsite }.toSet()
+        val stripped =
+            Lottery(
+                id = lottery.id,
+                ownerId = lottery.ownerId,
+                campsites = lottery.campsites.filterNot { it in theirs },
+                invites = lottery.invites.filterNot { it.campsiteOwner == ownerId },
+                entryStart = lottery.entryStart,
+                entryEnd = lottery.entryEnd,
+                stayPeriods = lottery.stayPeriods,
+                winnerCount = lottery.winnerCount,
+                waitingList = lottery.waitingList,
+                winners = lottery.winners,
+                bookings = lottery.bookings.filterNot { it.campsite in theirs },
+                declined = lottery.declined,
+                drawn = lottery.drawn,
+                cancelled = lottery.cancelled,
+            )
+        return lotteryToMap(stripped).filterKeys { it in setOf("campsites", "bookings", "invites", "owners", "pendingOwners") }
     }
 
     /**
@@ -882,8 +935,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         // One lottery fetch per owner per call, not per campsite
         val lotteryCache = mutableMapOf<Id, List<Lottery>>()
 
+        /**
+         * True if [campsiteId] is in a lottery that hasn't been drawn or cancelled and whose stay
+         * periods cover [dates]. Another of the owner's campsites being in one doesn't count.
+         */
         suspend fun isAvailable(
-            _campsiteId: Id,
+            campsiteId: Id,
             ownerId: Id,
         ): Boolean {
             if (dates == null) return true
@@ -891,7 +948,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             return lotteries.any { lottery ->
                 !lottery.drawn &&
                     !lottery.cancelled &&
-                    // lottery.campsiteId == campsiteId &&   // if lotteries are per campsite
+                    campsiteId in lottery.campsites &&
                     lottery.stayPeriods.any { it.contains(dates) }
             }
         }
@@ -1064,7 +1121,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * - Open, drawing or booking: marked `cancelled` and kept, so entrants still see it under
      *   their past lotteries. Its campsites are free for a new lottery straight away.
      *
-     * @throws LotteryNotCancellableException once stays have started, or if it is already over.
+     * @throws LotteryNotCancellableException once stays have started, if it is already over, or
+     *   if a winner has booked (see [Lottery.canCancel]).
      */
     override suspend fun cancelLottery(lotteryId: Id): CancelOutcome {
         val ref = lotteryRef(lotteryId)
@@ -1076,6 +1134,12 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 when {
                     !phase.canCancel -> {
                         throw LotteryNotCancellableException(lotteryId)
+                    }
+
+                    // Cancelling would leave winners' reservations standing on nights that the
+                    // cancelled lottery no longer holds, so they could be booked again.
+                    lottery.bookings.isNotEmpty() -> {
+                        throw LotteryNotCancellableException(lotteryId, hasBookings = true)
                     }
 
                     phase == LotteryPhase.UPCOMING -> {
