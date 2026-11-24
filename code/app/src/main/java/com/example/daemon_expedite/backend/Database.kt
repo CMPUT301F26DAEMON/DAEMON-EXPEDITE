@@ -113,6 +113,10 @@ interface DatabaseInterface {
 
     suspend fun fetchPendingInvites(ownerId: Id): List<Lottery>
 
+    suspend fun fetchAllOwnerCampsites(): Map<Id, List<Id>>
+
+    suspend fun fetchBusyCampsiteIds(exceptLottery: Id? = null): Set<Id>
+
     suspend fun bookLotteryStay(
         lotteryId: Id,
         userId: Id,
@@ -1189,6 +1193,39 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             .documents
             .mapNotNull { parseLotteryOrNull(it.id, it.data) }
             .filter { it.canChangeInvites() }
+
+    /**
+     * Every owner's id with the ids of the campsites they registered (`ownerCampsites`), for
+     * picking collaborators. Owners with an unreadable id are skipped.
+     */
+    override suspend fun fetchAllOwnerCampsites(): Map<Id, List<Id>> =
+        db
+            .collection("owners")
+            .get()
+            .await()
+            .documents
+            .mapNotNull { doc ->
+                fun idOrNull(value: Any?): Id? = runCatching { Id(Uuid.parse(value as String)) }.getOrNull()
+                val ownerId = idOrNull(doc.getString("id") ?: doc.id) ?: return@mapNotNull null
+                val campsites = (doc.get("ownerCampsites") as? List<*>).orEmpty().mapNotNull(::idOrNull)
+                ownerId to campsites
+            }.toMap()
+
+    /**
+     * Ids of campsites in a lottery that isn't past (see [LotteryPhase.isPast]), so they can't
+     * join another one. [exceptLottery], if given, doesn't count: use it when editing that lottery.
+     */
+    override suspend fun fetchBusyCampsiteIds(exceptLottery: Id?): Set<Id> =
+        db
+            .collection("lotteries")
+            .whereEqualTo("cancelled", false)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { parseLotteryOrNull(it.id, it.data) }
+            .filter { it.id != exceptLottery && !it.phase().isPast }
+            .flatMap { it.campsites }
+            .toSet()
 
     /** Throws the reason invites can't change any more, if they can't. */
     private fun Lottery.checkInvitesOpen() {
@@ -2328,6 +2365,12 @@ object Database {
 
     /** Lotteries with invites [ownerId] still has to answer. See [DatabaseInner.fetchPendingInvites]. */
     suspend fun fetchPendingInvites(ownerId: Id): List<Lottery> = db.fetchPendingInvites(ownerId)
+
+    /** Every owner's id with their campsite ids. See [DatabaseInner.fetchAllOwnerCampsites]. */
+    suspend fun fetchAllOwnerCampsites(): Map<Id, List<Id>> = db.fetchAllOwnerCampsites()
+
+    /** Campsites already in a current lottery. See [DatabaseInner.fetchBusyCampsiteIds]. */
+    suspend fun fetchBusyCampsiteIds(exceptLottery: Id? = null): Set<Id> = db.fetchBusyCampsiteIds(exceptLottery)
 
     suspend fun fetchLotteriesForCampsite(campsiteId: Id): List<Lottery> = db.fetchLotteriesForCampsite(campsiteId)
 

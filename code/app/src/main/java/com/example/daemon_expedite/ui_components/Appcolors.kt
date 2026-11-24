@@ -122,6 +122,9 @@ object AppColors {
     /** [TextPrimary] at 15%. Campsite cards on Explore and photo arrows. */
     val OutlineCard = Color(0x26DCDCDC)
 
+    /** White at 20%. Collaboration request cards on My Lotteries. */
+    val OutlineRequest = Color(0x33FFFFFF)
+
     /** White at 25%. Dashed border of the promo image upload box. */
     val OutlineDashed = Color(0x40FFFFFF)
 

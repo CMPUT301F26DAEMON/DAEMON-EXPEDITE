@@ -73,6 +73,9 @@ enum class SubmitResult {
 
     /** Saving failed, usually no connection. The form is kept so the owner can try again. */
     FAILED,
+
+    /** Lottery edits saved, but some new collaborator invites couldn't be sent. */
+    INVITES_FAILED,
 }
 
 /**

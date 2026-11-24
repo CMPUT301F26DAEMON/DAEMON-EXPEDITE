@@ -42,7 +42,8 @@ fun RedButton(
     icon: ImageVector? = null,
     buttonText: String,
     customHeight: Int = 56,
-    customWidth: Int = 356
+    customWidth: Int = 356,
+    buttonFontSize: Int = 18,
 ) {
     OutlinedButton(
         onClick = { onClick() },
@@ -68,7 +69,7 @@ fun RedButton(
         Text(
             text = buttonText,
             fontFamily = Fraunces,
-            fontSize = 18.sp
+            fontSize = buttonFontSize.sp
         )
     }
 }

@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
  * @param emptyText Shown instead of a value when there are no options; the field is disabled.
  * @param error Message shown under the field, or null.
  * @param isOptionEnabled False for options that can't be changed; their checkbox is greyed out.
+ * @param sectionOf When given, options are grouped: a heading is shown each time the section
+ *   changes from one option to the next, so keep options of a section together.
  */
 @Composable
 fun <T> MultiSelectField(
@@ -70,6 +72,7 @@ fun <T> MultiSelectField(
     emptyText: String = "Nothing to choose from",
     error: String? = null,
     isOptionEnabled: (T) -> Boolean = { true },
+    sectionOf: ((T) -> String)? = null,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
     // Options in the order they are listed, so the summary doesn't jump around as boxes are ticked.
@@ -105,7 +108,16 @@ fun <T> MultiSelectField(
                 containerColor = AppColors.Surface,
                 border = BorderStroke(1.dp, AppColors.OutlineStrong),
             ) {
-                options.forEach { option ->
+                options.forEachIndexed { index, option ->
+                    val section = sectionOf?.invoke(option)
+                    if (section != null && (index == 0 || sectionOf(options[index - 1]) != section)) {
+                        Text(
+                            section.uppercase(),
+                            style = AppTextStyles.Overline,
+                            color = AppColors.Secondary,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                        )
+                    }
                     val optionEnabled = isOptionEnabled(option)
                     DropdownMenuItem(
                         modifier = Modifier.height(OPTION_HEIGHT),

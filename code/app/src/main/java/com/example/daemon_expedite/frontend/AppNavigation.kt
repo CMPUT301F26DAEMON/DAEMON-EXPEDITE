@@ -118,6 +118,11 @@ object Routes {
 
     fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
 
+    /** Where an owner approves or declines another owner's invite to this lottery. */
+    const val OWNER_LOTTERY_REQUEST = "owner_lottery/{$LOTTERY_ID_ARG}/request"
+
+    fun ownerLotteryRequest(id: Id) = "owner_lottery/${id.value}/request"
+
     const val CHAT_ID_ARG = "chatId"
     const val USER_ID_ARG = "userId"
     const val MESSAGE_DETAIL_BY_CHAT = "chat/id/{$CHAT_ID_ARG}"
@@ -900,6 +905,50 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     onRetry = lotteries::retry,
                     onLotteryClick = { id -> navController.navigate(Routes.ownerLotteryDetail(id)) },
                     onCreateClick = { navController.navigate(Routes.CREATE_LOTTERY) },
+                    onRequestClick = { id -> navController.navigate(Routes.ownerLotteryRequest(id)) },
+                )
+            }
+
+            composable(Routes.OWNER_LOTTERY_REQUEST) {
+                val request: OwnerLotteryRequestViewModel = viewModel()
+                val owner by ownerViewModel.owner.collectAsState()
+                val loadedOwner = (owner as? UiState.Content)?.data
+                LaunchedEffect(loadedOwner) { loadedOwner?.let { request.load(it.id) } }
+                val state by request.details.collectAsState()
+                val answering by request.answering.collectAsState()
+                OwnerLotteryRequestScreen(
+                    state = state,
+                    answering = answering,
+                    onBackClick = { navController.popBackStack() },
+                    onRetry = { request.load() },
+                    onCampsiteClick = { id -> navController.navigate(Routes.campsiteDetail(id)) },
+                    onAnswer = { campsite, approve ->
+                        request.answer(campsite, approve) { result ->
+                            when (result) {
+                                InviteAnswerResult.MorePending -> {
+                                    toast(if (approve) "Campsite added to the lottery" else "Campsite declined")
+                                }
+
+                                is InviteAnswerResult.Approved -> {
+                                    // Saved already; keep the in-memory owner in step so a later
+                                    // updateOwner doesn't drop the lottery.
+                                    loadedOwner?.addOwnerLottery(result.lottery)
+                                    toast("You're now a collaborator on this lottery")
+                                    navController.navigate(Routes.ownerLotteryDetail(result.lottery.id)) {
+                                        popUpTo(Routes.OWNER_LOTTERIES)
+                                    }
+                                }
+
+                                InviteAnswerResult.Declined -> {
+                                    toast("Request declined")
+                                    // My Lotteries reloads when shown, so the request is gone.
+                                    navController.popBackStack(Routes.OWNER_LOTTERIES, inclusive = false)
+                                }
+
+                                is InviteAnswerResult.Failed -> toast(result.message)
+                            }
+                        }
+                    },
                 )
             }
 
@@ -947,15 +996,18 @@ fun AppNavigation(session: SessionViewModel = viewModel()) {
                     ),
             ) {
                 val detail: OwnerLotteryDetailViewModel = viewModel()
-                // Runs each time the page comes back, so edits show up.
-                LaunchedEffect(Unit) { detail.load() }
+                val owner by ownerViewModel.owner.collectAsState()
+                val viewerId = (owner as? UiState.Content)?.data?.id
+                // Runs each time the page comes back, so edits show up. The viewer decides whether
+                // it shows as the creator's page or a collaborator's.
+                LaunchedEffect(viewerId) { detail.load(viewerId) }
                 val state by detail.details.collectAsState()
                 val cancelling by detail.isCancelling.collectAsState()
                 OwnerLotteryDetailScreen(
                     state = state,
                     isCancelling = cancelling,
                     onBackClick = { navController.popBackStack() },
-                    onRetry = detail::load,
+                    onRetry = { detail.load() },
                     onCampsiteClick = { id -> navController.navigate(Routes.ownerCampsiteDetail(id)) },
                     onViewWaitlistClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.ownerLotteryWaitlist(it.data.id)) }
@@ -1425,7 +1477,7 @@ private fun CampsiteFormRoute(
                             toast("Some details are missing. Check the form.")
                         }
 
-                        SubmitResult.FAILED -> {
+                        SubmitResult.FAILED, SubmitResult.INVITES_FAILED -> {
                             toast(
                                 if (isEditing) {
                                     "Couldn't save changes. Check your connection and try again."
@@ -1467,6 +1519,7 @@ private fun LotteryFormRoute(
     val problems by form.problems.collectAsState()
     val saving by form.isSaving.collectAsState()
     val locks by form.locks.collectAsState()
+    val collaborators by form.collaborators.collectAsState()
     val ownedError = ownedCampsites as? UiState.Error
     val editing = form.isEditing
 
@@ -1474,6 +1527,7 @@ private fun LotteryFormRoute(
         draft = draft,
         // If the owner's campsites failed to load, show that instead of loading forever.
         campsiteOptions = ownedError ?: options,
+        collaboratorOptions = collaborators,
         problems = problems,
         isSaving = saving,
         today = form.today,
@@ -1481,7 +1535,10 @@ private fun LotteryFormRoute(
         locks = locks,
         onBackClick = { navController.popBackStack() },
         onRetryCampsites = { if (ownedError != null) ownerViewModel.refreshCampsites() else form.retry() },
+        onRetryCollaborators = form::retryCollaborators,
         onToggleCampsite = form::toggleCampsite,
+        onToggleCollaborator = form::toggleCollaborator,
+        onToggleInvitedCampsite = form::toggleInvitedCampsite,
         onEntryFirstDayChange = form::setEntryFirstDay,
         onEntryLastDayChange = form::setEntryLastDay,
         onAddStayPeriod = form::addStayPeriod,
@@ -1511,6 +1568,11 @@ private fun LotteryFormRoute(
                                     "Couldn't create the lottery. Check your connection and try again."
                                 },
                             )
+                        }
+
+                        SubmitResult.INVITES_FAILED -> {
+                            toast("Changes saved, but some invites couldn't be sent. Try again from Edit.")
+                            navController.popBackStack()
                         }
                     }
                 }

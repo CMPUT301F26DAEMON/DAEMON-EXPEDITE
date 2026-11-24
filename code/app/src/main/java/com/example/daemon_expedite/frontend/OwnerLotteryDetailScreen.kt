@@ -54,6 +54,9 @@ import java.time.YearMonth
  * Built from the "Lottery Details · Owner" frame in the Figma file. Cancel (not in the design)
  * asks first. A lottery that hasn't opened yet is deleted instead of being kept as cancelled.
  *
+ * For a co-owner ([LotteryDetails.isCollaborator]) it follows the "Lottery Details · Collaborator"
+ * frame instead: a Collaborator pill and who invited them, and no editing or cancelling.
+ *
  * @param state The lottery to show, or loading / error.
  * @param isCancelling True while cancelling; the cancel button ignores taps.
  * @param onCampsiteClick Called with the id of a tapped campsite.
@@ -88,54 +91,14 @@ fun OwnerLotteryDetailScreen(
     ) { details ->
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(details.title, style = AppTextStyles.PageTitleMultiline, color = AppColors.TextPrimary)
-            CampsitePill(details.status, variant = details.statusVariant)
-        }
-
-        Section("Campsites") {
-            details.campsites.forEach { campsite ->
-                CampsiteLinkCard(campsite.name, onClick = { onCampsiteClick(campsite.id) })
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CampsitePill(details.status, variant = details.statusVariant)
+                if (details.isCollaborator) CampsitePill("Collaborator", variant = PillVariant.Outlined)
             }
+            if (details.isCollaborator) details.invitedByText?.let { InvitedByText(it) }
         }
 
-        Section("Lottery Period") {
-            Text(
-                details.entryText,
-                style = AppTextStyles.BodyMedium.copy(lineHeight = 21.sp),
-                color = AppColors.TextPrimary,
-            )
-            Text(
-                details.phaseNote,
-                style = AppTextStyles.BodySmall.copy(lineHeight = 19.sp),
-                color = AppColors.TextMuted,
-            )
-        }
-
-        Section("Stay Periods") {
-            DateRangeCalendar(
-                startDate = null,
-                endDate = null,
-                onRangeChange = null, // read-only
-                initialMonth = details.stayPeriods.firstOrNull()?.start?.let(YearMonth::from) ?: YearMonth.now(),
-                addedRanges = details.stayPeriods.map { it.start..it.end },
-                addedRangesColor = AppColors.Primary,
-                footer = if (details.stayTexts.isEmpty()) {
-                    null
-                } else {
-                    {
-                        details.stayTexts.forEach {
-                            Text("Stay nights: $it", style = AppTextStyles.CaptionMultiline, color = AppColors.Secondary)
-                        }
-                    }
-                },
-            )
-        }
-
-        Section("Draw") {
-            DrawFactsCard(joinedText = details.joinedText, winnerCount = details.winnerCount)
-            details.drawResultText?.let {
-                Text(it, style = AppTextStyles.BodySmall, color = AppColors.TextMuted)
-            }
-        }
+        LotteryInfoSections(details, onCampsiteClick)
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val width = maxWidth.value.toInt()
@@ -177,6 +140,157 @@ fun OwnerLotteryDetailScreen(
                 },
                 onDismiss = { askCancel = false },
             )
+        }
+    }
+}
+
+/**
+ * The page where an owner answers an invite to add their campsites to another owner's lottery.
+ * Built from the "Lottery Request · Approval Pending" frame in the Figma file: one approve card
+ * per invited campsite, then the lottery's details. Invited campsites are listed as pending.
+ *
+ * @param state The lottery, formatted for the invited owner, or loading / error.
+ * @param answering The campsite being approved or declined, or null. Buttons ignore taps meanwhile.
+ * @param onAnswer Called with a campsite and true to approve it, false to decline it.
+ */
+@Composable
+fun OwnerLotteryRequestScreen(
+    state: UiState<LotteryDetails>,
+    answering: Id?,
+    onBackClick: () -> Unit,
+    onRetry: () -> Unit,
+    onCampsiteClick: (Id) -> Unit,
+    onAnswer: (campsite: Id, approve: Boolean) -> Unit,
+) {
+    DetailPageScaffold("Lottery Request", state = state, onBackClick = onBackClick, onRetry = onRetry) { details ->
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(details.title, style = AppTextStyles.PageTitleMultiline, color = AppColors.TextPrimary)
+            CampsitePill("Approval pending", variant = PillVariant.Outlined)
+        }
+
+        details.pendingCampsites.forEach { campsite ->
+            ApproveInviteCard(
+                campsiteName = campsite.name,
+                stayRangeText = details.stayRangeText,
+                onDecline = { if (answering == null) onAnswer(campsite.id, false) },
+                onApprove = { if (answering == null) onAnswer(campsite.id, true) },
+            )
+        }
+
+        LotteryInfoSections(details, onCampsiteClick)
+    }
+}
+
+/**
+ * Campsites (the viewer's pending ones dimmed at the end), Lottery Period, Stay Periods and
+ * Draw: the sections every owner's lottery page shows, 24 dp apart.
+ */
+@Composable
+private fun LotteryInfoSections(details: LotteryDetails, onCampsiteClick: (Id) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Section("Campsites") {
+            details.campsites.forEach { campsite ->
+                CampsiteLinkCard(campsite.name, onClick = { onCampsiteClick(campsite.id) })
+            }
+            details.pendingCampsites.forEach { campsite ->
+                CampsiteLinkCard(campsite.name, onClick = { onCampsiteClick(campsite.id) }, pendingText = "Pending approval")
+            }
+        }
+
+        Section("Lottery Period") {
+                Text(
+                    details.entryText,
+                    style = AppTextStyles.BodyMedium.copy(lineHeight = 21.sp),
+                    color = AppColors.TextPrimary,
+                )
+                Text(
+                    details.phaseNote,
+                    style = AppTextStyles.BodySmall.copy(lineHeight = 19.sp),
+                    color = AppColors.TextMuted,
+                )
+            }
+
+            Section("Stay Periods") {
+                DateRangeCalendar(
+                    startDate = null,
+                    endDate = null,
+                    onRangeChange = null, // read-only
+                    initialMonth = details.stayPeriods.firstOrNull()?.start?.let(YearMonth::from) ?: YearMonth.now(),
+                    addedRanges = details.stayPeriods.map { it.start..it.end },
+                    addedRangesColor = AppColors.Primary,
+                    footer = if (details.stayTexts.isEmpty()) {
+                        null
+                    } else {
+                        {
+                            details.stayTexts.forEach {
+                                Text("Stay nights: $it", style = AppTextStyles.CaptionMultiline, color = AppColors.Secondary)
+                            }
+                        }
+                    },
+                )
+            }
+
+            Section("Draw") {
+                DrawFactsCard(joinedText = details.joinedText, winnerCount = details.winnerCount)
+                details.drawResultText?.let {
+                    Text(it, style = AppTextStyles.BodySmall, color = AppColors.TextMuted)
+                }
+            }
+    }
+}
+
+/** "Invited by Alex Chen", under the pills of a lottery another owner created. */
+@Composable
+private fun InvitedByText(text: String) {
+    Text(text, style = AppTextStyles.BodySmall.copy(lineHeight = 19.sp), color = AppColors.TextMuted)
+}
+
+/**
+ * "Approve Maple Campsite?" with Decline and Approve buttons (the "Expedite/Card/Lottery
+ * Request · Approval Pending" component in Figma).
+ */
+@Composable
+private fun ApproveInviteCard(
+    campsiteName: String,
+    stayRangeText: String,
+    onDecline: () -> Unit,
+    onApprove: () -> Unit,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(1.dp, AppColors.OutlineButton, shape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Approve $campsiteName?", style = AppTextStyles.TitleMedium, color = AppColors.TextPrimary)
+        Text(
+            "You’ve been invited to add your campsite to this lottery for $stayRangeText.",
+            style = AppTextStyles.BodySmallMultiline,
+            color = AppColors.TextMuted,
+        )
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val gap = 10
+            val totalWidth = maxWidth.value.toInt()
+            val declineWidth = 162.coerceAtMost((totalWidth - gap) / 2)
+            Row(horizontalArrangement = Arrangement.spacedBy(gap.dp)) {
+                RedButton(
+                    onClick = onDecline,
+                    buttonText = "Decline",
+                    customHeight = 40,
+                    customWidth = declineWidth,
+                    buttonFontSize = 15,
+                )
+                GreenButton(
+                    onClick = onApprove,
+                    buttonText = "Approve",
+                    buttonFontSize = 15,
+                    customHeight = 40,
+                    customWidth = totalWidth - declineWidth - gap,
+                )
+            }
         }
     }
 }

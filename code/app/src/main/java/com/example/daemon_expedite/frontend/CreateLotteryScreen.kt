@@ -49,6 +49,8 @@ import java.time.LocalDate
  *
  * @param draft Current form values.
  * @param campsiteOptions The owner's campsites that aren't in another lottery, or loading / error.
+ * @param collaboratorOptions Other owners who can be invited, or loading / error. Campsites of
+ *   the ones picked are added to the campsites dropdown, under a heading per owner.
  * @param problems Messages to show under the fields (only filled in after the first submit).
  * @param isSaving True while saving: the create button says "Creating…" and ignores taps.
  * @param today The owner's today; entries can't open before it.
@@ -59,6 +61,7 @@ import java.time.LocalDate
 fun CreateLotteryScreen(
     draft: LotteryDraft,
     campsiteOptions: UiState<List<CampsiteOption>>,
+    collaboratorOptions: UiState<List<CollaboratorOption>>,
     problems: LotteryProblems,
     isSaving: Boolean,
     today: LocalDate,
@@ -66,7 +69,10 @@ fun CreateLotteryScreen(
     isEditing: Boolean = false,
     locks: LotteryEditLocks = LotteryEditLocks(),
     onRetryCampsites: () -> Unit,
+    onRetryCollaborators: () -> Unit,
     onToggleCampsite: (Id) -> Unit,
+    onToggleCollaborator: (Id) -> Unit,
+    onToggleInvitedCampsite: (Id) -> Unit,
     onEntryFirstDayChange: (LocalDate) -> Unit,
     onEntryLastDayChange: (LocalDate) -> Unit,
     onAddStayPeriod: (firstNight: LocalDate, checkOut: LocalDate) -> Unit,
@@ -100,6 +106,33 @@ fun CreateLotteryScreen(
                 )
             }
 
+            // region Collaborators
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeading("Collaborators")
+                Caption("Invite other owners to include their campsites. Their campsites are added only after approval.")
+                when (collaboratorOptions) {
+                    UiState.Loading -> FormSelectField(
+                        label = "Loading other owners…", value = null, onClick = {},
+                        icon = AppIcons.Guests, enabled = false,
+                    )
+                    is UiState.Error -> FormSelectField(
+                        label = "Select collaborators", value = "${collaboratorOptions.message}. Tap to try again.",
+                        onClick = onRetryCollaborators, icon = AppIcons.Guests,
+                    )
+                    is UiState.Content -> MultiSelectField(
+                        label = "Select collaborators",
+                        options = collaboratorOptions.data,
+                        selected = collaboratorOptions.data.filter { it.id in draft.collaborators }.toSet(),
+                        optionLabel = { it.name },
+                        onToggle = { onToggleCollaborator(it.id) },
+                        icon = AppIcons.Guests,
+                        emptyText = "No other owners have a free campsite right now.",
+                        isOptionEnabled = { it.id !in locks.collaborators },
+                    )
+                }
+            }
+            // endregion
+
             // region Campsites
             SectionHeading("Select Campsites")
             when (campsiteOptions) {
@@ -111,17 +144,31 @@ fun CreateLotteryScreen(
                     label = "Select campsites", value = "${campsiteOptions.message}. Tap to try again.",
                     onClick = onRetryCampsites, icon = AppIcons.Campsite,
                 )
-                is UiState.Content -> MultiSelectField(
-                    label = "Select campsites",
-                    options = campsiteOptions.data,
-                    selected = campsiteOptions.data.filter { it.id in draft.campsites }.toSet(),
-                    optionLabel = { it.name },
-                    onToggle = { onToggleCampsite(it.id) },
-                    icon = AppIcons.Campsite,
-                    emptyText = "No free campsites. Each campsite can only be in one lottery at a time.",
-                    error = problems.campsites,
-                    isOptionEnabled = { it.id !in locks.campsites },
-                )
+                is UiState.Content -> {
+                    // The owner's own campsites, then those of each collaborator picked.
+                    val picked = (collaboratorOptions as? UiState.Content)?.data.orEmpty().filter { it.id in draft.collaborators }
+                    val options = campsiteOptions.data.map { PickableCampsite(it, ownerName = null) } +
+                        picked.flatMap { owner -> owner.campsites.map { PickableCampsite(it, owner.name) } }
+                    MultiSelectField(
+                        label = "Select campsites",
+                        options = options,
+                        selected = options.filter {
+                            if (it.ownerName == null) it.campsite.id in draft.campsites else it.campsite.id in draft.invitedCampsites
+                        }.toSet(),
+                        optionLabel = { it.campsite.name },
+                        onToggle = {
+                            if (it.ownerName == null) onToggleCampsite(it.campsite.id) else onToggleInvitedCampsite(it.campsite.id)
+                        },
+                        icon = AppIcons.Campsite,
+                        emptyText = "No free campsites. Each campsite can only be in one lottery at a time.",
+                        error = problems.campsites,
+                        isOptionEnabled = {
+                            if (it.ownerName == null) it.campsite.id !in locks.campsites else it.campsite.id !in locks.invitedCampsites
+                        },
+                        // Headings only help once there is more than one owner to tell apart.
+                        sectionOf = if (picked.isEmpty()) null else { option -> option.ownerName ?: "Your campsites" },
+                    )
+                }
             }
             // endregion
 
@@ -214,6 +261,9 @@ fun CreateLotteryScreen(
     }
 }
 
+/** One row of the campsites dropdown. [ownerName] is null for the owner's own campsites. */
+private data class PickableCampsite(val campsite: CampsiteOption, val ownerName: String?)
+
 @Composable
 private fun SectionHeading(text: String) {
     Text(text, style = AppTextStyles.HeadingMedium, color = AppColors.TextPrimary)
@@ -237,12 +287,16 @@ private fun CreateLotteryScreenPreview() {
             winnerCount = "2",
         ),
         campsiteOptions = UiState.Content(listOf(pine, CampsiteOption(Id(), "Maple Campsite"))),
+        collaboratorOptions = UiState.Content(listOf(CollaboratorOption(Id(), "Alex Chen", listOf(CampsiteOption(Id(), "Birch Hollow"))))),
         problems = LotteryProblems(),
         isSaving = false,
         today = LocalDate.of(2026, 9, 20),
         onBackClick = {},
         onRetryCampsites = {},
+        onRetryCollaborators = {},
         onToggleCampsite = {},
+        onToggleCollaborator = {},
+        onToggleInvitedCampsite = {},
         onEntryFirstDayChange = {},
         onEntryLastDayChange = {},
         onAddStayPeriod = { _, _ -> },

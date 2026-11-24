@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.InviteStatus
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.LotteryPhase
 import com.example.daemon_expedite.backend.Owner
@@ -37,10 +38,27 @@ data class LotterySummary(
     val countsText: String,
 )
 
-/** The owner's lotteries split for the Active and Past tabs. */
+/**
+ * A lottery another owner invited this owner's campsites to, for the Requests tab.
+ *
+ * @property title The lottery's campsites, counting the invited ones, e.g. "Pine Creek Hideaway + 1 more".
+ * @property invitedByText Who sent it, e.g. "Invited by Alex Chen".
+ * @property staysText When the stays are, e.g. "16 Oct – 18 Oct · 2 nights".
+ * @property awaitingText How many of this owner's campsites wait for an answer.
+ */
+data class CollaborationRequest(
+    val id: Id,
+    val title: String,
+    val invitedByText: String,
+    val staysText: String,
+    val awaitingText: String,
+)
+
+/** The owner's lotteries split for the Active and Past tabs, plus invites for the Requests tab. */
 data class OwnerLotteries(
     val active: List<LotterySummary>,
     val past: List<LotterySummary>,
+    val requests: List<CollaborationRequest> = emptyList(),
 )
 
 /**
@@ -70,19 +88,29 @@ class OwnerLotteriesViewModel : ViewModel() {
     }
 
     private suspend fun fetch(owner: Owner): OwnerLotteries = coroutineScope {
+        val invitedTo = async { Database.fetchPendingInvites(owner.id) }
         val lotteries = Database.fetchOwnerLotteries(owner.id)
+        val requests = invitedTo.await()
         // Look each campsite up once, even if it is in several lotteries.
-        val names = lotteries.flatMap { it.campsites }.distinct().map { id ->
+        val campsiteIds = lotteries.flatMap { it.campsites } + requests.flatMap { it.campsites + it.pendingCampsites }
+        val names = campsiteIds.distinct().map { id ->
             async { id to quietly("Couldn't load campsite $id") { Database.fetchCampsite(id).name } }
         }.awaitAll().mapNotNull { (id, name) -> name?.let { id to it } }.toMap()
+        val creators = requests.map { it.ownerId }.distinct().map { id ->
+            async { id to quietly("Couldn't load owner $id") { Database.fetchUser(id)["name"] } }
+        }.awaitAll().mapNotNull { (id, name) -> name?.takeIf { it.isNotBlank() }?.let { id to it } }.toMap()
 
         val now = Clock.System.now()
         val zone = ZoneId.systemDefault()
         val (past, active) = lotteries.partition { it.phase(now, zone).isPast }
+        fun Lottery.summary() = toSummary(names, now, zone).let {
+            if (ownerId == owner.id) it else it.copy(entriesText = "Collaborator · ${it.entriesText}")
+        }
         OwnerLotteries(
             // Soonest first; most recent first for past ones.
-            active = active.sortedBy { it.entryStart }.map { it.toSummary(names, now, zone) },
-            past = past.sortedByDescending { it.lastCheckOut }.map { it.toSummary(names, now, zone) },
+            active = active.sortedBy { it.entryStart }.map { it.summary() },
+            past = past.sortedByDescending { it.lastCheckOut }.map { it.summary() },
+            requests = requests.sortedBy { it.entryEnd }.map { it.toRequest(owner.id, names, creators[it.ownerId], now, zone) },
         )
     }
 }
@@ -100,12 +128,7 @@ internal fun Lottery.toSummary(
     val thisYear = now.toJavaInstant().atZone(zone).year
     fun LocalDate.short() = shortDate(thisYear)
 
-    val names = campsites.mapNotNull { campsiteNames[it] }
-    val title = when (names.size) {
-        0 -> "Deleted campsite"
-        1 -> names.single()
-        else -> "${names.first()} + ${names.size - 1} more"
-    }
+    val title = campsiteTitle(campsites.mapNotNull { campsiteNames[it] })
 
     val firstEntryDay = entryFirstDay(zone)
     val lastEntryDay = entryLastDay(zone)
@@ -131,6 +154,36 @@ internal fun Lottery.toSummary(
 
     val (status, variant) = phase.pill()
     return LotterySummary(id, title, status, variant, entriesText, staysText, countsText)
+}
+
+/**
+ * Formats a lottery that invited [viewerId]'s campsites for the Requests tab. [creatorName]
+ * is the inviting owner's name, or null if it couldn't be loaded.
+ */
+internal fun Lottery.toRequest(
+    viewerId: Id,
+    campsiteNames: Map<Id, String>,
+    creatorName: String?,
+    now: Instant = Clock.System.now(),
+    zone: ZoneId = ZoneId.systemDefault(),
+): CollaborationRequest {
+    val mine = invites.filter { it.campsiteOwner == viewerId && it.status == InviteStatus.PENDING }
+    val withInvited = campsites + mine.map { it.campsite }
+    val summary = toSummary(campsiteNames, now, zone)
+    return CollaborationRequest(
+        id = id,
+        title = campsiteTitle(withInvited.mapNotNull { campsiteNames[it] }),
+        invitedByText = "Invited by ${creatorName ?: "another owner"}",
+        staysText = summary.staysText,
+        awaitingText = "${mine.size} of your campsites awaiting approval",
+    )
+}
+
+/** "Pine Creek Hideaway", or "Pine Creek Hideaway + 2 more" for several campsites. */
+internal fun campsiteTitle(names: List<String>): String = when (names.size) {
+    0 -> "Deleted campsite"
+    1 -> names.single()
+    else -> "${names.first()} + ${names.size - 1} more"
 }
 
 /** Label and look of the status pill for a lottery in this phase. */

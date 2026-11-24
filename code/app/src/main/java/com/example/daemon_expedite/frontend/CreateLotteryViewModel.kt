@@ -8,9 +8,12 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.daemon_expedite.backend.Campsite
+import com.example.daemon_expedite.backend.CampsiteInvite
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.InviteStatus
 import com.example.daemon_expedite.backend.Lottery
 import com.example.daemon_expedite.backend.LotteryEditRejectedException
 import com.example.daemon_expedite.backend.LotteryPhase
@@ -18,6 +21,9 @@ import com.example.daemon_expedite.backend.LotteryProblems
 import com.example.daemon_expedite.backend.LotteryRules
 import com.example.daemon_expedite.backend.Owner
 import com.example.daemon_expedite.backend.WaitingList
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,11 +37,20 @@ import kotlin.coroutines.cancellation.CancellationException
 data class CampsiteOption(val id: Id, val name: String)
 
 /**
+ * Another owner who can be invited to a lottery, with the campsites of theirs that can be
+ * invited (not in another current lottery, plus any already invited to the lottery being edited).
+ */
+data class CollaboratorOption(val id: Id, val name: String, val campsites: List<CampsiteOption>)
+
+/**
  * Everything entered on the Create / Edit lottery form so far.
  *
  * Number fields keep the digits typed, so an empty field can be told apart from 0.
  *
- * @property campsites Picked campsites.
+ * @property campsites Picked campsites that are in the lottery: the owner's own (and, when
+ *   editing, ones collaborators already accepted). Only these count toward [maxWinners].
+ * @property collaborators Owners picked as collaborators.
+ * @property invitedCampsites Collaborators' campsites picked; each gets an invite to accept.
  * @property entryFirstDay First day entrants can join.
  * @property entryLastDay Last day entrants can join; winners are drawn at the end of it.
  * @property stayPeriods Nights winners can book, sorted by first night.
@@ -44,6 +59,8 @@ data class CampsiteOption(val id: Id, val name: String)
  */
 data class LotteryDraft(
     val campsites: Set<Id> = emptySet(),
+    val collaborators: Set<Id> = emptySet(),
+    val invitedCampsites: Set<Id> = emptySet(),
     val entryFirstDay: LocalDate? = null,
     val entryLastDay: LocalDate? = null,
     val stayPeriods: List<DatePeriod> = emptyList(),
@@ -64,9 +81,13 @@ data class LotteryDraft(
  * @property stayPeriods Stay periods that can't be removed.
  * @property minWinners The winner count can't go below this, or null for no limit.
  * @property minCapacity The waitlist limit can't go below this, or null for no limit.
+ * @property collaborators Owners already invited. Invites can't be taken back, so they stay picked.
+ * @property invitedCampsites Campsites already invited, whatever the answer. They can't change.
  */
 data class LotteryEditLocks(
     val campsites: Set<Id> = emptySet(),
+    val collaborators: Set<Id> = emptySet(),
+    val invitedCampsites: Set<Id> = emptySet(),
     val openDateLocked: Boolean = false,
     val earliestClose: LocalDate? = null,
     val stayPeriods: Set<DatePeriod> = emptySet(),
@@ -94,6 +115,12 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
 
     private val _options = MutableStateFlow<UiState<List<CampsiteOption>>>(UiState.Loading)
     val options: StateFlow<UiState<List<CampsiteOption>>> = _options.asStateFlow()
+
+    private val _collaborators = MutableStateFlow<UiState<List<CollaboratorOption>>>(UiState.Loading)
+    val collaborators: StateFlow<UiState<List<CollaboratorOption>>> = _collaborators.asStateFlow()
+
+    /** Collaborators' campsites as loaded, so new invites can be sent when an edit is saved. */
+    private var invitableCampsites: Map<Id, Campsite> = emptyMap()
 
     private val _draft = MutableStateFlow(LotteryDraft())
     val draft: StateFlow<LotteryDraft> = _draft.asStateFlow()
@@ -142,6 +169,46 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
                 campsites.filter { it.id !in busy }.map { CampsiteOption(it.id, it.name) }
             }
         }
+        loadCollaborators(owner)
+    }
+
+    /**
+     * Loads the other owners with at least one campsite that can be invited: one not in another
+     * current lottery. When editing, campsites already invited to this lottery are included
+     * whatever their state, so they show as picked.
+     */
+    private fun loadCollaborators(owner: Owner) {
+        viewModelScope.launch {
+            _collaborators.value = UiState.Loading
+            _collaborators.value = loadAsUiState("Couldn't load other owners") {
+                coroutineScope {
+                    val invites = editingId?.let { Database.fetchLottery(it).invites }.orEmpty()
+                    val invited = invites.map { it.campsite }.toSet()
+                    val busy = Database.fetchBusyCampsiteIds(exceptLottery = editingId)
+                    val owners = Database.fetchAllOwnerCampsites() - owner.id
+
+                    val loaded = owners.map { (ownerId, campsiteIds) ->
+                        async {
+                            val usable = campsiteIds.filter { it !in busy || it in invited }
+                            if (usable.isEmpty()) return@async null
+                            val campsites = usable.map { id ->
+                                async { quietly("Couldn't load campsite $id") { Database.fetchCampsite(id) } }
+                            }.awaitAll().filterNotNull()
+                            if (campsites.isEmpty()) return@async null
+                            val name = quietly("Couldn't load owner $ownerId") { Database.fetchUser(ownerId)["name"] }
+                            name.orEmpty().ifBlank { "Unnamed owner" } to campsites.sortedBy { it.name }
+                        }
+                    }.awaitAll()
+
+                    invitableCampsites = loaded.filterNotNull().flatMap { it.second }.associateBy { it.id }
+                    owners.keys.zip(loaded).mapNotNull { (ownerId, entry) ->
+                        entry?.let { (name, campsites) ->
+                            CollaboratorOption(ownerId, name, campsites.map { CampsiteOption(it.id, it.name) })
+                        }
+                    }.sortedBy { it.name.lowercase() }
+                }
+            }
+        }
     }
 
     /** Loads the campsite options again after an error. */
@@ -150,6 +217,11 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
         val campsites = lastCampsites
         loadedFor = null
         load(owner, campsites)
+    }
+
+    /** Loads the other owners again after an error. */
+    fun retryCollaborators() {
+        loadedFor?.let(::loadCollaborators)
     }
 
     /**
@@ -174,6 +246,9 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
                 _problems.value = LotteryProblems()
                 _draft.value = LotteryDraft(
                     campsites = lottery.campsites.toSet(),
+                    collaborators = lottery.invites.map { it.campsiteOwner }.toSet(),
+                    // Declined invites stay unticked (and locked: they can't be sent again).
+                    invitedCampsites = lottery.invites.filter { it.status != InviteStatus.DECLINED }.map { it.campsite }.toSet(),
                     entryFirstDay = lottery.entryFirstDay(zone),
                     entryLastDay = lottery.entryLastDay(zone),
                     stayPeriods = lottery.stayPeriods,
@@ -181,9 +256,13 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
                     waitlistCapacity = lottery.waitlistCapacity?.toString().orEmpty(),
                 )
                 val joined = lottery.waitingList.users.size
+                val invitedOwners = lottery.invites.map { it.campsiteOwner }.toSet()
+                val invitedCampsites = lottery.invites.map { it.campsite }.toSet()
                 _locks.value = if (phase == LotteryPhase.OPEN) {
                     LotteryEditLocks(
                         campsites = lottery.campsites.toSet(),
+                        collaborators = invitedOwners,
+                        invitedCampsites = invitedCampsites,
                         openDateLocked = true,
                         earliestClose = lottery.entryLastDay(zone),
                         stayPeriods = lottery.stayPeriods.toSet(),
@@ -191,7 +270,11 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
                         minCapacity = maxOf(lottery.waitlistCapacity ?: 0, joined).takeIf { it > 0 },
                     )
                 } else {
-                    LotteryEditLocks(minCapacity = joined.takeIf { it > 0 })
+                    LotteryEditLocks(
+                        collaborators = invitedOwners,
+                        invitedCampsites = invitedCampsites,
+                        minCapacity = joined.takeIf { it > 0 },
+                    )
                 }
             }
             _editLoad.value = if (tooLate) UiState.Error("Entries have closed, so this lottery can't be edited any more") else loaded
@@ -203,6 +286,25 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
     fun toggleCampsite(id: Id) {
         if (id in _locks.value.campsites) return
         update { it.copy(campsites = if (id in it.campsites) it.campsites - id else it.campsites + id) }
+    }
+
+    /** Picks or unpicks another owner. Unpicking also drops the campsites of theirs that were picked. */
+    fun toggleCollaborator(id: Id) {
+        if (id in _locks.value.collaborators) return
+        val theirs = (_collaborators.value as? UiState.Content)?.data?.firstOrNull { it.id == id }?.campsites.orEmpty().map { it.id }
+        update {
+            if (id in it.collaborators) {
+                it.copy(collaborators = it.collaborators - id, invitedCampsites = it.invitedCampsites - theirs.toSet())
+            } else {
+                it.copy(collaborators = it.collaborators + id)
+            }
+        }
+    }
+
+    /** Picks or unpicks a collaborator's campsite to invite. */
+    fun toggleInvitedCampsite(id: Id) {
+        if (id in _locks.value.invitedCampsites) return
+        update { it.copy(invitedCampsites = if (id in it.invitedCampsites) it.invitedCampsites - id else it.invitedCampsites + id) }
     }
 
     fun setEntryFirstDay(day: LocalDate) {
@@ -261,17 +363,41 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
             val editing = original
             val result = if (editing == null) {
                 val ok = runCatchingAll("Creating lottery failed") {
-                    val lottery = draft.toLottery(owner.id)
+                    // Invites go in with the lottery itself, in the same write.
+                    val lottery = draft.toLottery(owner.id, invites = draft.newInvites())
                     Database.createLottery(lottery)
                     owner.addOwnerLottery(lottery)
                 }
                 if (ok) SubmitResult.SAVED else SubmitResult.FAILED
             } else {
-                saveEdit(editing, draft)
+                val saved = saveEdit(editing, draft)
+                if (saved == SubmitResult.SAVED) sendNewInvites(editing, owner, draft) else saved
             }
             _isSaving.value = false
             onResult(result)
         }
+    }
+
+    /** Invites for the collaborators' campsites picked that weren't invited before. */
+    private fun LotteryDraft.newInvites(): List<CampsiteInvite> =
+        (invitedCampsites - _locks.value.invitedCampsites).mapNotNull { id ->
+            invitableCampsites[id]?.let { CampsiteInvite(it.id, it.ownerId) }
+        }
+
+    /**
+     * After an edit is saved, invites the collaborators' campsites newly picked. Settings are
+     * already saved by then, so a failure here is [SubmitResult.INVITES_FAILED], not FAILED.
+     */
+    private suspend fun sendNewInvites(editing: Lottery, owner: Owner, draft: LotteryDraft): SubmitResult {
+        var allSent = true
+        draft.newInvites().forEach { invite ->
+            val campsite = invitableCampsites[invite.campsite] ?: return@forEach
+            val sent = runCatchingAll("Inviting campsite ${campsite.id} failed") {
+                Database.sendCampsiteInvite(editing.id, owner.id, campsite)
+            }
+            if (!sent) allSent = false
+        }
+        return if (allSent) SubmitResult.SAVED else SubmitResult.INVITES_FAILED
     }
 
     private suspend fun saveEdit(editing: Lottery, draft: LotteryDraft): SubmitResult =
@@ -327,7 +453,11 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
      * Builds the lottery to save. Only call once the draft has passed [check]. When editing,
      * [base] supplies everything the form doesn't change (id, waitlist, winners, ...).
      */
-    private fun LotteryDraft.toLottery(ownerId: Id, base: Lottery? = null): Lottery {
+    private fun LotteryDraft.toLottery(
+        ownerId: Id,
+        base: Lottery? = null,
+        invites: List<CampsiteInvite> = base?.invites.orEmpty(),
+    ): Lottery {
         val (entryStart, entryEnd) = LotteryRules.entryWindow(entryFirstDay!!, entryLastDay!!, zone)
         val capacity = waitlistCapacity.toIntOrNull() ?: Int.MAX_VALUE
         return Lottery(
@@ -343,6 +473,7 @@ class CreateLotteryViewModel(savedState: SavedStateHandle = SavedStateHandle()) 
             bookings = base?.bookings.orEmpty(),
             drawn = base?.drawn ?: false,
             cancelled = base?.cancelled ?: false,
+            invites = invites,
         )
     }
 
