@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.LotteryProblems
+import com.example.daemon_expedite.backend.LotteryRules
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
@@ -204,8 +205,8 @@ fun CreateLotteryScreen(
                 ranges = draft.stayPeriods.map { it.start..it.end },
                 onAddRange = onAddStayPeriod,
                 onRemoveRange = onRemoveStayPeriod,
-                // Stays start after entries close, so winners have time to book.
-                minDate = (draft.entryLastDay ?: today).plusDays(1),
+                // Stays start a full booking day after entries close, so winners have time to book.
+                minDate = (draft.entryLastDay ?: today).plusDays(LotteryRules.MIN_BOOKING_DAYS + 1L),
                 error = problems.stayPeriods,
                 isRemovable = { draft.stayPeriods.getOrNull(it) !in locks.stayPeriods },
             )

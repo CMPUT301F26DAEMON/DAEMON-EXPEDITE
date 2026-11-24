@@ -44,7 +44,7 @@ import kotlin.time.toJavaInstant
  * @property drawResultText After the draw, how it went, for example "4 of 4 winners drawn · 1 booked".
  *   Null before the draw.
  * @property canEdit True before the draw (see [LotteryPhase.UPCOMING] and [LotteryPhase.OPEN]).
- * @property canCancel See [LotteryPhase.canCancel].
+ * @property canCancel See [Lottery.canCancel]: before stays start, and only while nobody has booked.
  * @property deletesOnCancel True if cancelling deletes it, because it hasn't opened yet.
  * @property isCollaborator True when the viewer co-owns it rather than created it: no editing or cancelling.
  * @property invitedByText For a collaborator (or an invited owner), e.g. "Invited by Alex Chen".
@@ -89,6 +89,9 @@ enum class CancelResult {
 
     /** Stays have started (or it's over) since the page loaded, so it can't be cancelled. */
     TOO_LATE,
+
+    /** A winner booked since the page loaded, so it can't be cancelled. */
+    HAS_BOOKINGS,
 
     /** Not cancelled, usually no connection. */
     FAILED,
@@ -142,8 +145,11 @@ class OwnerLotteryDetailViewModel(savedState: SavedStateHandle) : ViewModel() {
                 throw e
             } catch (e: Exception) {
                 // Firestore wraps exceptions thrown inside a transaction, so look at the cause too.
-                if (e is LotteryNotCancellableException || e.cause is LotteryNotCancellableException) {
-                    CancelResult.TOO_LATE
+                val notCancellable = generateSequence<Throwable>(e) { it.cause }
+                    .filterIsInstance<LotteryNotCancellableException>()
+                    .firstOrNull()
+                if (notCancellable != null) {
+                    if (notCancellable.hasBookings) CancelResult.HAS_BOOKINGS else CancelResult.TOO_LATE
                 } else {
                     Log.e("OwnerLotteryDetail", "Cancelling lottery $id failed", e)
                     CancelResult.FAILED
@@ -246,7 +252,7 @@ internal fun Lottery.toLotteryDetails(
         winnerCount = winnerCount,
         drawResultText = if (drawn) "${winners.size} of ${plural(winnerCount, "winner")} drawn · ${bookings.size} booked" else null,
         canEdit = phase == LotteryPhase.UPCOMING || phase == LotteryPhase.OPEN,
-        canCancel = phase.canCancel,
+        canCancel = canCancel(now, zone),
         deletesOnCancel = phase == LotteryPhase.UPCOMING,
         lotteryStatus = statusEnum,
         endsText = ends,

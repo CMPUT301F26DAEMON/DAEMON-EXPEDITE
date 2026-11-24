@@ -144,7 +144,7 @@ class OwnerLotteryDetailViewModelTest {
         assertEquals("Winners are drawn. They can book until the first night, 16 Oct.", details.phaseNote)
         assertEquals("3/10 joined · 2 of 2 winners drawn · 1 booked", details.drawText)
         assertEquals("2 of 2 winners drawn · 1 booked", details.drawResultText)
-        assertTrue(details.canCancel)
+        assertFalse(details.canCancel) // a winner booked, so cancelling would strand their stay
         assertFalse(details.canEdit)
     }
 

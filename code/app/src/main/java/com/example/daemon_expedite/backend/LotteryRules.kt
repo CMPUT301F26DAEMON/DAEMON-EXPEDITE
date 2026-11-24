@@ -27,6 +27,13 @@ data class LotteryProblems(
 object LotteryRules {
 
     /**
+     * Whole days winners get to book between the draw and the first stay night. Entries close at
+     * midnight and the draw runs just after, so the day after the last entry day is the booking
+     * day; with no gap the booking window would be empty and nobody could book.
+     */
+    const val MIN_BOOKING_DAYS = 1
+
+    /**
      * Most winners a lottery can have: every night of every campsite booked by a different
      * winner. For example 2 campsites × 3 nights = 6.
      */
@@ -45,8 +52,8 @@ object LotteryRules {
      *
      * - At least one campsite.
      * - Entries open today or later, and close on or after the day they open.
-     * - At least one stay period, none overlapping, all after the last entry day (entrants
-     *   need the time in between to book).
+     * - At least one stay period, none overlapping, starting at least [MIN_BOOKING_DAYS] full
+     *   days after the last entry day (winners need the time in between to book).
      * - 1 to [maxWinners] winners.
      * - The waitlist limit, if set, holds at least as many entrants as there are winners.
      *
@@ -79,8 +86,8 @@ object LotteryRules {
                 entryFirstDay == null || entryLastDay == null -> "Pick when entries open and close"
                 !entriesAlreadyOpen && entryFirstDay.isBefore(today) -> "Entries can't open in the past"
                 entryLastDay.isBefore(entryFirstDay) -> "Entries must close on or after the day they open"
-                firstStayNight != null && !entryLastDay.isBefore(firstStayNight) ->
-                    "Entries must close before the first stay night, so winners have time to book"
+                firstStayNight != null && entryLastDay.plusDays(MIN_BOOKING_DAYS + 1L).isAfter(firstStayNight) ->
+                    "Entries must close at least ${MIN_BOOKING_DAYS + 1} days before the first stay night, so winners have a full day to book"
                 else -> null
             },
 

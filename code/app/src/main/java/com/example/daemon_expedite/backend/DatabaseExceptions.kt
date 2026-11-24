@@ -27,10 +27,20 @@ class LotteryClosedException(
     val lotteryId: Id,
 ) : Exception("Lottery $lotteryId is not open for entries")
 
-/** Thrown when cancelling a lottery whose stays have started, or that is already over. */
+/**
+ * Thrown when cancelling a lottery whose stays have started, that is already over, or that a
+ * winner has already booked ([hasBookings]).
+ */
 class LotteryNotCancellableException(
     val lotteryId: Id,
-) : Exception("Lottery $lotteryId can no longer be cancelled")
+    val hasBookings: Boolean = false,
+) : Exception(
+        if (hasBookings) {
+            "Lottery $lotteryId has bookings, so it can't be cancelled"
+        } else {
+            "Lottery $lotteryId can no longer be cancelled"
+        },
+    )
 
 /**
  * Thrown when edited lottery settings break the rules against the latest saved lottery, for
