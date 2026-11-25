@@ -71,6 +71,7 @@ class MessageViewModel(
     private var activeChatId: Id? = null
     private var targetUserId: Id? = null
     private var isNewLocalChat: Boolean = false
+    var isOwnerChat: Boolean = false
 
     init {
         loadChat()
@@ -208,10 +209,12 @@ class MessageViewModel(
 fun MessageScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isOwnerChat: Boolean = false,
     viewModel: MessageViewModel =
         androidx.lifecycle.viewmodel.compose
             .viewModel(),
 ) {
+    viewModel.isOwnerChat = isOwnerChat
     val messages by viewModel.messages.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
     val otherUserName by viewModel.otherUserName.collectAsState()

@@ -886,12 +886,14 @@ fun AppNavigation(
             composable(Routes.MESSAGE_DETAIL_BY_CHAT) {
                 MessageScreen(
                     onBackClick = { navController.popBackStack() },
+                    isOwnerChat = true,
                 )
             }
 
             composable(Routes.MESSAGE_DETAIL_BY_USER) {
                 MessageScreen(
                     onBackClick = { navController.popBackStack() },
+                    isOwnerChat = true,
                 )
             }
 
