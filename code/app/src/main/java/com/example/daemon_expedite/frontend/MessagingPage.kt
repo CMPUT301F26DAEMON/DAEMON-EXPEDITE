@@ -65,16 +65,13 @@ class OwnerMessagingViewModel : ViewModel() {
                 loadAsUiState("Couldn't load messages") {
                     coroutineScope {
                         val owner = quietly("Couldn't load owner") { Database.getOwner() }
-                        val user = quietly("Couldn't load user") { Database.fetchOwnUser() }
-                        val ownerChats = owner?.ownerChats.orEmpty()
-                        val userChats = user?.chatIds.orEmpty()
-                        val chatIds = (ownerChats + userChats).distinct()
+                        val chatIds = owner?.ownerChats.orEmpty().distinct()
 
                         chatIds.map { chatId ->
                             async {
                                 quietly("Couldn't load chat $chatId") {
                                     val chat = Database.fetchChat(chatId)
-                                    val myId = owner?.id ?: user?.id
+                                    val myId = owner?.id
                                     val otherUserId = if (chat.userA == myId) chat.userB else chat.userA
                                     val userMap = quietly("Couldn't fetch user $otherUserId") { Database.fetchUser(otherUserId) }
                                     val name = userMap?.get("name")?.takeIf { it.isNotBlank() } ?: "Conversation"

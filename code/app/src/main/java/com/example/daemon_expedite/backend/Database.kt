@@ -2069,10 +2069,10 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 .collection("chats")
                 .where(
                     Filter.or(
+                        Filter.and(Filter.equalTo("entrantId", a), Filter.equalTo("ownerId", b)),
                         Filter.and(Filter.equalTo("userA", a), Filter.equalTo("userB", b)),
-                        Filter.and(Filter.equalTo("userA", b), Filter.equalTo("userB", a)),
                     ),
-                ).limit(1) // doesn't matter ig because there can only be one chat for given two users
+                ).limit(1)
                 .get()
                 .await()
                 .documents
@@ -2086,26 +2086,41 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         userA: Id,
         userB: Id,
         message: Message,
+        isSenderOwner: Boolean = false,
     ) {
         val a = userA.value.toString()
         val b = userB.value.toString()
         val id = chatId.value.toString()
 
-        val chatMap = mapOf("userA" to a, "userB" to b)
+        val entrantVal = if (isSenderOwner) b else a
+        val ownerVal = if (isSenderOwner) a else b
+
+        val chatMap =
+            mapOf(
+                "userA" to a,
+                "userB" to b,
+                "entrantId" to entrantVal,
+                "ownerId" to ownerVal,
+            )
         db
             .collection("chats")
             .document(id)
             .set(chatMap)
             .await()
 
-        // Each ref paired with the field that stores its chat ids.
-        val targets =
-            listOf(
-                db.collection("users").document(a) to "chats",
-                db.collection("owners").document(a) to "ownerChats",
-                db.collection("users").document(b) to "chats",
-                db.collection("owners").document(b) to "ownerChats",
-            )
+        val senderTarget =
+            if (isSenderOwner) {
+                db.collection("owners").document(a) to "ownerChats"
+            } else {
+                db.collection("users").document(a) to "chats"
+            }
+        val recipientTarget =
+            if (isSenderOwner) {
+                db.collection("users").document(b) to "chats"
+            } else {
+                db.collection("owners").document(b) to "ownerChats"
+            }
+        val targets = listOf(senderTarget, recipientTarget)
 
         db
             .runTransaction { tx ->
@@ -2542,7 +2557,8 @@ object Database {
         userA: Id,
         userB: Id,
         message: Message,
-    ) = db.createChatAndUploadMessage(chatId, userA, userB, message)
+        isSenderOwner: Boolean = false,
+    ) = db.createChatAndUploadMessage(chatId, userA, userB, message, isSenderOwner)
 
     fun chatListener(
         chatId: Id,
