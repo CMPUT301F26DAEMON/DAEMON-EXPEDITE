@@ -36,6 +36,7 @@ import com.example.daemon_expedite.ui_components.LotteryCard
 import com.example.daemon_expedite.ui_components.PillVariant
 import com.example.daemon_expedite.ui_components.RedButton
 import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
+import com.example.daemon_expedite.ui_components.YellowButton
 
 /**
  * The entrant's lotteries, with In Progress and Results tabs.
@@ -43,13 +44,16 @@ import com.example.daemon_expedite.ui_components.ToggleButtonWithContent
  *
  * Same layout as [OwnerLotteriesScreen], without the "Create New Lottery" button. In Progress
  * cards have a "Leave Waiting List" button that asks for confirmation first. Results cards show
- * how the entrant did in the pill ("Lost", "Won · Action Pending", ...). Cards themselves
+ * how the entrant did in the pill ("Lost", "Won · Action Pending", ...); "Action Pending" cards get a
+ * yellow "Book your stay" button that opens the same booking screen as the campsite page. Cards themselves
  * aren't tappable.
  *
  * @param state The entrant's lotteries, or a loading/error state.
  * @param leavingId ID of the lottery currently being left, or null.
  * @param onRetry Called when the user taps an error message to retry loading.
  * @param onLeaveConfirmed Called with the lottery ID after confirming departure.
+ * @param onBookClick Called when a winner taps "Book your stay" on a Results card, with the
+ *   lottery and the campsite the booking screen should open on.
  */
 @Composable
 fun EntrantLotteriesScreen(
@@ -57,6 +61,7 @@ fun EntrantLotteriesScreen(
     leavingId: Id?,
     onRetry: () -> Unit,
     onLeaveConfirmed: (lotteryId: Id) -> Unit,
+    onBookClick: (lotteryId: Id, campsiteId: Id) -> Unit = { _, _ -> },
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // Id of the lottery the confirm dialog is about, as a String so it survives rotation.
@@ -110,6 +115,7 @@ fun EntrantLotteriesScreen(
                     LotteryList(
                         lotteries = state.data.results,
                         emptyText = "Once winners are drawn, your results will show here.",
+                        onBookClick = onBookClick,
                     )
                 }
             }
@@ -141,7 +147,8 @@ fun EntrantLotteriesScreen(
 
 /**
  * The cards for one tab. [onLeaveClick] adds a "Leave Waiting List" button to each card;
- * null shows none.
+ * null shows none. [onBookClick] adds a "Book your stay" button to cards the viewer can still
+ * book ([LotterySummary.bookCampsiteId] set).
  */
 @Composable
 private fun LotteryList(
@@ -149,6 +156,7 @@ private fun LotteryList(
     emptyText: String,
     onLeaveClick: ((Id) -> Unit)? = null,
     leavingId: Id? = null,
+    onBookClick: ((lotteryId: Id, campsiteId: Id) -> Unit)? = null,
 ) {
     if (lotteries.isEmpty()) {
         Centered {
@@ -170,22 +178,47 @@ private fun LotteryList(
                 staysText = lottery.staysText,
                 countsText = lottery.countsText,
                 onClick = null,
-                footer = onLeaveClick?.let { onLeave ->
-                    {
-                        BoxWithConstraints(Modifier.fillMaxWidth()) {
-                            RedButton(
-                                onClick = { onLeave(lottery.id) },
-                                icon = AppIcons.LeaveList,
-                                buttonText = if (lottery.id == leavingId) "Leaving…" else "Leave Waiting List",
-                                customHeight = 48,
-                                customWidth = maxWidth.value.toInt(),
-                            )
-                        }
-                    }
-                },
+                footer = lotteryFooter(lottery, onLeaveClick, leavingId, onBookClick),
             )
         }
     }
+}
+
+/** The button under a card: "Leave Waiting List", "Book your stay", or null for none. */
+private fun lotteryFooter(
+    lottery: LotterySummary,
+    onLeaveClick: ((Id) -> Unit)?,
+    leavingId: Id?,
+    onBookClick: ((lotteryId: Id, campsiteId: Id) -> Unit)?,
+): (@Composable () -> Unit)? {
+    if (onLeaveClick != null) {
+        return {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                RedButton(
+                    onClick = { onLeaveClick(lottery.id) },
+                    icon = AppIcons.LeaveList,
+                    buttonText = if (lottery.id == leavingId) "Leaving…" else "Leave Waiting List",
+                    customHeight = 48,
+                    customWidth = maxWidth.value.toInt(),
+                )
+            }
+        }
+    }
+    val campsiteId = lottery.bookCampsiteId
+    if (onBookClick != null && campsiteId != null) {
+        return {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                YellowButton(
+                    onClick = { onBookClick(lottery.id, campsiteId) },
+                    icon = AppIcons.Calendar,
+                    buttonText = "Book your stay",
+                    customHeight = 48,
+                    customWidth = maxWidth.value.toInt(),
+                )
+            }
+        }
+    }
+    return null
 }
 
 @Composable

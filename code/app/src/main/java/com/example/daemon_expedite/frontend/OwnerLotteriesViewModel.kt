@@ -27,7 +27,12 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
-/** Everything a [com.example.daemon_expedite.ui_components.LotteryCard] shows, already formatted. */
+/**
+ * Everything a [com.example.daemon_expedite.ui_components.LotteryCard] shows, already formatted.
+ *
+ * @property bookCampsiteId Set when the viewer won and can still book: the campsite their booking
+ *   screen opens on (the lottery's first one). Null hides the "Book your stay" button.
+ */
 data class LotterySummary(
     val id: Id,
     val title: String,
@@ -36,6 +41,7 @@ data class LotterySummary(
     val entriesText: String,
     val staysText: String,
     val countsText: String,
+    val bookCampsiteId: Id? = null,
 )
 
 /**

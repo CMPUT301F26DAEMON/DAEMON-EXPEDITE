@@ -445,6 +445,9 @@ fun AppNavigation(
                             }
                         }
                     },
+                    onBookClick = { lotteryId, campsiteId ->
+                        navController.navigate(Routes.bookLotteryStay(lotteryId, campsiteId))
+                    },
                 )
             }
 

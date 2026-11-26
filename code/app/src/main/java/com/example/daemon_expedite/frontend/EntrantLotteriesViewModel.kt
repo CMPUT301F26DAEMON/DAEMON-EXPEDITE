@@ -85,7 +85,11 @@ class EntrantLotteriesViewModel : ViewModel() {
                 .sortedByDescending { it.firstStayNight }
                 .mapNotNull { lottery ->
                     val (status, variant) = lottery.resultPill(user.id, now, zone) ?: return@mapNotNull null
-                    lottery.toSummary(names, now, zone).copy(status = status, statusVariant = variant)
+                    lottery.toSummary(names, now, zone).copy(
+                        status = status,
+                        statusVariant = variant,
+                        bookCampsiteId = if (lottery.canBook(user.id, now, zone)) lottery.campsites.firstOrNull() else null,
+                    )
                 },
         )
     }
@@ -120,6 +124,19 @@ internal fun Lottery.isInProgressFor(
     now: Instant = Clock.System.now(),
     zone: ZoneId = ZoneId.systemDefault(),
 ): Boolean = viewer in waitingList.users && phase(now, zone).let { it == LotteryPhase.OPEN || it == LotteryPhase.DRAWING }
+
+/**
+ * True if [viewer] won, hasn't booked or declined, and booking is still open. Same rule as the
+ * "Won · Action Pending" pill in [resultPill]; these cards get a "Book your stay" button.
+ */
+internal fun Lottery.canBook(
+    viewer: Id,
+    now: Instant = Clock.System.now(),
+    zone: ZoneId = ZoneId.systemDefault(),
+): Boolean =
+    drawn && !cancelled && viewer in winners &&
+        bookings.none { it.user == viewer } && viewer !in declined &&
+        phase(now, zone) == LotteryPhase.BOOKING
 
 /**
  * The Results-tab pill for [viewer], or null if this lottery doesn't belong on that tab
