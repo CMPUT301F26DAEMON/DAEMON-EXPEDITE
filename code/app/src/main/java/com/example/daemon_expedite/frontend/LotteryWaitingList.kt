@@ -45,7 +45,7 @@ import com.example.daemon_expedite.ui_components.ScreenHeader
  * @param state The entrants, in join order, or loading / error.
  * @param onBackClick Called when the header's back button is tapped.
  * @param onRetry Called when the error message is tapped.
- * @param onMessageClick Called when the message button on any entrant's card is tapped.
+ * @param onMessageClick Called with the entrant whose card's message button was tapped.
  * @param isSendingNotification True while a notification is being sent. Disables the popup's button.
  * @param onSendNotification Called when the owner sends from the popup, with the title (null if
  *   blank), the message, and a callback to report back: pass true to close the popup, false
@@ -57,7 +57,7 @@ fun LotteryWaitingList(
     state: UiState<List<EntrantInWaitingList>>,
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
-    onMessageClick: () -> Unit = {},
+    onMessageClick: (EntrantInWaitingList) -> Unit = {},
     isSendingNotification: Boolean = false,
     onSendNotification: (title: String?, text: String, onResult: (Boolean) -> Unit) -> Unit = { _, _, _ -> },
 ){
@@ -114,7 +114,7 @@ fun LotteryWaitingList(
                         EntrantCard(
                             name = entrant.name,
                             imageUrl = entrant.imageUrl,
-                            onMessageClick = onMessageClick,
+                            onMessageClick = { onMessageClick(entrant) },
                         )
                     }
                 }
