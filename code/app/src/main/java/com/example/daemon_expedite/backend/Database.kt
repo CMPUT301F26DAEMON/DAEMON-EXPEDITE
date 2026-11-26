@@ -401,7 +401,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val photo = photoId?.let { fetchImageOrNull(it) }
         val batch = db.batch()
         batch.delete(userRef)
-        batch.apply { auth.signOut() }
+
         if (photo != null) batch.delete(imageRef(photo.id))
         batch.commit().await()
         if (photo != null) deleteStorageFiles(listOf(photo.path))
