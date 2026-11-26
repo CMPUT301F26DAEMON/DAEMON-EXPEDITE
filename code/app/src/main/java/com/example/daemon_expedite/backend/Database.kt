@@ -401,6 +401,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val photo = photoId?.let { fetchImageOrNull(it) }
         val batch = db.batch()
         batch.delete(userRef)
+        batch.apply { auth.signOut() }
         if (photo != null) batch.delete(imageRef(photo.id))
         batch.commit().await()
         if (photo != null) deleteStorageFiles(listOf(photo.path))
@@ -678,7 +679,11 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         lottery: Lottery,
         ownerId: Id,
     ): Map<String, Any?> {
-        val theirs = lottery.invites.filter { it.campsiteOwner == ownerId }.map { it.campsite }.toSet()
+        val theirs =
+            lottery.invites
+                .filter { it.campsiteOwner == ownerId }
+                .map { it.campsite }
+                .toSet()
         val stripped =
             Lottery(
                 id = lottery.id,
@@ -1047,8 +1052,18 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     override suspend fun fetchOwnerLotteries(ownerId: Id): List<Lottery> {
         val lotteries = db.collection("lotteries")
         val idStr = ownerId.value.toString()
-        val created = lotteries.whereEqualTo("owner", idStr).get().await().documents
-        val shared = lotteries.whereArrayContains("owners", idStr).get().await().documents
+        val created =
+            lotteries
+                .whereEqualTo("owner", idStr)
+                .get()
+                .await()
+                .documents
+        val shared =
+            lotteries
+                .whereArrayContains("owners", idStr)
+                .get()
+                .await()
+                .documents
         return (created + shared)
             .distinctBy { it.id }
             .mapNotNull { parseLotteryOrNull(it.id, it.data) }
@@ -1326,13 +1341,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             "declined" to lottery.declined.map { it.value.toString() },
             "drawn" to lottery.drawn,
             "cancelled" to lottery.cancelled,
-            "invites" to lottery.invites.map {
-                mapOf(
-                    "campsite" to it.campsite.value.toString(),
-                    "campsiteOwner" to it.campsiteOwner.value.toString(),
-                    "status" to it.status.name,
-                )
-            },
+            "invites" to
+                lottery.invites.map {
+                    mapOf(
+                        "campsite" to it.campsite.value.toString(),
+                        "campsiteOwner" to it.campsiteOwner.value.toString(),
+                        "status" to it.status.name,
+                    )
+                },
             // Flat copies of what's in "invites", only so whereArrayContains can find them.
             "owners" to lottery.ownerIds.map { it.value.toString() },
             "pendingOwners" to lottery.pendingOwners.map { it.value.toString() },
@@ -1583,7 +1599,11 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     "reservations",
                     FieldValue.arrayUnion(reservation.id.value.toString()),
                 )
-                tx.update(ownerRef(lottery.ownerOf(campsiteId)), "ownerReservations", FieldValue.arrayUnion(reservation.id.value.toString()))
+                tx.update(
+                    ownerRef(lottery.ownerOf(campsiteId)),
+                    "ownerReservations",
+                    FieldValue.arrayUnion(reservation.id.value.toString()),
+                )
                 null
             }.await()
         return reservation
@@ -1901,8 +1921,18 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     suspend fun deleteImageEverywhere(id: Id) {
         val idStr = id.value.toString()
         val image = fetchImageOrNull(idStr)
-        val users = db.collection("users").whereEqualTo("profileImage", idStr).get().await()
-        val campsites = db.collection("campsites").whereArrayContains("images", idStr).get().await()
+        val users =
+            db
+                .collection("users")
+                .whereEqualTo("profileImage", idStr)
+                .get()
+                .await()
+        val campsites =
+            db
+                .collection("campsites")
+                .whereArrayContains("images", idStr)
+                .get()
+                .await()
         db
             .batch()
             .apply {
