@@ -103,6 +103,18 @@ object BookingRules {
     }
 
     /**
+     * Checks whether [owner] may reject [reservation] at a campsite owned by [campsiteOwner] on
+     * [today]. Returns a message saying why not, or null if they can. Like a guest's cancel, a
+     * stay can only be rejected before its first night.
+     */
+    fun rejectProblem(reservation: Reservation, campsiteOwner: Id?, owner: Id, today: LocalDate): String? = when {
+        campsiteOwner != owner -> "Only the campsite's owner can reject this reservation"
+        reservation.isCancelled -> "This reservation is already cancelled"
+        !today.isBefore(reservation.period.start) -> "This stay has started, so it can't be rejected"
+        else -> null
+    }
+
+    /**
      * The lottery's bookings once [reservation] is cancelled, which frees its nights. Bookings
      * saved before they had a reservation id are matched by who booked (one booking per winner).
      */

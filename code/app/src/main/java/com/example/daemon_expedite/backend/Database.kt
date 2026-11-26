@@ -134,6 +134,13 @@ interface DatabaseInterface {
         userId: Id,
     ): Reservation
 
+    suspend fun rejectReservation(
+        reservationId: Id,
+        ownerId: Id,
+    ): Reservation
+
+    suspend fun fetchReservationsForCampsites(campsiteIds: List<Id>): List<Reservation>
+
     suspend fun rateStay(
         reservationId: Id,
         userId: Id,
@@ -1439,6 +1446,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "reservedBy" to reservation.reservedBy.value.toString(),
                 "lottery" to reservation.lotteryId?.value?.toString(),
                 "isCancelled" to reservation.isCancelled,
+                "rejectedByOwner" to reservation.rejectedByOwner,
             )
 
     /**
@@ -1484,6 +1492,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 reservedBy = Id(Uuid.parse(data["reservedBy"] as String)),
                 lotteryId = (data["lottery"] as? String)?.let { Id(Uuid.parse(it)) },
                 isCancelled = data["isCancelled"] as? Boolean ?: false,
+                rejectedByOwner = data["rejectedByOwner"] as? Boolean ?: false,
             )
         } catch (e: Exception) {
             Log.e("DatabaseInner", "Unreadable reservation ${id.value}", e)
@@ -1671,6 +1680,67 @@ private class DatabaseInner private constructor() : DatabaseInterface {
     override suspend fun updateReservation(reservation: Reservation) {
         addReservation(reservation)
     }
+
+    /**
+     * [ownerId] rejects the reservation [reservationId] at one of their campsites.
+     *
+     * Runs as a transaction that re-reads the reservation and the campsite's owner, then checks
+     * [BookingRules.rejectProblem]. Frees the lottery booking like [cancelReservation] does, but
+     * doesn't add the guest to `declined`: they didn't give up their win, the owner turned it down.
+     *
+     * @return The rejected reservation.
+     * @throws BookingRejectedException if it can't be rejected; its message says why.
+     */
+    override suspend fun rejectReservation(
+        reservationId: Id,
+        ownerId: Id,
+    ): Reservation {
+        val ref = reservationRef(reservationId)
+        return db
+            .runTransaction { tx ->
+                // Firestore needs every read before the first write.
+                val data = tx.get(ref).data ?: throw NotFoundException("Reservation ${reservationId.value} not found")
+                val reservation =
+                    parseReservation(reservationId, data)
+                        ?: throw NotFoundException("Reservation ${reservationId.value} can't be read")
+                val campsiteOwner =
+                    (tx.get(db.collection("campsites").document(reservation.campsite.value.toString())).data?.get("owner") as? String)
+                        ?.let { Id(Uuid.parse(it)) }
+                BookingRules
+                    .rejectProblem(reservation, campsiteOwner, ownerId, LocalDate.now())
+                    ?.let { throw BookingRejectedException(it) }
+                val lottery =
+                    reservation.lotteryId?.let { id ->
+                        tx.get(lotteryRef(id)).data?.let { parseLottery(id, it) }
+                    }
+
+                if (lottery != null) {
+                    tx.update(lotteryRef(lottery.id), "bookings", BookingRules.bookingsAfterCancel(lottery, reservation).map { it.toMap() })
+                }
+                reservation.reject()
+                tx.update(ref, mapOf("isCancelled" to true, "rejectedByOwner" to true))
+                reservation
+            }.await()
+    }
+
+    /**
+     * Every reservation at any of [campsiteIds], cancelled ones too. Unreadable ones are skipped.
+     * Firestore's `whereIn` takes at most 30 values, so the ids are queried in chunks.
+     */
+    override suspend fun fetchReservationsForCampsites(campsiteIds: List<Id>): List<Reservation> =
+        campsiteIds
+            .map { it.value.toString() }
+            .distinct()
+            .chunked(30)
+            .flatMap { chunk ->
+                db
+                    .collection("reservations")
+                    .whereIn("campsite", chunk)
+                    .get()
+                    .await()
+                    .documents
+                    .mapNotNull { doc -> doc.data?.let { parseReservation(Id(Uuid.parse(doc.id)), it) } }
+            }
 
     /**
      * Saves [userId]'s rating of the stay [reservationId] onto its campsite's `ratings` array.
@@ -2464,6 +2534,16 @@ object Database {
         reservationId: Id,
         userId: Id,
     ): Reservation = db.cancelReservation(reservationId, userId)
+
+    /** The campsite owner rejects a reservation and frees its lottery booking. See [DatabaseInner.rejectReservation]. */
+    suspend fun rejectReservation(
+        reservationId: Id,
+        ownerId: Id,
+    ): Reservation = db.rejectReservation(reservationId, ownerId)
+
+    /** Every reservation at the given campsites. See [DatabaseInner.fetchReservationsForCampsites]. */
+    suspend fun fetchReservationsForCampsites(campsiteIds: List<Id>): List<Reservation> =
+        db.fetchReservationsForCampsites(campsiteIds)
 
     /** Rates a finished stay and adds it to the campsite's ratings. See [DatabaseInner.rateStay]. */
     suspend fun rateStay(

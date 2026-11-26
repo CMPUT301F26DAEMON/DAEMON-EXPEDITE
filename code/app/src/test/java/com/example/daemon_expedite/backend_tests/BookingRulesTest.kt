@@ -123,6 +123,16 @@ class BookingRulesTest {
     }
 
     @Test
+    fun reject_onlyByTheCampsiteOwnerBeforeTheStay() {
+        val owner = Id()
+        assertNull(BookingRules.rejectProblem(myReservation(), owner, owner, day(17)))
+        assertNotNull(BookingRules.rejectProblem(myReservation(), owner, rival, day(17))) // not their campsite
+        assertNotNull(BookingRules.rejectProblem(myReservation(), null, owner, day(17))) // campsite gone
+        assertNotNull(BookingRules.rejectProblem(myReservation(), owner, owner, day(18))) // first night
+        assertNotNull(BookingRules.rejectProblem(myReservation(cancelled = true), owner, owner, day(10)))
+    }
+
+    @Test
     fun cancel_freesTheNightsSoTheWinnerCanBookAgain() {
         val reservation = myReservation()
         val mine = Booking(me, pine, reservation.period, reservation.id)

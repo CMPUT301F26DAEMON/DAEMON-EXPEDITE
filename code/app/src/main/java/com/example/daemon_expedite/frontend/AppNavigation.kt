@@ -95,6 +95,7 @@ object Routes {
     const val OWNER_LOTTERIES = "owner_lotteries"
     const val OWNER_NOTIFICATIONS = "owner_notifications"
     const val OWNER_MESSAGES = "owner_messages"
+    const val OWNER_RESERVATIONS = "owner_reservations"
     const val LOTTERY_ID_ARG = "lotteryId"
 
     // A lottery winner's booking screen. The campsite is the one picked first.
@@ -813,6 +814,30 @@ fun AppNavigation(
                 // A tab: the bar's Home tab goes home, so there's no back button.
                 // Owners see the notifications they've sent to their waiting lists.
                 NotificationsTab(userId = user?.id, sent = true)
+            }
+
+            composable(Routes.OWNER_RESERVATIONS) {
+                val reservations: OwnerReservationsViewModel = viewModel()
+                // Waits for the owner to load, since the campsite ids are stored on the owner.
+                LaunchedEffect(user) { user?.let(ownerViewModel::load) }
+                val owner by ownerViewModel.owner.collectAsState()
+                val loadedOwner = (owner as? UiState.Content)?.data
+                LaunchedEffect(loadedOwner) { loadedOwner?.let(reservations::load) }
+                val state by reservations.reservations.collectAsState()
+                OwnerReservationsScreen(
+                    // Until the owner loads, show their error (if any) rather than spinning forever.
+                    state = (owner as? UiState.Error) ?: state,
+                    onRetry = {
+                        if (owner is UiState.Error) user?.let { ownerViewModel.load(it, force = true) } else reservations.retry()
+                    },
+                    onRejectReservation = { card ->
+                        card.id.toIdOrNull()?.let { id ->
+                            reservations.reject(id) { problem -> toast(problem ?: "Reservation rejected") }
+                        }
+                    },
+                    // The app draws the owner's bar over every tab.
+                    showBottomNavigation = false,
+                )
             }
 
             composable(Routes.OWNER_MESSAGES) {

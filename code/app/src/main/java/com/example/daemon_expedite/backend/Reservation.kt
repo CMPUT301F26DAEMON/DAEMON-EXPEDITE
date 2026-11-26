@@ -15,7 +15,8 @@ import java.time.LocalDate
  * @property period the nights reserved: from the first night to the check-out day.
  * @property reservedBy id of the [User] who holds the reservation.
  * @property lotteryId the [Lottery] this reservation was won in, or null if it wasn't.
- * @property isCancelled `true` if the reservation was cancelled (declined, or rejected). Only changed through [cancel].
+ * @property isCancelled `true` if the reservation was cancelled (declined, or rejected). Only changed through [cancel] or [reject].
+ * @property rejectedByOwner `true` if the campsite owner rejected it, rather than the guest cancelling.
  */
 class Reservation(
     val id: Id = Id(),
@@ -24,9 +25,24 @@ class Reservation(
     val reservedBy: Id,
     val lotteryId: Id? = null,
     isCancelled: Boolean = false,
+    rejectedByOwner: Boolean = false,
 ) {
     var isCancelled: Boolean = isCancelled
         private set
+
+    var rejectedByOwner: Boolean = rejectedByOwner
+        private set
+
+    /**
+     * Cancels this reservation on the campsite owner's behalf. Has no effect if it is already
+     * cancelled, so a guest's cancel is never relabelled as a reject.
+     */
+    fun reject() {
+        if (!isCancelled) {
+            isCancelled = true
+            rejectedByOwner = true
+        }
+    }
 
     /**
      * Cancels this reservation, e.g. when the user cancels their booking.
