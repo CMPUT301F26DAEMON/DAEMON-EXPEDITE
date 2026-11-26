@@ -2,7 +2,14 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { CHANNEL_ID, describeCampsites, resultMessages, ownerMessages, chunk } = require("../messages");
+const {
+  CHANNEL_ID,
+  describeCampsites,
+  resultMessages,
+  ownerMessages,
+  incomingCallMessage,
+  chunk,
+} = require("../messages");
 
 const recipients = [
   { userId: "u1", token: "t1" },
@@ -63,4 +70,26 @@ test("owner messages use the owner's title, or say what they're about", () => {
 test("chunk splits into pieces of at most the given size", () => {
   assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
   assert.deepEqual(chunk([], 2), []);
+});
+
+test("an incoming call rings the callee with the caller's name and the call id", () => {
+  const m = incomingCallMessage({ callId: "C1", callerName: " Maya ", token: "t1" });
+  assert.equal(m.token, "t1");
+  assert.equal(m.notification.title, "Incoming call");
+  assert.equal(m.notification.body, "Maya is calling you on Expedite.");
+  assert.deepEqual(m.data, { type: "incoming_call", callId: "C1", video: "false" });
+  assert.equal(m.android.priority, "high");
+  assert.equal(m.android.notification.channelId, CHANNEL_ID);
+  assert.equal(m.android.ttl, 45000);
+});
+
+test("an incoming call from someone without a name still rings", () => {
+  const m = incomingCallMessage({ callId: "C1", callerName: "  ", token: "t1" });
+  assert.equal(m.notification.body, "Someone is calling you on Expedite.");
+});
+
+test("a video call says so in the push", () => {
+  const m = incomingCallMessage({ callId: "C1", callerName: "Maya", video: true, token: "t1" });
+  assert.equal(m.notification.title, "Incoming video call");
+  assert.equal(m.data.video, "true");
 });

@@ -51,6 +51,7 @@ import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BottomNavBar
 import com.example.daemon_expedite.ui_components.MessageCardOwner
+import com.example.daemon_expedite.voip.CallManager
 
 /** Route names for every screen in the app. Add new screens here. */
 object Routes {
@@ -244,6 +245,11 @@ fun AppNavigation(
                 if (!granted) session.setNotificationsEnabled(false)
             }
         }
+    }
+
+    // Listen for voice calls to this user while the app is open (see voip/CallManager).
+    LaunchedEffect(user?.id) {
+        user?.id?.let { CallManager.watchIncoming(it.toString()) }
     }
 
     fun showComingSoon(screen: String) = toast("$screen isn't built yet")
@@ -1471,6 +1477,9 @@ fun AppNavigation(
         ) {
             RoleBottomNavBar(tabs = barTabs, selectedIndex = barTabs?.indexOf(currentRoute) ?: -1, onTabClick = ::openTab)
         }
+
+        // Voice calls from chats: drawn over everything, on any screen, while a call is going.
+        CallOverlay()
     }
 }
 

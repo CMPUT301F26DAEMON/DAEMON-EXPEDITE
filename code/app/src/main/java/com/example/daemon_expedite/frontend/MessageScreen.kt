@@ -1,17 +1,24 @@
 package com.example.daemon_expedite.frontend
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,6 +35,8 @@ import com.example.daemon_expedite.ui_components.AppTextStyles
 import com.example.daemon_expedite.ui_components.BackButton
 import com.example.daemon_expedite.ui_components.MessageInputBar
 import com.example.daemon_expedite.ui_components.ProfileImage
+import com.example.daemon_expedite.voip.CallManager
+import com.example.daemon_expedite.voip.rememberCallPermissionRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,6 +80,9 @@ class MessageViewModel(
     private val _otherUserPhotoUrl = MutableStateFlow<String?>(null)
     val otherUserPhotoUrl: StateFlow<String?> = _otherUserPhotoUrl.asStateFlow()
 
+    /** The current user's name, shown on the other person's phone when we call them. */
+    private var myName: String = ""
+
     private val _isSending = MutableStateFlow(false)
     val isSending: StateFlow<Boolean> = _isSending.asStateFlow()
 
@@ -87,6 +99,7 @@ class MessageViewModel(
             val user = quietly("Couldn't load user") { Database.fetchOwnUser() }
             val myId = user?.id ?: return@launch
             _currentUserId.value = myId
+            myName = user.name
 
             val cId = chatIdArg?.toIdOrNull()
             val uId = userIdArg?.toIdOrNull()
@@ -213,6 +226,27 @@ class MessageViewModel(
         return true
     }
 
+    /**
+     * Starts a voice or [video] call with the other person in this chat. The call screen
+     * (CallOverlay) takes over from here. Returns false if the chat hasn't loaded yet.
+     */
+    fun startCall(
+        video: Boolean,
+        cameraAllowed: Boolean,
+    ): Boolean {
+        val myId = _currentUserId.value ?: return false
+        val otherId = targetUserId ?: return false
+        CallManager.startCall(
+            myId = myId.toString(),
+            myName = myName.ifBlank { "Expedite user" },
+            otherId = otherId.toString(),
+            otherNameArg = _otherUserName.value,
+            video = video,
+            cameraAllowed = cameraAllowed,
+        )
+        return true
+    }
+
     private companion object {
         const val TAG = "MessageViewModel"
     }
@@ -233,6 +267,8 @@ fun MessageScreen(
     val currentUserId by viewModel.currentUserId.collectAsState()
     val otherUserName by viewModel.otherUserName.collectAsState()
     val otherUserPhotoUrl by viewModel.otherUserPhotoUrl.collectAsState()
+    val context = LocalContext.current
+    val requestPermissions = rememberCallPermissionRequest()
 
     MessageScreenContent(
         messages = messages,
@@ -241,6 +277,18 @@ fun MessageScreen(
         otherUserPhotoUrl = otherUserPhotoUrl,
         onBackClick = onBackClick,
         onSend = viewModel::sendMessage,
+        onCallClick = { video ->
+            requestPermissions(video) { allowed ->
+                val message =
+                    when {
+                        !allowed.mic -> "Microphone access is needed to make calls"
+                        !viewModel.startCall(video, allowed.camera) -> "The chat is still loading. Try again in a moment."
+                        video && !allowed.camera -> "Camera not allowed: they won't see you"
+                        else -> null
+                    }
+                message?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+            }
+        },
         modifier = modifier,
     )
 }
@@ -299,6 +347,7 @@ fun MessageScreenContent(
     onBackClick: () -> Unit,
     onSend: (String) -> Boolean,
     modifier: Modifier = Modifier,
+    onCallClick: (video: Boolean) -> Unit = {},
 ) {
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -325,6 +374,7 @@ fun MessageScreenContent(
             name = otherUserName,
             photoUrl = otherUserPhotoUrl,
             onBackClick = onBackClick,
+            onCallClick = onCallClick,
         )
 
         LazyColumn(
@@ -428,6 +478,7 @@ private fun MessageHeader(
     name: String,
     photoUrl: String?,
     onBackClick: () -> Unit,
+    onCallClick: (video: Boolean) -> Unit,
 ) {
     Box(
         modifier =
@@ -457,6 +508,22 @@ private fun MessageHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        Row(modifier = Modifier.align(Alignment.CenterEnd)) {
+            IconButton(onClick = { onCallClick(false) }) {
+                Icon(
+                    imageVector = Icons.Default.Call,
+                    contentDescription = "Voice call",
+                    tint = AppColors.TextPrimary,
+                )
+            }
+            IconButton(onClick = { onCallClick(true) }) {
+                Icon(
+                    imageVector = Icons.Default.Videocam,
+                    contentDescription = "Video call",
+                    tint = AppColors.TextPrimary,
+                )
+            }
         }
     }
 }

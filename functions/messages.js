@@ -108,6 +108,30 @@ function ownerMessages({ lotteryId, notificationId, place, title, text, recipien
   );
 }
 
+/**
+ * The push that rings the callee when someone calls them from a chat. Tapping it opens the app,
+ * which shows the incoming call (the app finds the ringing call in Firestore by itself).
+ *
+ * @param {object} args
+ * @param {string} args.callId The calls/<id> document.
+ * @param {string | null | undefined} args.callerName Who is calling.
+ * @param {boolean} [args.video] True for a video call.
+ * @param {string} args.token The callee's FCM token.
+ * @returns {object} One message.
+ */
+function incomingCallMessage({ callId, callerName, video, token }) {
+  const name = (typeof callerName === "string" && callerName.trim()) || "Someone";
+  const kind = video === true ? "video call" : "call";
+  const message = pushMessage(token, `Incoming ${kind}`, `${name} is calling you on Expedite.`, {
+    type: "incoming_call",
+    callId,
+    video: String(video === true),
+  });
+  // A call is only worth answering for a short while; don't deliver it late.
+  message.android.ttl = 45 * 1000;
+  return message;
+}
+
 /** Splits `items` into arrays of at most `size`. */
 function chunk(items, size) {
   const chunks = [];
@@ -115,4 +139,11 @@ function chunk(items, size) {
   return chunks;
 }
 
-module.exports = { CHANNEL_ID, describeCampsites, resultMessages, ownerMessages, chunk };
+module.exports = {
+  CHANNEL_ID,
+  describeCampsites,
+  resultMessages,
+  ownerMessages,
+  incomingCallMessage,
+  chunk,
+};

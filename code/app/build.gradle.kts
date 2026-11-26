@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.dokka") version "2.3.0"
     id("com.google.gms.google-services")
 }
+
+// TURN relay for voice calls (voip/CallManager), read from local.properties so the credentials
+// stay out of git. Each teammate adds their own; without them calls use STUN only.
+val localProperties =
+    Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+
+fun localString(key: String): String = "\"" + (localProperties.getProperty(key) ?: "").replace("\"", "\\\"") + "\""
 
 android {
     namespace = "com.example.daemon_expedite"
@@ -19,6 +30,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "TURN_URLS", localString("turn.urls"))
+        buildConfigField("String", "TURN_USERNAME", localString("turn.username"))
+        buildConfigField("String", "TURN_PASSWORD", localString("turn.password"))
     }
 
     buildTypes {
@@ -35,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     // android.util.Log (and other framework stubs) return defaults instead of throwing in JVM
     // unit tests, so error-handling paths that log can be tested.
@@ -84,4 +100,9 @@ dependencies {
     implementation(libs.geofire.android.common)
     implementation(libs.zxing.core)
     implementation(libs.play.services.code.scanner)
+    // Voice calls between entrants and owners in chats (Google's WebRTC, packaged). See voip/CallManager.
+    implementation(libs.stream.webrtc.android)
+    // Face tracking for the face filters in video calls. On-device model bundled in the app: no
+    // account, no network. See voip/filters/FaceTracker.
+    implementation(libs.mlkit.face.detection)
 }

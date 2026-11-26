@@ -57,6 +57,8 @@ class ExpediteMessagingService : FirebaseMessagingService() {
 
     /** Called for every push while the app is in the foreground, and for data-only pushes. */
     override fun onMessageReceived(message: RemoteMessage) {
+        // While the app is open, CallOverlay already shows the incoming call full screen.
+        if (message.data["type"] == "incoming_call") return
         // A push can carry its text in its `notification` part, its `data` part, or both.
         val title = message.notification?.title ?: message.data["title"]
         val body = message.notification?.body ?: message.data["body"] ?: return

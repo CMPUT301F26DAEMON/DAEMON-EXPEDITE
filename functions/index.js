@@ -9,6 +9,8 @@
  * everyone on its waiting list.
  * notifyOwnerMessage: when an owner sends a message to their waiting list (the app creates a
  * notifications/<id> document), pushes it to everyone on that list.
+ * notifyIncomingCall: when someone starts a voice call from a chat (the app creates a
+ * calls/<id> document, see voip/CallSignaling.kt), pushes "Incoming call" to the callee.
  *
  * Pushes go to the token the app saves in users/<id>.fcmToken (Database.saveOwnFcmToken), and
  * only to users whose notificationsEnabled isn't false. Message wording is in messages.js.
@@ -33,7 +35,13 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, Timestamp, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { pickWinners } = require("./draw");
-const { describeCampsites, resultMessages, ownerMessages, chunk } = require("./messages");
+const {
+  describeCampsites,
+  resultMessages,
+  ownerMessages,
+  incomingCallMessage,
+  chunk,
+} = require("./messages");
 
 initializeApp();
 const db = getFirestore();
@@ -193,6 +201,27 @@ exports.notifyOwnerMessage = onDocumentCreated("notifications/{notificationId}",
   });
   const result = await sendAll(messages, recipients);
   logger.info(`Sent notification ${event.params.notificationId}`, result);
+});
+
+exports.notifyIncomingCall = onDocumentCreated("calls/{callId}", async (event) => {
+  // Fields written by CallSignaling.createCall in the app.
+  const call = event.data?.data();
+  if (!call || call.status !== "ringing" || typeof call.calleeId !== "string") return;
+
+  const [recipient] = await recipientsFor([call.calleeId]);
+  if (!recipient) {
+    logger.info(`Call ${event.params.callId}: callee can't be pushed; only rings if the app is open`);
+    return;
+  }
+
+  const message = incomingCallMessage({
+    callId: event.params.callId,
+    callerName: call.callerName,
+    video: call.video === true,
+    token: recipient.token,
+  });
+  const result = await sendAll([message], [recipient]);
+  logger.info(`Rang callee for call ${event.params.callId}`, result);
 });
 
 /**

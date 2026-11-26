@@ -10,6 +10,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Lottery results and campsite owner messages. Android 13+ also asks the user at runtime. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Voice and video calls in chats. RECORD_AUDIO is asked for when a call is started or answered. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Video calls in chats. Asked for when a video call is started or answered. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The app still installs on devices without a camera; they get voice calls only. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:name=".ExpediteApp"

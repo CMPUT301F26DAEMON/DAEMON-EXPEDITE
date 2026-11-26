@@ -2,6 +2,7 @@ package com.example.daemon_expedite
 
 import android.app.Application
 import com.example.daemon_expedite.push.NotificationChannels
+import com.example.daemon_expedite.voip.CallManager
 
 /**
  * Runs once when the app's process starts, before any activity or service.
@@ -15,5 +16,6 @@ class ExpediteApp : Application() {
     override fun onCreate() {
         super.onCreate()
         NotificationChannels.create(this)
+        CallManager.init(this)
     }
 }
