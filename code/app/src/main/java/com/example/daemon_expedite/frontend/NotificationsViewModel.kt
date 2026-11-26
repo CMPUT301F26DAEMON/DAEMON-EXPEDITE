@@ -17,24 +17,35 @@ import kotlinx.coroutines.launch
 /**
  * Data for [NotificationsScreen]: the signed-in user's notifications, newest first.
  *
- * Call [load] every time the page is opened. It shows the notifications with a green dot on
- * the ones that were unread, then marks them all read in the database. The dots stay for this
- * visit and are gone the next time the page is opened.
+ * Call [load] every time the page is opened. For entrants (and admins) it shows the
+ * notifications they *received*, with a green dot on the ones that were unread, then marks
+ * them all read in the database. The dots stay for this visit and are gone the next time the
+ * page is opened.
+ *
+ * For owners (`sent = true`) it shows the notifications they *sent* instead. Those have no
+ * read state for the owner, so there are no dots and nothing is marked read.
  */
 class NotificationsViewModel : ViewModel() {
 
     private val _notifications = MutableStateFlow<UiState<List<NotificationEntry>>>(UiState.Loading)
     val notifications: StateFlow<UiState<List<NotificationEntry>>> = _notifications.asStateFlow()
 
-    /** Loads [userId]'s notifications, then marks the unread ones as read. */
-    fun load(userId: Id) {
+    /**
+     * Loads [userId]'s notifications. If [sent], loads the ones they sent as an owner;
+     * otherwise the ones they received, then marks the unread ones as read.
+     */
+    fun load(userId: Id, sent: Boolean = false) {
         viewModelScope.launch {
             if (_notifications.value !is UiState.Content) _notifications.value = UiState.Loading
             var unread: List<Id> = emptyList()
             val fresh = loadAsUiState("Couldn't load your notifications") {
-                val loaded = Database.fetchReceivedNotifications(userId)
-                unread = loaded.filterNot { it.isRead }.map { it.id }
-                toEntries(loaded)
+                if (sent) {
+                    toEntries(Database.fetchSentNotifications(userId), sent = true)
+                } else {
+                    val loaded = Database.fetchReceivedNotifications(userId)
+                    unread = loaded.filterNot { it.isRead }.map { it.id }
+                    toEntries(loaded, sent = false)
+                }
             }
             // Keep what's on screen if a reload fails.
             if (fresh is UiState.Content || _notifications.value !is UiState.Content) _notifications.value = fresh
@@ -49,9 +60,13 @@ class NotificationsViewModel : ViewModel() {
      * Formats [notifications] for display. The heading is the lottery's campsites, for example
      * "Pine Creek Hideaway and 2 more". Each lottery and campsite is looked up once. If a
      * lottery's campsites can't be found (deleted, or failed to load), the owner's name is
-     * shown instead.
+     * shown instead. For [sent] notifications the heading is "To: <campsites>" and the fallback
+     * is "To: your waiting list", since the sender is the owner themselves.
      */
-    private suspend fun toEntries(notifications: List<Notification>): List<NotificationEntry> = coroutineScope {
+    private suspend fun toEntries(
+        notifications: List<Notification>,
+        sent: Boolean,
+    ): List<NotificationEntry> = coroutineScope {
         val lotteries: Map<Id, Lottery> =
             notifications
                 .map { it.receiversOfLottery }
@@ -75,6 +90,18 @@ class NotificationsViewModel : ViewModel() {
                 ?.campsites
                 ?.mapNotNull { campsiteNames[it] }
                 ?.let(::campsitesHeading)
+
+        if (sent) {
+            return@coroutineScope notifications.map { n ->
+                NotificationEntry(
+                    sender = "To: " + (headingFor(n) ?: "your waiting list"),
+                    message = n.text,
+                    id = n.id,
+                    title = n.title,
+                    isNew = false,
+                )
+            }
+        }
 
         // Only look up owner names for notifications that need the fallback.
         val ownerNames: Map<Id, String> =

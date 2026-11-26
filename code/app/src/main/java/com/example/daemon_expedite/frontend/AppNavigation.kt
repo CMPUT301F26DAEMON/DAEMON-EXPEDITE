@@ -806,7 +806,8 @@ fun AppNavigation(
 
             composable(Routes.OWNER_NOTIFICATIONS) {
                 // A tab: the bar's Home tab goes home, so there's no back button.
-                NotificationsTab(userId = user?.id)
+                // Owners see the notifications they've sent to their waiting lists.
+                NotificationsTab(userId = user?.id, sent = true)
             }
 
             composable(Routes.OWNER_MESSAGES) {
@@ -1736,15 +1737,18 @@ private fun SplashRoute(
  * show up with a green dot; opening it marks them read (see [NotificationsViewModel]).
  *
  * @param userId The signed-in user, or null while they are still loading.
+ * @param sent True on the owner tab: shows the notifications the owner sent instead of the
+ *   ones they received.
  */
 @Composable
-private fun NotificationsTab(userId: Id?) {
+private fun NotificationsTab(userId: Id?, sent: Boolean = false) {
     val vm: NotificationsViewModel = viewModel()
-    LaunchedEffect(userId) { userId?.let(vm::load) }
+    LaunchedEffect(userId, sent) { userId?.let { vm.load(it, sent) } }
     val state by vm.notifications.collectAsState()
     NotificationsScreen(
         state = state,
         onBackClick = null,
-        onRetry = { userId?.let(vm::load) },
+        onRetry = { userId?.let { vm.load(it, sent) } },
+        emptyText = if (sent) "You haven't sent any notifications yet" else "No notifications yet",
     )
 }

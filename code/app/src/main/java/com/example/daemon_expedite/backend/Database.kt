@@ -207,6 +207,8 @@ interface DatabaseInterface {
 
     suspend fun fetchReceivedNotifications(userId: Id): List<Notification>
 
+    suspend fun fetchSentNotifications(ownerId: Id): List<Notification>
+
     suspend fun markNotificationsRead(
         userId: Id,
         notificationIds: List<Id>,
@@ -2272,12 +2274,37 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 .await()
                 .data
                 ?: throw NotFoundException("User ${userId.value} not found")
-        val ids =
-            (userData["receivedNotifications"] as? List<*>)
-                .orEmpty()
-                .mapNotNull { (it as? String)?.let { s -> runCatching { Uuid.parse(s) }.getOrNull() } }
-                .distinct()
-        val me = userId.value.toString()
+        return fetchNotificationsByIds(parseUuidList(userData["receivedNotifications"]), viewerId = userId)
+    }
+
+    /**
+     * The notifications owner [ownerId] has sent, newest first (by [Id.getTime]).
+     *
+     * Reads the ids from the stored owner document's `ownerNotifications`. The owner isn't a
+     * recipient, so [Notification.isRead] is always false. Returns an empty list if the owner
+     * document doesn't exist (the user has never acted as an owner).
+     */
+    override suspend fun fetchSentNotifications(ownerId: Id): List<Notification> {
+        val ownerData = ownerRef(ownerId).get().await().data ?: return emptyList()
+        return fetchNotificationsByIds(parseUuidList(ownerData["ownerNotifications"]), viewerId = ownerId)
+    }
+
+    /** The valid, distinct UUIDs in a stored list of id strings. */
+    private fun parseUuidList(raw: Any?): List<Uuid> =
+        (raw as? List<*>)
+            .orEmpty()
+            .mapNotNull { (it as? String)?.let { s -> runCatching { Uuid.parse(s) }.getOrNull() } }
+            .distinct()
+
+    /**
+     * Loads the `notifications` documents with [ids], newest first. [Notification.isRead] says
+     * whether [viewerId] has read each one. Missing or malformed notifications are skipped.
+     */
+    private suspend fun fetchNotificationsByIds(
+        ids: List<Uuid>,
+        viewerId: Id,
+    ): List<Notification> {
+        val me = viewerId.value.toString()
 
         val docs =
             coroutineScope {
@@ -2594,6 +2621,9 @@ object Database {
 
     /** The user's notifications, newest first, with their own read state. */
     suspend fun fetchReceivedNotifications(userId: Id): List<Notification> = db.fetchReceivedNotifications(userId)
+
+    /** The notifications [ownerId] has sent, newest first. */
+    suspend fun fetchSentNotifications(ownerId: Id): List<Notification> = db.fetchSentNotifications(ownerId)
 
     /** Marks the notifications as read for [userId] only. */
     suspend fun markNotificationsRead(
