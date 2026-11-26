@@ -58,7 +58,7 @@ internal class RoleTabs(
                 home = Routes.ADMIN_HOME,
                 labels = listOf("Home", "Messages", "Profiles", "Notifications", "Images"),
                 icons = listOf(AppIcons.Home, AppIcons.Chat, AppIcons.Profile, AppIcons.BellIcon, AppIcons.AddPhoto),
-                routes = listOf(Routes.ADMIN_HOME, null, Routes.ADMIN_PROFILES, Routes.ADMIN_NOTIFICATIONS, Routes.ADMIN_IMAGES),
+                routes = listOf(Routes.ADMIN_HOME, Routes.ADMIN_MESSAGES, Routes.ADMIN_PROFILES, Routes.ADMIN_NOTIFICATIONS, Routes.ADMIN_IMAGES),
             )
 
         val ALL = listOf(ENTRANT, OWNER, ADMIN)

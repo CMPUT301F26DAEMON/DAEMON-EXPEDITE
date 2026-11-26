@@ -6,219 +6,208 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.daemon_expedite.backend.Id
+import com.example.daemon_expedite.backend.NamedUser
+import com.example.daemon_expedite.backend.OwnerChatPartner
 import com.example.daemon_expedite.ui_components.AppColors
-import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
-import com.example.daemon_expedite.ui_components.BackButton
-import com.example.daemon_expedite.ui_components.ScreenHeader
+import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
+import com.example.daemon_expedite.ui_components.DropdownSelectField
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-data class AdminMessageUi(
-    val id: String,
-    val text: String,
-    val date: LocalDate,
-    val fromOwner: Boolean
-)
-
-data class AdminConversationUi(
-    val ownerId: String,
-    val ownerName: String,
-    val entrantId: String,
-    val entrantName: String,
-    val messages: List<AdminMessageUi> = emptyList()
-)
+/**
+ * The admin's Messages tab: pick a campsite owner, then an entrant they've chatted with, to
+ * read their conversation. The owner's messages are on the left, the entrant's on the right,
+ * newest at the bottom. Scrolling to the top loads older messages.
+ *
+ * @param state What to show (see [AdminMessagesViewModel]).
+ * @param onOwnerSelect Called when an owner is picked.
+ * @param onEntrantSelect Called when an entrant is picked.
+ * @param onRetryOwners Called when the owner list failed and the message is tapped.
+ * @param onRetrySelection Called when the entrant list or the messages failed and the message is tapped.
+ * @param onLoadOlder Called when the oldest loaded message scrolls into view.
+ */
 @Composable
 fun AdminMessagesScreen(
-    conversations: List<AdminConversationUi>,
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {var selectedOwnerId by rememberSaveable { mutableStateOf<String?>(null) }
+    state: AdminMessagesState,
+    onOwnerSelect: (NamedUser) -> Unit,
+    onEntrantSelect: (OwnerChatPartner) -> Unit,
+    onRetryOwners: () -> Unit,
+    onRetrySelection: () -> Unit,
+    onLoadOlder: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val owners = (state.owners as? UiState.Content)?.data.orEmpty()
+    val entrants = (state.entrants as? UiState.Content)?.data.orEmpty()
 
-    var selectedEntrantId by rememberSaveable {mutableStateOf<String?>(null) }
-
-    //Camp site owners
-    val owners = conversations.distinctBy { it.ownerId }
-
-    val selectedOwner = owners.firstOrNull {
-        it.ownerId == selectedOwnerId
-    } ?: owners.firstOrNull()
-
-    //Entrants
-    val entrants = conversations.filter { it.ownerId==selectedOwner?.ownerId}.distinctBy { it.entrantId }
-
-    val selectedConversation = entrants.firstOrNull {it.entrantId == selectedEntrantId} ?: entrants.firstOrNull()
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppColors.Background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
+            .background(AppColors.Background),
     ) {
-        ScreenHeader(title = "Messages", onBackClick = onBackClick)
+        // Same header as the owner and entrant Messages tabs.
+        Text(
+            text = "Messages",
+            style = AppTextStyles.PageTitleLarge,
+            color = AppColors.TextOnPrimary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(start = 28.dp, end = 28.dp, top = 26.dp),
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 21.dp),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            AdminNameDropdown(
+            DropdownSelectField(
                 modifier = Modifier.weight(1f),
-                label = "CAMPSITE OWNER",
-                selectedName = selectedOwner?.ownerName ?: "Select owner",
+                label = "Campsite owner",
+                selectedText = when (state.owners) {
+                    UiState.Loading -> "Loading…"
+                    is UiState.Error -> "Couldn't load"
+                    is UiState.Content -> state.selectedOwner?.name
+                        ?: if (owners.isEmpty()) "No owners" else "Select owner"
+                },
                 options = owners,
-                optionLabel = { it.ownerName },
-                onSelect = {
-                    selectedOwnerId = it.ownerId
-                    selectedEntrantId = null
-                }
+                optionLabel = { it.name },
+                onSelect = onOwnerSelect,
             )
-            AdminNameDropdown(
+            DropdownSelectField(
                 modifier = Modifier.weight(1f),
-                label = "ENTRANT",
-                selectedName = selectedConversation?.entrantName
-                    ?: "Select entrant",
+                label = "Entrant",
+                selectedText = when (state.entrants) {
+                    null -> "Select owner first"
+                    UiState.Loading -> "Loading…"
+                    is UiState.Error -> "Couldn't load"
+                    is UiState.Content -> state.selectedEntrant?.entrant?.name
+                        ?: if (entrants.isEmpty()) "No chats" else "Select entrant"
+                },
                 options = entrants,
-                optionLabel = { it.entrantName },
-                onSelect = {
-                    selectedEntrantId = it.entrantId
-                }
+                optionLabel = { it.entrant.name },
+                onSelect = onEntrantSelect,
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        val messages = selectedConversation?.messages.orEmpty()
 
-        LazyColumn( //Empty Lazy Columnfor now implementing later
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 25.dp),
-            contentPadding = PaddingValues(
-                top = 8.dp,
-                bottom = 24.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth()
+                .weight(1f),
         ) {
-
-            itemsIndexed(
-                items = messages,
-                key = { _, message -> message.id }
-            ) { index, message ->
-
-                Column {
-                    if (
-                        index == 0 ||
-                        messages[index - 1].date != message.date
-                    ) {
-                        MessageDateLabel(message.date)
-                        Spacer(modifier = Modifier.height(13.dp))
+            val messages = state.messages
+            when {
+                state.owners is UiState.Error -> ErrorText(state.owners.message, onRetryOwners)
+                state.entrants is UiState.Error -> ErrorText(state.entrants.message, onRetrySelection)
+                state.selectedOwner != null && state.entrants is UiState.Content && entrants.isEmpty() ->
+                    CenteredText("${state.selectedOwner.name} has no conversations yet")
+                messages == null ->
+                    CenteredText("Select both a campsite owner and an entrant to see their messages")
+                messages is UiState.Loading -> Centered { CircularProgressIndicator(color = AppColors.Primary) }
+                messages is UiState.Error -> ErrorText(messages.message, onRetrySelection)
+                messages is UiState.Content && messages.data.isEmpty() ->
+                    CenteredText(
+                        "No messages between ${state.selectedOwner?.name} and " +
+                            "${state.selectedEntrant?.entrant?.name} yet",
+                    )
+                messages is UiState.Content ->
+                    // Picking another pair starts a fresh list, scrolled to the newest message.
+                    key(state.selectedEntrant?.chatId) {
+                        MessageList(
+                            messages = messages.data,
+                            canLoadOlder = state.canLoadOlder,
+                            loadingOlder = state.loadingOlder,
+                            onLoadOlder = onLoadOlder,
+                        )
                     }
-
-                    AdminMessageCard(message = message)
-                }
             }
         }
+
+        // The app draws the admin's bar over this tab.
+        BottomNavBarSpacer()
     }
 }
+
+/**
+ * The conversation, newest at the bottom.
+ *
+ * [messages] is newest first, and the list is drawn bottom-up ([LazyColumn]'s reverseLayout),
+ * so it opens on the newest message and older pages are simply added to the end of the list.
+ */
 @Composable
-private fun <T> AdminNameDropdown(
-    label: String,
-    selectedName: String,
-    options: List<T>,
-    optionLabel: (T) -> String,
-    onSelect: (T) -> Unit,
-    modifier: Modifier = Modifier
-) {var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = AppTextStyles.FieldLabel,
-            color = AppColors.Secondary
-        )
+private fun MessageList(
+    messages: List<AdminMessageUi>,
+    canLoadOlder: Boolean,
+    loadingOlder: Boolean,
+    onLoadOlder: () -> Unit,
+) {
+    val listState = rememberLazyListState()
+    val latestOnLoadOlder by rememberUpdatedState(onLoadOlder)
 
-        Spacer(modifier = Modifier.height(5.dp))
+    // Asks for older messages when one of the oldest few comes into view (at the top).
+    LaunchedEffect(listState, canLoadOlder) {
+        if (!canLoadOlder) return@LaunchedEffect
+        snapshotFlow {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= listState.layoutInfo.totalItemsCount - LOAD_OLDER_THRESHOLD
+        }.distinctUntilChanged()
+            .filter { it }
+            .collect { latestOnLoadOlder() }
+    }
 
-        Box {
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(38.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(AppColors.FillField)
-                    .border(
-                        1.dp,
-                        AppColors.OutlineField,
-                        RoundedCornerShape(12.dp)
-                    )
-                    .clickable(enabled = options.isNotEmpty()) {
-                        expanded = true
-                    }
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = selectedName,
-                    style = AppTextStyles.BodySmall,
-                    color = AppColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = AppIcons.ChevronRight,
-                    contentDescription = "Select $label",
-                    tint = AppColors.Secondary,
-                    modifier = Modifier
-                        .size(17.dp)
-                        .rotate(90f)
-                )
+    LazyColumn(
+        state = listState,
+        reverseLayout = true,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 25.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        itemsIndexed(items = messages, key = { _, message -> message.id }) { index, message ->
+            Column {
+                // A date heading above the first (oldest) message of each day. The list is
+                // newest first, so the next item is the message just before this one.
+                if (index == messages.lastIndex || messages[index + 1].date != message.date) {
+                    MessageDateLabel(message.date)
+                    Spacer(modifier = Modifier.height(13.dp))
+                }
+                AdminMessageCard(message = message)
             }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .background(AppColors.SurfaceDeep)
-                    .widthIn(min = 150.dp, max = 250.dp)
-            ) {
-
-                options.forEach { option ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = optionLabel(option),
-                                style = AppTextStyles.BodySmall,
-                                color = AppColors.TextPrimary
-                            )
-                        },
-                        onClick = {
-                            onSelect(option)
-                            expanded = false
-                        }
-                    )
+        }
+        if (loadingOlder) {
+            item(key = "loading_older") {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = AppColors.Primary, modifier = Modifier.size(24.dp))
                 }
             }
         }
     }
 }
+
+/** How close to the oldest loaded message (in items) the next page starts loading. */
+private const val LOAD_OLDER_THRESHOLD = 3
+
 @Composable
 private fun MessageDateLabel(date: LocalDate) {
     Text(
@@ -234,6 +223,7 @@ private fun MessageDateLabel(date: LocalDate) {
         modifier = Modifier.fillMaxWidth()
     )
 }
+
 @Composable
 private fun AdminMessageCard( //Card for message can be used again
     message: AdminMessageUi
@@ -274,57 +264,75 @@ private fun AdminMessageCard( //Card for message can be used again
         }
     }
 }
+
+@Composable
+private fun Centered(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { content() }
+}
+
+@Composable
+private fun CenteredText(text: String) = Centered {
+    Text(
+        text = text,
+        style = AppTextStyles.BodyMedium,
+        color = AppColors.TextSecondary,
+        textAlign = TextAlign.Center,
+    )
+}
+
+@Composable
+private fun ErrorText(message: String, onRetry: () -> Unit) = Centered {
+    Text(
+        text = "$message. Tap to try again.",
+        style = AppTextStyles.BodyMedium,
+        color = AppColors.TextSecondary,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.clickable(onClick = onRetry).padding(12.dp),
+    )
+}
+
 /**
  * Preview sample messages:
  * Owner: Hi
  * Entrant: HI
  */
-@Preview(showBackground=true,widthDp = 393,heightDp= 852)
+@Preview(showBackground = true, widthDp = 393, heightDp = 852)
 @Composable
 private fun AdminMessagesScreenPreview() {
     val sampleDate = LocalDate.of(2026, 10, 12)
-    val conversations = listOf(
-        AdminConversationUi(
-            ownerId = "owner1",
-            ownerName = "Oliver Hayes",
-            entrantId = "entrant1",
-            entrantName = "Maya",
-            messages = listOf(
-
-                AdminMessageUi(
-                    id = "1",
-                    text = "Hi", // Checking message cards
-                    date = sampleDate,
-                    fromOwner = true
-                ),
-
-                AdminMessageUi(
-                    id = "2",
-                    text = "HI",
-                    date = sampleDate,
-                    fromOwner = false
-                )
-            )
-        ),
-
-        // Additional names checking dropdown
-
-        AdminConversationUi(
-            ownerId = "owner1",
-            ownerName = "Oliver Hayes",
-            entrantId = "entrant2",
-            entrantName = "Amitej"
-        ),
-
-        AdminConversationUi(
-            ownerId = "owner2",
-            ownerName = "Elena Park",
-            entrantId = "entrant3",
-            entrantName = "Armaan"
-        )
-    )
+    val owner = NamedUser(Id(), "Oliver Hayes")
+    val entrant = OwnerChatPartner(Id(), NamedUser(Id(), "Maya"))
     AdminMessagesScreen(
-        conversations = conversations,
-        onBackClick = {}
+        state = AdminMessagesState(
+            owners = UiState.Content(listOf(owner, NamedUser(Id(), "Elena Park"))),
+            selectedOwner = owner,
+            entrants = UiState.Content(listOf(entrant, OwnerChatPartner(Id(), NamedUser(Id(), "Amitej")))),
+            selectedEntrant = entrant,
+            // Newest first, as the view model gives them.
+            messages = UiState.Content(
+                listOf(
+                    AdminMessageUi(id = "2", text = "HI", date = sampleDate, fromOwner = false),
+                    AdminMessageUi(id = "1", text = "Hi", date = sampleDate, fromOwner = true),
+                ),
+            ),
+        ),
+        onOwnerSelect = {},
+        onEntrantSelect = {},
+        onRetryOwners = {},
+        onRetrySelection = {},
+        onLoadOlder = {},
+    )
+}
+
+@Preview(showBackground = true, widthDp = 393, heightDp = 852)
+@Composable
+private fun AdminMessagesScreenEmptyPreview() {
+    AdminMessagesScreen(
+        state = AdminMessagesState(owners = UiState.Content(listOf(NamedUser(Id(), "Oliver Hayes")))),
+        onOwnerSelect = {},
+        onEntrantSelect = {},
+        onRetryOwners = {},
+        onRetrySelection = {},
+        onLoadOlder = {},
     )
 }

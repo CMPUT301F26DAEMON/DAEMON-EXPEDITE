@@ -158,6 +158,7 @@ object Routes {
     const val ADMIN_HOME = "admin_home"
     const val ADMIN_PROFILE = "admin_profile"
     const val ADMIN_NOTIFICATIONS = "admin_notifications"
+    const val ADMIN_MESSAGES = "admin_messages"
     const val ADMIN_PROFILES = "admin_profiles"
     const val ADMIN_IMAGES = "admin_images"
     const val ADMIN_CAMPSITE_DETAIL = "admin_campsite/{$CAMPSITE_ID_ARG}"
@@ -1372,6 +1373,21 @@ fun AppNavigation(
                     onCampsiteClick = { id -> navController.navigate(Routes.adminCampsiteDetail(id)) },
                     onFilterClick = home::onFilterClick,
                     onProfileClick = { navController.navigate(Routes.ADMIN_PROFILE) },
+                )
+            }
+
+            composable(Routes.ADMIN_MESSAGES) {
+                // A tab: no back button. Keeps the picked owner and entrant while the admin
+                // visits other tabs, since the view model lives as long as this entry.
+                val messages: AdminMessagesViewModel = viewModel()
+                val state by messages.state.collectAsState()
+                AdminMessagesScreen(
+                    state = state,
+                    onOwnerSelect = messages::selectOwner,
+                    onEntrantSelect = messages::selectEntrant,
+                    onRetryOwners = messages::loadOwners,
+                    onRetrySelection = messages::retrySelection,
+                    onLoadOlder = messages::loadOlder,
                 )
             }
 
