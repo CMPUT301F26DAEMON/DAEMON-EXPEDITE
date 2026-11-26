@@ -76,16 +76,24 @@ object CallManager {
     /** How long the "Call ended" screen stays up before going away. */
     private const val ENDED_SCREEN_MS = 1_500L
 
-    // Camera capture size. 720p is sharp on a phone screen and fine on Wi-Fi; WebRTC lowers it
-    // by itself when the connection is slow.
-    private const val VIDEO_WIDTH = 1280
-    private const val VIDEO_HEIGHT = 720
-    private const val VIDEO_FPS = 30
+    // Camera capture: 1080p at 60 fps. The camera picks the closest size and frame rate it
+    // supports (some front cameras only do 30 fps at 1080p); the log line "Camera ..." says what
+    // it offers. WebRTC scales down by itself when the connection can't carry this.
+    private const val VIDEO_WIDTH = 1920
+    private const val VIDEO_HEIGHT = 1080
+    private const val VIDEO_FPS = 60
 
-    // While a filter is on, frames are processed on the phone's CPU, so they are scaled down
-    // first to keep the call smooth.
+    /** Upper limit for our video's bitrate. 1080p60 needs about 6–8 Mbps to look clean. */
+    private const val VIDEO_MAX_BITRATE_BPS = 8_000_000
+
+    /** Where WebRTC's bandwidth estimate starts, so the call doesn't open blurry and ramp up. */
+    private const val VIDEO_START_BITRATE_BPS = 2_500_000
+
+    // While a filter is on, frames are processed on the phone's CPU, so they are scaled down and
+    // capped at 30 fps to keep the call smooth.
     private const val FILTERED_WIDTH = 960
     private const val FILTERED_HEIGHT = 540
+    private const val FILTERED_FPS = 30
 
     /**
      * STUN finds each phone's public address; TURN relays the media when the phones can't reach
@@ -358,7 +366,7 @@ object CallManager {
         if (newFilter == VideoFilter.NONE) {
             videoSource?.adaptOutputFormat(VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS)
         } else {
-            videoSource?.adaptOutputFormat(FILTERED_WIDTH, FILTERED_HEIGHT, VIDEO_FPS)
+            videoSource?.adaptOutputFormat(FILTERED_WIDTH, FILTERED_HEIGHT, FILTERED_FPS)
         }
     }
 
@@ -499,17 +507,61 @@ object CallManager {
         if (isVideo) {
             val camera = if (sendCamera) startCamera() else null
             if (camera != null) {
-                pc.addTrack(camera, listOf("stream0"))
+                tuneVideoSender(pc.addTrack(camera, listOf("stream0")))
             } else {
                 pc.addTransceiver(
                     org.webrtc.MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO,
                     RtpTransceiver.RtpTransceiverInit(RtpTransceiver.RtpTransceiverDirection.RECV_ONLY),
                 )
             }
+            preferH264(pc)
         }
 
         startCallAudio()
         return pc
+    }
+
+    /**
+     * Lets our video go up to [VIDEO_FPS] and [VIDEO_MAX_BITRATE_BPS]. When the connection can't
+     * carry that, WebRTC lowers the resolution first and keeps the frame rate, so motion stays
+     * smooth (its default would drop frames instead).
+     */
+    private fun tuneVideoSender(sender: org.webrtc.RtpSender) {
+        val params = sender.parameters
+        params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.MAINTAIN_FRAMERATE
+        params.encodings.forEach {
+            it.maxFramerate = VIDEO_FPS
+            it.maxBitrateBps = VIDEO_MAX_BITRATE_BPS
+        }
+        if (!sender.setParameters(params)) Log.w(TAG, "Couldn't raise video frame rate/bitrate limits")
+        // Start the bandwidth estimate high enough for HD instead of WebRTC's cautious default.
+        peer?.setBitrate(null, VIDEO_START_BITRATE_BPS, VIDEO_MAX_BITRATE_BPS)
+    }
+
+    /**
+     * Puts H.264 first in the video codec list, on both phones before the offer/answer is made.
+     * Phones encode H.264 in hardware; WebRTC's default, VP8, is often done in software, which
+     * can't keep up with 1080p60. The other codecs stay as fallbacks.
+     */
+    private fun preferH264(pc: PeerConnection) {
+        val codecs =
+            factory()
+                .getRtpReceiverCapabilities(org.webrtc.MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO)
+                .codecs
+        if (codecs.none { it.name.equals("H264", ignoreCase = true) }) {
+            Log.w(TAG, "No H.264 on this phone; using the default codec")
+            return
+        }
+        val ordered = codecs.sortedBy { if (it.name.equals("H264", ignoreCase = true)) 0 else 1 }
+        pc.transceivers
+            .filter { it.mediaType == org.webrtc.MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO }
+            .forEach {
+                try {
+                    it.setCodecPreferences(ordered)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Couldn't prefer H.264", e)
+                }
+            }
     }
 
     /** Opens the front camera (or any camera) and returns its track, or null if there is none. */
@@ -521,6 +573,23 @@ object CallManager {
             Log.w(TAG, "No camera found; sending audio only")
             return null
         }
+        // Camera2 reports frame rates in thousandths of a frame per second.
+        val maxFps =
+            enumerator
+                .getSupportedFormats(name)
+                ?.maxOfOrNull { it.framerate.max }
+                ?.let { if (it > 1000) it / 1000 else it }
+        val formats = enumerator.getSupportedFormats(name).orEmpty()
+        val best1080 =
+            formats
+                .filter { it.width >= VIDEO_WIDTH && it.height >= VIDEO_HEIGHT || it.width >= VIDEO_HEIGHT && it.height >= VIDEO_WIDTH }
+                .maxOfOrNull { it.framerate.max }
+                ?.let { if (it > 1000) it / 1000 else it }
+        Log.i(
+            TAG,
+            "Camera $name offers up to $maxFps fps overall, ${best1080 ?: "no"} fps at 1080p; " +
+                "asking for ${VIDEO_WIDTH}x$VIDEO_HEIGHT@$VIDEO_FPS",
+        )
         val capturer = enumerator.createCapturer(name, null) ?: return null
         val helper = SurfaceTextureHelper.create("CameraCapture", egl().eglBaseContext)
         val source = factory().createVideoSource(false)
