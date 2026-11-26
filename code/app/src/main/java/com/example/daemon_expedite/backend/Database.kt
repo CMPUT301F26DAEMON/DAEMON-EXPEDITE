@@ -205,10 +205,6 @@ interface DatabaseInterface {
         lastMessage: Message? = null,
     ): Chat
 
-    suspend fun fetchAllOwners(): List<NamedUser>
-
-    suspend fun fetchOwnerChatPartners(ownerId: Id): List<OwnerChatPartner>
-
     suspend fun sendLotteryNotification(
         lotteryId: Id,
         senderId: Id,
@@ -2163,79 +2159,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return fetchChat(Id(Uuid.parse(chatDoc.id)), lastMessage)
     }
 
-    /**
-     * Every owner in the app with their name, sorted by name. For the admin's Messages screen.
-     *
-     * Names live on the user document (owners have the same id), so each one is looked up
-     * there. Owners whose user document is gone or whose id can't be read are skipped.
-     */
-    override suspend fun fetchAllOwners(): List<NamedUser> =
-        coroutineScope {
-            db
-                .collection("owners")
-                .get()
-                .await()
-                .documents
-                .mapNotNull { doc -> parseIdOrNull(doc.getString("id") ?: doc.id) }
-                .map { id -> async { userNameOrNull(id)?.let { NamedUser(id, it) } } }
-                .awaitAll()
-                .filterNotNull()
-                .sortedBy { it.name.lowercase() }
-        }
-
-    /**
-     * The chats in [ownerId]'s `ownerChats`, each with the entrant on the other side, sorted by
-     * the entrant's name. For the admin's Messages screen.
-     *
-     * The entrant is the chat's `entrantId`. Older chats only have `userA` and `userB`; for
-     * those it is whichever of the two isn't the owner. Chats that are missing or unreadable
-     * are skipped, and if the owner somehow has two chats with one entrant only the first is kept.
-     *
-     * @return An empty list if the owner has no chats (or no owner record).
-     */
-    override suspend fun fetchOwnerChatPartners(ownerId: Id): List<OwnerChatPartner> {
-        val owner = ownerId.value.toString()
-        val chatIds =
-            (db.collection("owners").document(owner).get().await().get("ownerChats") as? List<*>)
-                .orEmpty()
-                .mapNotNull { parseIdOrNull(it) }
-        return coroutineScope {
-            chatIds
-                .map { chatId ->
-                    async {
-                        val chat = db.collection("chats").document(chatId.value.toString()).get().await()
-                        if (!chat.exists()) return@async null
-                        val entrantRaw =
-                            chat.getString("entrantId")
-                                ?: listOfNotNull(chat.getString("userA"), chat.getString("userB"))
-                                    .firstOrNull { it != owner }
-                        val entrantId = parseIdOrNull(entrantRaw) ?: return@async null
-                        val name = userNameOrNull(entrantId) ?: return@async null
-                        OwnerChatPartner(chatId, NamedUser(entrantId, name))
-                    }
-                }.awaitAll()
-                .filterNotNull()
-                .distinctBy { it.entrant.id }
-                .sortedBy { it.entrant.name.lowercase() }
-        }
-    }
-
-    /** The name on [id]'s user document ("Unnamed user" if blank), or null if there is no user. */
-    private suspend fun userNameOrNull(id: Id): String? {
-        val doc = db.collection("users").document(id.value.toString()).get().await()
-        if (!doc.exists()) return null
-        return doc.getString("name")?.takeIf { it.isNotBlank() } ?: "Unnamed user"
-    }
-
-    /** Parses a stored id string, or returns null (logged) if it isn't a valid [Id]. */
-    private fun parseIdOrNull(raw: Any?): Id? =
-        try {
-            Id(Uuid.parse(raw as String))
-        } catch (e: Exception) {
-            if (raw != null) Log.e("DatabaseInner", "Skipping malformed id '$raw'")
-            null
-        }
-
     suspend fun createChatAndUploadMessage(
         chatId: Id,
         userA: Id,
@@ -2734,17 +2657,7 @@ object Database {
     /** True if the user has an entry in the "admins" collection. */
     suspend fun isAdmin(userId: Id): Boolean = db.isAdmin(userId)
 
-    /** The latest 50 messages in [chatId], or the 50 before [lastMessage] (newest first). */
-    suspend fun fetchChat(
-        chatId: Id,
-        lastMessage: Message? = null,
-    ): Chat = db.fetchChat(chatId, lastMessage)
-
-    /** Every owner with their name, sorted by name. See [DatabaseInner.fetchAllOwners]. */
-    suspend fun fetchAllOwners(): List<NamedUser> = db.fetchAllOwners()
-
-    /** [ownerId]'s chats with the entrant in each. See [DatabaseInner.fetchOwnerChatPartners]. */
-    suspend fun fetchOwnerChatPartners(ownerId: Id): List<OwnerChatPartner> = db.fetchOwnerChatPartners(ownerId)
+    suspend fun fetchChat(chatId: Id): Chat = db.fetchChat(chatId)
 
     suspend fun fetchChatWithUserId(
         userA: Id,

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -327,90 +328,12 @@ fun MessageScreenContent(
             onBackClick = onBackClick,
         )
 
-        LazyColumn(
-            state = listState,
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
-        ) {
-            items(listItems, key = { item ->
-                when (item) {
-                    is MessageListItem.DateHeader -> {
-                        "date_${item.dateString}"
-                    }
-
-                    is MessageListItem.MessageItem -> {
-                        item.message.id.value
-                            .toString()
-                    }
-                }
-            }) { item ->
-                when (item) {
-                    is MessageListItem.DateHeader -> {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = item.dateString,
-                                style = AppTextStyles.Caption,
-                                color = AppColors.TextMuted,
-                                modifier =
-                                    Modifier
-                                        .background(AppColors.SurfaceDeep, RoundedCornerShape(12.dp))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp),
-                            )
-                        }
-                    }
-
-                    is MessageListItem.MessageItem -> {
-                        val msg = item.message
-                        val isMe = msg.sender == currentUserId
-                        val timeStr = formatMessageTime(msg.id.getTime())
-
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .widthIn(max = 280.dp)
-                                        .clip(
-                                            RoundedCornerShape(
-                                                topStart = 16.dp,
-                                                topEnd = 16.dp,
-                                                bottomStart = if (isMe) 16.dp else 4.dp,
-                                                bottomEnd = if (isMe) 4.dp else 16.dp,
-                                            ),
-                                        ).background(if (isMe) AppColors.Primary else AppColors.Surface)
-                                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                            ) {
-                                Text(
-                                    text = msg.message,
-                                    style = AppTextStyles.Body,
-                                    color = if (isMe) AppColors.TextOnPrimary else AppColors.TextPrimary,
-                                )
-                            }
-                            Text(
-                                text = timeStr,
-                                style = AppTextStyles.Caption.copy(fontSize = 11.sp),
-                                color = AppColors.TextMuted,
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        ChatMessageList(
+            messages = messages,
+            currentUserId = currentUserId,
+            listState = listState,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
 
         MessageInputBar(
             message = inputText,
@@ -420,6 +343,108 @@ fun MessageScreenContent(
             },
             modifier = Modifier.padding(16.dp),
         )
+    }
+}
+
+/**
+ * A conversation's messages, oldest at the top: a date chip whenever the day changes ("Today",
+ * "Yesterday" or the date), then each bubble with its time underneath.
+ *
+ * Messages sent by [currentUserId] are on the right in green, everyone else's on the left.
+ * Used by the chat screen ([MessageScreenContent]) and the admin's Messages tab.
+ *
+ * @param messages Oldest first.
+ * @param currentUserId Whose messages go on the right, or null to put every message on the left.
+ * @param listState Scroll state, so the caller can scroll the list (for example to the newest message).
+ */
+@Composable
+fun ChatMessageList(
+    messages: List<Message>,
+    currentUserId: Id?,
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+) {
+    val listItems = remember(messages) { buildMessageListItems(messages) }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
+    ) {
+        items(listItems, key = { item ->
+            when (item) {
+                is MessageListItem.DateHeader -> {
+                    "date_${item.dateString}"
+                }
+
+                is MessageListItem.MessageItem -> {
+                    item.message.id.value
+                        .toString()
+                }
+            }
+        }) { item ->
+            when (item) {
+                is MessageListItem.DateHeader -> {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = item.dateString,
+                            style = AppTextStyles.Caption,
+                            color = AppColors.TextMuted,
+                            modifier =
+                                Modifier
+                                    .background(AppColors.SurfaceDeep, RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+
+                is MessageListItem.MessageItem -> {
+                    val msg = item.message
+                    val isMe = msg.sender == currentUserId
+                    val timeStr = formatMessageTime(msg.id.getTime())
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .widthIn(max = 280.dp)
+                                    .clip(
+                                        RoundedCornerShape(
+                                            topStart = 16.dp,
+                                            topEnd = 16.dp,
+                                            bottomStart = if (isMe) 16.dp else 4.dp,
+                                            bottomEnd = if (isMe) 4.dp else 16.dp,
+                                        ),
+                                    ).background(if (isMe) AppColors.Primary else AppColors.Surface)
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                        ) {
+                            Text(
+                                text = msg.message,
+                                style = AppTextStyles.Body,
+                                color = if (isMe) AppColors.TextOnPrimary else AppColors.TextPrimary,
+                            )
+                        }
+                        Text(
+                            text = timeStr,
+                            style = AppTextStyles.Caption.copy(fontSize = 11.sp),
+                            color = AppColors.TextMuted,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

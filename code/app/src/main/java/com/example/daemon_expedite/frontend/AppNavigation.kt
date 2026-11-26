@@ -1377,17 +1377,16 @@ fun AppNavigation(
             }
 
             composable(Routes.ADMIN_MESSAGES) {
-                // A tab: no back button. Keeps the picked owner and entrant while the admin
-                // visits other tabs, since the view model lives as long as this entry.
-                val messages: AdminMessagesViewModel = viewModel()
-                val state by messages.state.collectAsState()
+                // A tab: no back button. Keeps the picked pair while the admin visits other tabs.
+                val vm: AdminMessagesViewModel = viewModel()
                 AdminMessagesScreen(
-                    state = state,
-                    onOwnerSelect = messages::selectOwner,
-                    onEntrantSelect = messages::selectEntrant,
-                    onRetryOwners = messages::loadOwners,
-                    onRetrySelection = messages::retrySelection,
-                    onLoadOlder = messages::loadOlder,
+                    owners = vm.owners.collectAsState().value,
+                    users = vm.users.collectAsState().value,
+                    selectedOwner = vm.selectedOwner.collectAsState().value,
+                    selectedEntrant = vm.selectedEntrant.collectAsState().value,
+                    messages = vm.messages.collectAsState().value,
+                    onOwnerSelect = vm::selectOwner,
+                    onEntrantSelect = vm::selectEntrant,
                 )
             }
 

@@ -4,180 +4,96 @@
 
 package com.example.daemon_expedite.frontend
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.backend.Message
-import com.example.daemon_expedite.backend.NamedUser
-import com.example.daemon_expedite.backend.OwnerChatPartner
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
 
-/** One message on the admin's Messages screen, ready to show. */
-data class AdminMessageUi(
-    val id: String,
-    val text: String,
-    val date: LocalDate,
-    /** True for the owner's messages (shown on the left), false for the entrant's (right). */
-    val fromOwner: Boolean,
-)
+/** A user in the admin's Messages dropdowns. */
+data class AdminChatUser(val id: Id, val name: String)
 
 /**
- * Everything the admin's Messages screen shows.
+ * Data for the admin's Messages tab ([AdminMessagesScreen]): pick a campsite owner and an
+ * entrant to read their conversation.
  *
- * @property owners Every owner in the app, for the owner dropdown.
- * @property selectedOwner The picked owner, or null until one is picked.
- * @property entrants The picked owner's chats, for the entrant dropdown. Null until an owner is picked.
- * @property selectedEntrant The picked chat, or null until one is picked.
- * @property messages The picked chat's messages, newest first. Null until both are picked.
- * @property canLoadOlder True if the last page was full, so there may be older messages.
- * @property loadingOlder True while an older page is loading.
- */
-data class AdminMessagesState(
-    val owners: UiState<List<NamedUser>> = UiState.Loading,
-    val selectedOwner: NamedUser? = null,
-    val entrants: UiState<List<OwnerChatPartner>>? = null,
-    val selectedEntrant: OwnerChatPartner? = null,
-    val messages: UiState<List<AdminMessageUi>>? = null,
-    val canLoadOlder: Boolean = false,
-    val loadingOlder: Boolean = false,
-)
-
-/**
- * Data for the admin's Messages screen ([AdminMessagesScreen]): pick an owner, then one of the
- * entrants they have chatted with, to read that conversation.
- *
- * Messages load once when the pair is picked (no live updates), 50 at a time; [loadOlder]
- * fetches the 50 before the oldest one shown.
+ * Like the chat screen, it shows the latest 50 messages and updates live. Failures are only
+ * logged; the screen then shows empty lists.
  */
 class AdminMessagesViewModel : ViewModel() {
 
-    private val _state = MutableStateFlow(AdminMessagesState())
-    val state: StateFlow<AdminMessagesState> = _state.asStateFlow()
+    /** Every owner, for the owner dropdown. */
+    private val _owners = MutableStateFlow<List<AdminChatUser>>(emptyList())
+    val owners: StateFlow<List<AdminChatUser>> = _owners.asStateFlow()
 
-    /** The oldest message loaded so far, where [loadOlder] continues from. */
-    private var oldestMessage: Message? = null
+    /** Every user, for the entrant dropdown. */
+    private val _users = MutableStateFlow<List<AdminChatUser>>(emptyList())
+    val users: StateFlow<List<AdminChatUser>> = _users.asStateFlow()
 
-    /** The running entrants or messages load. Picking something new cancels it. */
-    private var selectionJob: Job? = null
+    private val _selectedOwner = MutableStateFlow<AdminChatUser?>(null)
+    val selectedOwner: StateFlow<AdminChatUser?> = _selectedOwner.asStateFlow()
+
+    private val _selectedEntrant = MutableStateFlow<AdminChatUser?>(null)
+    val selectedEntrant: StateFlow<AdminChatUser?> = _selectedEntrant.asStateFlow()
+
+    /** The picked pair's messages, oldest first. Empty until both are picked. */
+    private val _messages = MutableStateFlow<List<Message>>(emptyList())
+    val messages: StateFlow<List<Message>> = _messages.asStateFlow()
+
+    /** Watches the picked pair's chat. Replaced when either pick changes. */
+    private var chatJob: Job? = null
 
     init {
-        loadOwners()
-    }
-
-    /** Loads every owner. Also the retry for the owner list. */
-    fun loadOwners() {
-        _state.update { it.copy(owners = UiState.Loading) }
         viewModelScope.launch {
-            val owners = loadAsUiState("Couldn't load owners") { Database.fetchAllOwners() }
-            _state.update { it.copy(owners = owners) }
+            val users = quietly("Couldn't load users") { Database.fetchAllUsers() }.orEmpty()
+                .mapNotNull { user ->
+                    val id = user["id"].toIdOrNull() ?: return@mapNotNull null
+                    AdminChatUser(id, user["name"]?.takeIf { it.isNotBlank() } ?: "Unnamed user")
+                }.sortedBy { it.name.lowercase() }
+            val ownerIds = quietly("Couldn't load owners") { Database.fetchAllOwnerCampsites() }?.keys.orEmpty()
+            _users.value = users
+            _owners.value = users.filter { it.id in ownerIds }
         }
     }
 
-    /** Picks [owner] and loads the entrants they've chatted with. Clears the picked entrant. */
-    fun selectOwner(owner: NamedUser) {
-        if (owner.id == _state.value.selectedOwner?.id && _state.value.entrants is UiState.Content) return
-        oldestMessage = null
-        _state.update {
-            it.copy(
-                selectedOwner = owner,
-                entrants = UiState.Loading,
-                selectedEntrant = null,
-                messages = null,
-                canLoadOlder = false,
-                loadingOlder = false,
-            )
-        }
-        selectionJob?.cancel()
-        selectionJob =
+    fun selectOwner(owner: AdminChatUser) {
+        _selectedOwner.value = owner
+        if (_selectedEntrant.value?.id == owner.id) _selectedEntrant.value = null // can't chat with themselves
+        watchChat()
+    }
+
+    fun selectEntrant(entrant: AdminChatUser) {
+        _selectedEntrant.value = entrant
+        watchChat()
+    }
+
+    /** Shows the picked pair's chat live, the same way the chat screen does. */
+    private fun watchChat() {
+        chatJob?.cancel()
+        _messages.value = emptyList()
+        val owner = _selectedOwner.value ?: return
+        val entrant = _selectedEntrant.value ?: return
+        chatJob =
             viewModelScope.launch {
-                val entrants = loadAsUiState("Couldn't load ${owner.name}'s chats") {
-                    Database.fetchOwnerChatPartners(owner.id)
-                }
-                _state.update { it.copy(entrants = entrants) }
-            }
-    }
-
-    /** Picks [partner] and loads the latest messages between them and the picked owner. */
-    fun selectEntrant(partner: OwnerChatPartner) {
-        val owner = _state.value.selectedOwner ?: return
-        oldestMessage = null
-        _state.update {
-            it.copy(selectedEntrant = partner, messages = UiState.Loading, canLoadOlder = false, loadingOlder = false)
-        }
-        selectionJob?.cancel()
-        selectionJob =
-            viewModelScope.launch {
-                var page: List<Message> = emptyList()
-                val messages = loadAsUiState("Couldn't load messages") {
-                    page = Database.fetchChat(partner.chatId).messages
-                    page.map { it.toUi(owner.id) }
-                }
-                oldestMessage = page.lastOrNull()
-                _state.update { it.copy(messages = messages, canLoadOlder = page.size >= PAGE_SIZE) }
-            }
-    }
-
-    /** Retries whatever failed last: the entrant list, or the messages. */
-    fun retrySelection() {
-        val current = _state.value
-        when {
-            current.selectedEntrant != null -> selectEntrant(current.selectedEntrant)
-            current.selectedOwner != null -> {
-                _state.update { it.copy(entrants = null) } // lets selectOwner run again
-                selectOwner(current.selectedOwner)
-            }
-        }
-    }
-
-    /**
-     * Loads the 50 messages before the oldest one shown and adds them to the end of the list
-     * (the top of the screen). Ignored while a page is loading or when there are no more.
-     * A failure keeps what is shown and allows trying again on the next scroll.
-     */
-    fun loadOlder() {
-        val current = _state.value
-        val owner = current.selectedOwner ?: return
-        val partner = current.selectedEntrant ?: return
-        val shown = (current.messages as? UiState.Content)?.data ?: return
-        val from = oldestMessage ?: return
-        if (!current.canLoadOlder || current.loadingOlder) return
-        _state.update { it.copy(loadingOlder = true) }
-        selectionJob =
-            viewModelScope.launch {
-                var page: List<Message> = emptyList()
-                val ok = runCatchingAll("Loading older messages failed") {
-                    page = Database.fetchChat(partner.chatId, from).messages
-                }
-                if (ok) oldestMessage = page.lastOrNull() ?: from
-                _state.update {
-                    it.copy(
-                        messages = if (ok) UiState.Content(shown + page.map { m -> m.toUi(owner.id) }) else it.messages,
-                        canLoadOlder = if (ok) page.size >= PAGE_SIZE else it.canLoadOlder,
-                        loadingOlder = false,
-                    )
-                }
+                // No chat yet (or it can't be read): nothing to show.
+                val chat = quietly("No chat between ${entrant.name} and ${owner.name}") {
+                    Database.fetchChatWithUserId(entrant.id, owner.id)
+                } ?: return@launch
+                _messages.value = chat.messages.reversed()
+                Database.chatListener(chat.id)
+                    .catch { e -> Log.e(TAG, "Watching chat ${chat.id.value} failed", e) } // keeps what is shown
+                    .collect { _messages.value = it.reversed() }
             }
     }
 
     private companion object {
-        /** How many messages [Database.fetchChat] returns at a time. */
-        const val PAGE_SIZE = 50
+        const val TAG = "AdminMessagesViewModel"
     }
 }
-
-/** Formats a message for the screen. Its date comes from the id, which records when it was made. */
-private fun Message.toUi(ownerId: Id) =
-    AdminMessageUi(
-        id = id.value.toString(),
-        text = message,
-        date = id.getTime().atZone(ZoneId.systemDefault()).toLocalDate(),
-        fromOwner = sender == ownerId,
-    )
