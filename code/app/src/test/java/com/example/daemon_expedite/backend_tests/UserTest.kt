@@ -85,6 +85,17 @@ class UserTest {
         assertTrue(user.notificationsEnabled)
     }
 
+    @Test
+    fun completeOnboarding_setsNameAndMarksOnboarded() {
+        val user = User(notificationsEnabled = true)
+        assertFalse(user.onboarded) // brand new users see the welcome screen
+
+        user.completeOnboarding("Alex Smith")
+
+        assertEquals("Alex Smith", user.name)
+        assertTrue(user.onboarded)
+    }
+
     // endregion
 
     // region Lists (lotteries, reservations, chats)
