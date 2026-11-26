@@ -43,6 +43,7 @@ class OwnerReservationsViewModel : ViewModel() {
     private var loaded: List<Reservation> = emptyList()
     private var campsites: Map<Id, Campsite> = emptyMap()
     private var guestNames: Map<Id, String> = emptyMap()
+    private var coverUrls: Map<Id, String> = emptyMap()
 
     /** Call every time the screen is shown. What is on screen stays there while it reloads. */
     fun load(owner: Owner) {
@@ -79,7 +80,7 @@ class OwnerReservationsViewModel : ViewModel() {
             }
             result.getOrNull()?.let { rejected ->
                 loaded = loaded.map { if (it.id == reservationId) rejected else it }
-                _reservations.value = UiState.Content(ownerReservationCards(loaded, campsites, guestNames))
+                _reservations.value = UiState.Content(ownerReservationCards(loaded, campsites, guestNames, coverUrls = coverUrls))
             }
             _rejectingId.value = null
             onResult(
@@ -96,6 +97,16 @@ class OwnerReservationsViewModel : ViewModel() {
             async { quietly("Couldn't load campsite $id") { Database.fetchCampsite(id) } }
         }.awaitAll().filterNotNull().associateBy { it.id }
 
+        // The cover is the first photo. Its Storage path is turned into a download URL; a
+        // campsite with no photos, or one that fails to load, gets the app's default image.
+        val covers = sites.values.map { site ->
+            async {
+                val path = site.images.firstOrNull()?.path ?: return@async null
+                quietly("Couldn't load cover image of ${site.id}") { Database.getImage(path) }
+                    ?.let { site.id to it }
+            }
+        }.awaitAll().filterNotNull().toMap()
+
         // A connection error here fails the whole load, so the owner can retry.
         val reservations = Database.fetchReservationsForCampsites(owner.ownerCampsites)
 
@@ -111,7 +122,8 @@ class OwnerReservationsViewModel : ViewModel() {
         loaded = reservations
         campsites = sites
         guestNames = names
-        ownerReservationCards(reservations, sites, names)
+        coverUrls = covers
+        ownerReservationCards(reservations, sites, names, coverUrls = covers)
     }
 
     private companion object {
@@ -123,7 +135,8 @@ class OwnerReservationsViewModel : ViewModel() {
 /**
  * Formats [reservations] for the owner's cards, in tab order: active ones soonest first, then
  * past and cancelled ones most recent first. [campsites] and [guestNames] are looked up by id;
- * a reservation whose campsite is missing still gets a card.
+ * a reservation whose campsite is missing still gets a card. [coverUrls] holds each campsite's
+ * cover image download URL; campsites missing from it show the default image.
  */
 internal fun ownerReservationCards(
     reservations: List<Reservation>,
@@ -131,6 +144,7 @@ internal fun ownerReservationCards(
     guestNames: Map<Id, String>,
     now: Instant = Clock.System.now(),
     zone: ZoneId = ZoneId.systemDefault(),
+    coverUrls: Map<Id, String> = emptyMap(),
 ): List<OwnerReservationUi> {
     val byStatus = reservations.groupBy { it.status(now, zone) }
     val ordered = byStatus[ReservationStatus.ACTIVE].orEmpty().sortedBy { it.period.start } +
@@ -155,6 +169,7 @@ internal fun ownerReservationCards(
             dateRange = reservation.datesText(now, zone),
             nights = reservation.period.nights,
             cancelledByGuest = reservation.isCancelled && !reservation.rejectedByOwner,
+            imageUrl = coverUrls[reservation.campsite],
         )
     }
 }
