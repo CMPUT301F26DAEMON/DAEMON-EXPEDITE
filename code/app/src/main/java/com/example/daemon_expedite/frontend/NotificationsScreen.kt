@@ -58,13 +58,15 @@ data class NotificationEntry(
  * @param onBackClick Null hides the back button: the screen is opened as a tab.
  * @param onRetry Called when the error message is tapped.
  * @param onNotificationClick Called with the tapped notification.
+ * @param emptyText Shown when there are no notifications.
  */
 @Composable
 fun NotificationsScreen(
     state: UiState<List<NotificationEntry>> = UiState.Content(emptyList()),
     onBackClick: (() -> Unit)? = {},
     onRetry: () -> Unit = {},
-    onNotificationClick: (NotificationEntry) -> Unit = {}
+    onNotificationClick: (NotificationEntry) -> Unit = {},
+    emptyText: String = "No notifications yet",
 ) {
     Column(
         modifier = Modifier
@@ -141,7 +143,7 @@ fun NotificationsScreen(
 
         if (state is UiState.Content && notifications.isEmpty()) {
             Text(
-                text = "No notifications yet",
+                text = emptyText,
                 style = AppTextStyles.BodyMedium,
                 color = AppColors.TextSecondary,
                 modifier = Modifier
