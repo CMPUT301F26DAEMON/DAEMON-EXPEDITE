@@ -54,12 +54,12 @@ import androidx.compose.foundation.verticalScroll
  * before proceeding. The Get started button is enabled only when
  * both requirements are satisfied.
  *
- * @param onContinue Called when the user taps Get started.
+ * @param onContinue Called with the trimmed name when the user taps Get started.
  * @param onAppPoliciesClick Called when the user taps App Policies.
  */
 @Composable
 fun WelcomeScreen(
-    onContinue: () -> Unit = {},
+    onContinue: (name: String) -> Unit = {},
     onAppPoliciesClick: () -> Unit = {}
 ) {
     var name by rememberSaveable { mutableStateOf("") }
@@ -189,7 +189,7 @@ fun WelcomeScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     GreenButton(
-                        onClick = onContinue,
+                        onClick = { onContinue(name.trim()) },
                         buttonText = "Get started",
                         enabled = canContinue,
                         customWidth = maxWidth.value.toInt(),

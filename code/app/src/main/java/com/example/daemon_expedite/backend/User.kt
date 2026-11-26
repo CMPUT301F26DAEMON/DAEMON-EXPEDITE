@@ -15,6 +15,7 @@ open class User(
     reservations: List<Id> = emptyList(),
     chats: List<Id> = emptyList(),
     receivedNotifications: List<Id> = emptyList(),
+    onboarded: Boolean = false,
 ) {
     var name: String = name
         private set
@@ -23,6 +24,10 @@ open class User(
     var phoneNumber: String = phoneNumber
         private set
     var notificationsEnabled: Boolean = notificationsEnabled
+        private set
+
+    /** True once the user has finished the welcome screen (shown only on their first launch). */
+    var onboarded: Boolean = onboarded
         private set
 
     fun isProfileComplete(): Boolean = name.isNotBlank() && email.isNotBlank() && phoneNumber.isNotBlank()
@@ -48,6 +53,12 @@ open class User(
         this.name = name
         this.email = email
         this.phoneNumber = phoneNumber
+    }
+
+    /** Sets the name chosen on the welcome screen and marks the welcome screen as done. */
+    fun completeOnboarding(name: String) {
+        this.name = name
+        onboarded = true
     }
 
     /** Sets the profile photo in memory. */

@@ -56,6 +56,9 @@ import com.example.daemon_expedite.ui_components.MessageCardOwner
 object Routes {
     const val SPLASH = "splash"
 
+    /** First-launch screen: asks for the user's name and agreement to the App Policies. */
+    const val WELCOME = "welcome"
+
     // Entrant
     const val HOME = "home"
     const val ENTRANT_PROFILE = "entrant_profile"
@@ -309,8 +312,13 @@ fun AppNavigation(
 
     // A tapped push notification opens its screen. Both kinds go to people on a lottery's
     // waiting list, so both open entrant tabs, even if the user was in the owner or admin view.
-    // Waits until the splash screen has loaded the user and moved on to Home.
-    val pastSplash = currentRoute != null && currentRoute != Routes.SPLASH
+    // Waits until the splash screen has loaded the user and moved on to Home, and on first
+    // launch until the welcome screen is done (App Policies opened from it counts as not done).
+    val pastSplash =
+        currentRoute != null &&
+            currentRoute != Routes.SPLASH &&
+            currentRoute != Routes.WELCOME &&
+            user?.onboarded == true
     LaunchedEffect(pushDestination, pastSplash) {
         if (pushDestination == null || !pastSplash) return@LaunchedEffect
         val route =
@@ -338,10 +346,28 @@ fun AppNavigation(
                     state = sessionState,
                     onRetry = session::retry,
                     onReady = {
-                        navController.navigate(Routes.HOME) {
+                        // First launch: ask for a name before showing the app.
+                        val next = if (user?.onboarded == false) Routes.WELCOME else Routes.HOME
+                        navController.navigate(next) {
                             popUpTo(Routes.SPLASH) { inclusive = true }
                         }
                     },
+                )
+            }
+
+            composable(Routes.WELCOME) {
+                WelcomeScreen(
+                    onContinue = { name ->
+                        // Moves on even if the save fails: the name is kept for this session,
+                        // and the welcome screen shows again next launch.
+                        session.completeOnboarding(name) { saved ->
+                            if (!saved) toast("Couldn't save your name. We'll ask again next time.")
+                        }
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.WELCOME) { inclusive = true }
+                        }
+                    },
+                    onAppPoliciesClick = { navController.navigate(Routes.POLICIES) },
                 )
             }
 

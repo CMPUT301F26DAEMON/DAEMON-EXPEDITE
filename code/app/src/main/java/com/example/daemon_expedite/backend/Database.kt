@@ -264,6 +264,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "email" to user.email,
                 "phoneNumber" to user.phoneNumber,
                 "notificationsEnabled" to user.notificationsEnabled,
+                "onboarded" to user.onboarded,
                 "profileImage" to
                     user.profileImage
                         ?.id
@@ -350,6 +351,9 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         val email = userData["email"] as String
         val phoneNumber = userData["phoneNumber"] as String
         val notificationsEnabled = userData["notificationsEnabled"] as Boolean
+        // Users saved before this field existed have already been using the app, so they
+        // count as onboarded and don't see the welcome screen.
+        val onboarded = userData["onboarded"] as? Boolean ?: true
         val profileImageData = userData["profileImage"] as? String
         // A missing or broken image record must not stop the user from loading: the caller
         // would treat that as "no user" and create a new, empty one.
@@ -385,6 +389,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             reservations = reservations,
             chats = chats,
             receivedNotifications = receivedNotifications,
+            onboarded = onboarded,
         )
     }
 
@@ -478,6 +483,7 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 "email" to user.email,
                 "phoneNumber" to user.phoneNumber,
                 "notificationsEnabled" to user.notificationsEnabled,
+                "onboarded" to user.onboarded,
                 "profileImage" to
                     user.profileImage
                         ?.id

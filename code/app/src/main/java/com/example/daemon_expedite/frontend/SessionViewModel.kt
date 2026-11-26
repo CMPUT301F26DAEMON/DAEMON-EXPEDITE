@@ -111,6 +111,14 @@ class SessionViewModel : ViewModel() {
         onResult: (Boolean) -> Unit = {},
     ) = saveUser(onResult) { it.updateProfile(name, email, phoneNumber) }
 
+    /**
+     * Saves the name entered on the welcome screen and marks the user as onboarded.
+     * [onResult] gets false if the save didn't reach the database; the change is still kept
+     * for this session (the welcome screen shows again next launch).
+     */
+    fun completeOnboarding(name: String, onResult: (Boolean) -> Unit = {}) =
+        saveUser(onResult) { it.completeOnboarding(name.trim()) }
+
     /** Turns notifications on or off and saves the setting. */
     fun setNotificationsEnabled(enabled: Boolean, onResult: (Boolean) -> Unit = {}) =
         saveUser(onResult) { it.enableOrDisableNotifications(enabled) }
