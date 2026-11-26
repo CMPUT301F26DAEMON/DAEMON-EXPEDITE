@@ -3,7 +3,6 @@ package com.example.daemon_expedite.ui_components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -21,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import com.example.daemon_expedite.R
 
 /** Card states, independent of the frontend screen's tabs. */
 enum class OwnerReservationCardStatus {
@@ -46,12 +47,13 @@ fun OwnerReservationCard(
     pricePerNight: Int? = null,
     rating: Double? = null,
     confirmed: Boolean = false,
-    @DrawableRes imageResId: Int? = null,
     guestName: String? = null,
     guestCount: Int? = null,
     dateRange: String? = null,
     nights: Int? = null,
-    cancelledByGuest: Boolean = false
+    cancelledByGuest: Boolean = false,
+    imageUrl: String? = null,
+    @DrawableRes defaultImageRes: Int = R.drawable.camp1,
 ) {
     Column(
         modifier = modifier
@@ -81,22 +83,17 @@ fun OwnerReservationCard(
             contentAlignment = Alignment.Center
         ) {
 
-            if (imageResId != null) {
-                Image(
-                    painter = painterResource(imageResId),
-                    contentDescription = "$campsiteName campsite",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                // Placeholder until an image is supplied
-                Icon(
-                    imageVector = AppIcons.Campsite,
-                    contentDescription = null,
-                    tint = AppColors.Secondary,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
+            // Cover image, or the app's default while it loads, if it fails, or if there is none
+            val fallback = painterResource(defaultImageRes)
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "$campsiteName campsite",
+                contentScale = ContentScale.Crop,
+                placeholder = fallback,
+                error = fallback,
+                fallback = fallback,
+                modifier = Modifier.fillMaxSize(),
+            )
 
             // Confirmed badge
             if (

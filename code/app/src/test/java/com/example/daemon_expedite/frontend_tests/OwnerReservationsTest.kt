@@ -75,6 +75,18 @@ class OwnerReservationsTest {
     }
 
     @Test
+    fun usesCoverImageWhenThereIsOneAndDefaultOtherwise() {
+        val url = "https://example.com/pine-cover.jpg"
+        val withCover = ownerReservationCards(
+            listOf(stay(12, 14)), mapOf(pine.id to pine), mapOf(guest to "Sam"), now, zone,
+            coverUrls = mapOf(pine.id to url),
+        ).single()
+        assertEquals(url, withCover.imageUrl)
+        // No cover URL means the card falls back to the app's default image.
+        assertNull(cards(stay(12, 14)).single().imageUrl)
+    }
+
+    @Test
     fun guestCancelAndOwnerRejectAreToldApart() {
         val byGuest = stay(12, 14).apply { cancel() }
         val byOwner = stay(16, 18).apply { reject() }

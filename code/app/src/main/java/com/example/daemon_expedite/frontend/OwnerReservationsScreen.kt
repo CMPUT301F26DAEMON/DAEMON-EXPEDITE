@@ -1,6 +1,5 @@
 package com.example.daemon_expedite.frontend
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,12 +51,13 @@ data class OwnerReservationUi(
     val pricePerNight: Int? = null,
     val rating: Double? = null,
     val confirmed: Boolean = false,
-    @DrawableRes val imageResId: Int? = null,
     val guestName: String? = null,
     val guestCount: Int? = null,
     val dateRange: String? = null,
     val nights: Int? = null,
-    val cancelledByGuest: Boolean = false
+    val cancelledByGuest: Boolean = false,
+    /** Download URL of the campsite's cover image, or null to show the default image. */
+    val imageUrl: String? = null,
 )
 
 /**
@@ -189,7 +189,7 @@ fun OwnerReservationsScreen(
                         pricePerNight = reservation.pricePerNight,
                         rating = reservation.rating,
                         confirmed = reservation.confirmed,
-                        imageResId = reservation.imageResId,
+                        imageUrl = reservation.imageUrl,
                         guestName = reservation.guestName,
                         guestCount = reservation.guestCount,
                         dateRange = reservation.dateRange,
