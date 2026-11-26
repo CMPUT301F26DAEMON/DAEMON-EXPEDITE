@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.daemon_expedite.ui_components.AppColors
@@ -60,8 +61,11 @@ data class OwnerReservationUi(
 )
 
 /**
+ * The owner's Reservations tab: every stay booked at their campsites, split into Active, Past
+ * and Cancelled. Active cards have a Reject button, which asks first.
  *
- * @param reservations The live reservations supplied by the caller.
+ * @param state The reservations (see [OwnerReservationsViewModel]), or a loading/error state.
+ * @param onRetry Called when the error message is tapped.
  * @param onRejectReservation Triggered only after the user confirms rejection.
  * @param onBottomNavigationSelected Connect this to the app's navigation controller.
  * @param showBottomNavigation Set false if the parent already draws the bottom bar.
@@ -71,7 +75,8 @@ data class OwnerReservationUi(
  */
 @Composable
 fun OwnerReservationsScreen(
-    reservations: List<OwnerReservationUi> = emptyList(),
+    state: UiState<List<OwnerReservationUi>>,
+    onRetry: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onRejectReservation: (OwnerReservationUi) -> Unit = {},
     onBottomNavigationSelected: (OwnerReservationNavTab) -> Unit = {},
@@ -80,7 +85,7 @@ fun OwnerReservationsScreen(
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
     var reservationToReject by remember { mutableStateOf<OwnerReservationUi?>(null) }
-    val filteredReservations = reservations.filter { it.status == selectedTab }
+    val filteredReservations = (state as? UiState.Content)?.data.orEmpty().filter { it.status == selectedTab }
 
     Column(
         modifier = Modifier
@@ -138,7 +143,25 @@ fun OwnerReservationsScreen(
             contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            if (filteredReservations.isEmpty()) {
+            if (state == UiState.Loading) {
+                item {
+                    Box(Modifier.fillMaxWidth().padding(top = 56.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AppColors.Primary)
+                    }
+                }
+            } else if (state is UiState.Error) {
+                item {
+                    Box(Modifier.fillMaxWidth().padding(top = 56.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "${state.message}. Tap to try again.",
+                            style = AppTextStyles.BodyMedium,
+                            color = AppColors.TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.clickable(onClick = onRetry).padding(12.dp),
+                        )
+                    }
+                }
+            } else if (filteredReservations.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -297,6 +320,6 @@ private fun PreviewOwnerReservationsActive() {
     )
 
     MaterialTheme {
-        OwnerReservationsScreen(reservations = previewReservations)
+        OwnerReservationsScreen(state = UiState.Content(previewReservations))
     }
 }

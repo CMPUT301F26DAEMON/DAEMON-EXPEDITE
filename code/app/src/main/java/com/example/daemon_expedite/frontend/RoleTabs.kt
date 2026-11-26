@@ -49,7 +49,7 @@ internal class RoleTabs(
                 home = Routes.OWNER_HOME,
                 labels = listOf("Home", "Reservations", "Messages", "Notifications", "Lotteries"),
                 icons = listOf(AppIcons.Home, AppIcons.Reservation, AppIcons.Chat, AppIcons.BellIcon, AppIcons.LotteryTicket),
-                routes = listOf(Routes.OWNER_HOME, null, Routes.OWNER_MESSAGES, Routes.OWNER_NOTIFICATIONS, Routes.OWNER_LOTTERIES),
+                routes = listOf(Routes.OWNER_HOME, Routes.OWNER_RESERVATIONS, Routes.OWNER_MESSAGES, Routes.OWNER_NOTIFICATIONS, Routes.OWNER_LOTTERIES),
             )
 
         /** Like the entrant bar, the admin's home is the first tab. */
