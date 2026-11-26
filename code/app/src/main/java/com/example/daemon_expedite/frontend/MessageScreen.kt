@@ -53,6 +53,12 @@ class MessageViewModel(
     private val chatIdArg: String? = savedState.get<String>("chatId")
     private val userIdArg: String? = savedState.get<String>("userId")
 
+    /**
+     * True when the current user opened this chat as the campsite owner (e.g. from a lottery's
+     * waiting list). Decides which side of the chat they are on when looking up or creating it.
+     */
+    private val isOwnerChat: Boolean = savedState.get<Boolean>(Routes.AS_OWNER_ARG) ?: false
+
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
@@ -71,7 +77,6 @@ class MessageViewModel(
     private var activeChatId: Id? = null
     private var targetUserId: Id? = null
     private var isNewLocalChat: Boolean = false
-    var isOwnerChat: Boolean = false
 
     init {
         loadChat()
@@ -140,7 +145,12 @@ class MessageViewModel(
 
         val existingChat =
             try {
-                Database.fetchChatWithUserId(myId, userId)
+                // fetchChatWithUserId takes (entrant, owner), so swap when we are the owner.
+                if (isOwnerChat) {
+                    Database.fetchChatWithUserId(userId, myId)
+                } else {
+                    Database.fetchChatWithUserId(myId, userId)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -180,7 +190,13 @@ class MessageViewModel(
             val newMessage = Message(Id(), text.trim(), myId)
             try {
                 if (isNewLocalChat) {
-                    Database.createChatAndUploadMessage(chatId, myId, targetId, newMessage)
+                    Database.createChatAndUploadMessage(
+                        chatId,
+                        myId,
+                        targetId,
+                        newMessage,
+                        isSenderOwner = isOwnerChat,
+                    )
                     isNewLocalChat = false
                     launch { observe(chatId) }
                 } else {
@@ -209,12 +225,10 @@ class MessageViewModel(
 fun MessageScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isOwnerChat: Boolean = false,
     viewModel: MessageViewModel =
         androidx.lifecycle.viewmodel.compose
             .viewModel(),
 ) {
-    viewModel.isOwnerChat = isOwnerChat
     val messages by viewModel.messages.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
     val otherUserName by viewModel.otherUserName.collectAsState()

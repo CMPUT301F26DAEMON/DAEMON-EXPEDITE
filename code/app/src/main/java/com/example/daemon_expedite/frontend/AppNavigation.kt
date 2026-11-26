@@ -36,6 +36,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -127,10 +129,13 @@ object Routes {
     const val CHAT_ID_ARG = "chatId"
     const val USER_ID_ARG = "userId"
     const val MESSAGE_DETAIL_BY_CHAT = "chat/id/{$CHAT_ID_ARG}"
-    const val MESSAGE_DETAIL_BY_USER = "chat/user/{$USER_ID_ARG}"
+    /** True when the current user is opening the chat as the campsite owner (e.g. from a waiting list). */
+    const val AS_OWNER_ARG = "asOwner"
+    const val MESSAGE_DETAIL_BY_USER = "chat/user/{$USER_ID_ARG}?$AS_OWNER_ARG={$AS_OWNER_ARG}"
 
     fun messageDetailForChat(chatId: Id) = "chat/id/${chatId.value}"
-    fun messageDetailForUser(userId: Id) = "chat/user/${userId.value}"
+    fun messageDetailForUser(userId: Id, asOwner: Boolean = false) =
+        "chat/user/${userId.value}?$AS_OWNER_ARG=$asOwner"
 
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
@@ -885,17 +890,19 @@ fun AppNavigation(
             }
 
             composable(Routes.MESSAGE_DETAIL_BY_CHAT) {
-                MessageScreen(
-                    onBackClick = { navController.popBackStack() },
-                    isOwnerChat = true,
-                )
+                MessageScreen(onBackClick = { navController.popBackStack() })
             }
 
-            composable(Routes.MESSAGE_DETAIL_BY_USER) {
-                MessageScreen(
-                    onBackClick = { navController.popBackStack() },
-                    isOwnerChat = true,
-                )
+            composable(
+                Routes.MESSAGE_DETAIL_BY_USER,
+                arguments = listOf(
+                    navArgument(Routes.AS_OWNER_ARG) {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                ),
+            ) {
+                MessageScreen(onBackClick = { navController.popBackStack() })
             }
 
             composable(Routes.OWNER_PROFILE) {
@@ -993,7 +1000,9 @@ fun AppNavigation(
                     state = state,
                     onBackClick = { navController.popBackStack() },
                     onRetry = waitlist::load,
-                    onMessageClick = { showComingSoon("Messages") },
+                    onMessageClick = { entrant ->
+                        navController.navigate(Routes.messageDetailForUser(entrant.id, asOwner = true))
+                    },
                     isSendingNotification = sending,
                     onSendNotification = { title, text, onResult ->
                         val loadedOwner = (owner as? UiState.Content)?.data
