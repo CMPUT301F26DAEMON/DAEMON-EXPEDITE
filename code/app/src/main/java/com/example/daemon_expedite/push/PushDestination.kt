@@ -13,7 +13,10 @@ enum class PushDestination {
     /** A lottery result ("You won" / "You weren't selected"): the entrant's Lotteries tab. */
     LOTTERIES,
 
-    /** A message a campsite owner sent to their waiting list: the entrant's Notifications tab. */
+    /**
+     * A message a campsite owner sent to their waiting list, or the confirmation of a stay the
+     * entrant just booked: the entrant's Notifications tab.
+     */
     NOTIFICATIONS,
     ;
 
@@ -25,7 +28,7 @@ enum class PushDestination {
         fun from(intent: Intent?): PushDestination? =
             when (intent?.getStringExtra(EXTRA_TYPE)) {
                 "lottery_result" -> LOTTERIES
-                "owner_message" -> NOTIFICATIONS
+                "owner_message", "reservation_confirmed" -> NOTIFICATIONS
                 else -> null
             }
     }
