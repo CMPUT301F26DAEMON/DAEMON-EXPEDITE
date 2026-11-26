@@ -17,6 +17,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Transaction
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.storage
 import com.google.firebase.storage.storageMetadata
@@ -1605,6 +1606,14 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                 BookingRules
                     .check(lottery, lottery.phase(), userId, campsiteId, period)
                     ?.let { throw BookingRejectedException(it) }
+                // Read before any write (a Firestore transaction rule), for the confirmation text.
+                val campsiteName =
+                    tx
+                        .get(db.collection("campsites").document(campsiteId.value.toString()))
+                        .getString("name")
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                val owner = lottery.ownerOf(campsiteId)
 
                 val booking = Booking(userId, campsiteId, period, reservation.id)
                 tx.update(ref, "bookings", (lottery.bookings + booking).map { it.toMap() })
@@ -1615,13 +1624,49 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     FieldValue.arrayUnion(reservation.id.value.toString()),
                 )
                 tx.update(
-                    ownerRef(lottery.ownerOf(campsiteId)),
+                    ownerRef(owner),
                     "ownerReservations",
                     FieldValue.arrayUnion(reservation.id.value.toString()),
                 )
+                addReservationConfirmation(tx, reservation, owner, campsiteName)
                 null
             }.await()
         return reservation
+    }
+
+    /**
+     * Adds, in [tx], a [NotificationKind.RESERVATION_CONFIRMED] notification for the entrant who
+     * holds [reservation]: saved in `notifications/<id>` and added to their
+     * `receivedNotifications`, so it shows in their Notifications tab. Saving it also makes the
+     * `notifyOwnerMessage` Cloud Function push it to their phone (functions/index.js), to that
+     * entrant only, using the `recipient` field.
+     *
+     * Not added to the owner's `ownerNotifications`: the owner didn't write it.
+     */
+    private fun addReservationConfirmation(
+        tx: Transaction,
+        reservation: Reservation,
+        owner: Id,
+        campsiteName: String?,
+    ) {
+        val id = Id()
+        val idString = id.value.toString()
+        val user = reservation.reservedBy.value.toString()
+        tx.set(
+            notificationRef(id),
+            mapOf(
+                "id" to idString,
+                "kind" to NotificationKind.RESERVATION_CONFIRMED.stored,
+                "title" to "Reservation confirmed",
+                "text" to reservationConfirmedText(campsiteName, reservation.period),
+                "lottery" to reservation.lotteryId?.value?.toString(),
+                "sender" to owner.value.toString(),
+                "recipient" to user,
+                "reservation" to reservation.id.value.toString(),
+                "readBy" to emptyList<String>(),
+            ),
+        )
+        tx.update(db.collection("users").document(user), "receivedNotifications", FieldValue.arrayUnion(idString))
     }
 
     /**
@@ -2439,6 +2484,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                         senderId = Id(Uuid.parse(doc.getString("sender")!!)),
                         isRead = (doc.get("readBy") as? List<*>)?.contains(me) == true,
                         title = doc.getString("title")?.takeIf { it.isNotBlank() },
+                        kind = NotificationKind.fromStored(doc.getString("kind")),
+                        reservationId = doc.getString("reservation")?.let { Id(Uuid.parse(it)) },
                     )
                 }.onFailure { Log.e("DatabaseInner", "Skipping malformed notification ${doc.id}", it) }
                     .getOrNull()
