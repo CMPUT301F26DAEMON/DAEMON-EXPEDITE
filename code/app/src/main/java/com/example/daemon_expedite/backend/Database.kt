@@ -217,6 +217,8 @@ interface DatabaseInterface {
 
     suspend fun fetchSentNotifications(ownerId: Id): List<Notification>
 
+    suspend fun fetchAllNotifications(): List<Notification>
+
     suspend fun markNotificationsRead(
         userId: Id,
         notificationIds: List<Id>,
@@ -2440,6 +2442,20 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         return fetchNotificationsByIds(parseUuidList(ownerData["ownerNotifications"]), viewerId = ownerId)
     }
 
+    /**
+     * Every notification ever sent, newest first (by [Id.getTime]), for the admin's log.
+     * The admin isn't the viewer of these, so [Notification.isRead] is always false.
+     * Malformed notifications are skipped.
+     */
+    override suspend fun fetchAllNotifications(): List<Notification> =
+        db
+            .collection("notifications")
+            .get()
+            .await()
+            .documents
+            .mapNotNull { parseNotification(it, viewerId = null) }
+            .sortedByDescending { it.id.getTime() }
+
     /** The valid, distinct UUIDs in a stored list of id strings. */
     private fun parseUuidList(raw: Any?): List<Uuid> =
         (raw as? List<*>)
@@ -2455,8 +2471,6 @@ private class DatabaseInner private constructor() : DatabaseInterface {
         ids: List<Uuid>,
         viewerId: Id,
     ): List<Notification> {
-        val me = viewerId.value.toString()
-
         val docs =
             coroutineScope {
                 ids
@@ -2475,22 +2489,38 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             }
 
         return docs
-            .mapNotNull { doc ->
-                runCatching {
-                    Notification(
-                        id = Id(Uuid.parse(doc.id)),
-                        text = doc.getString("text")!!,
-                        receiversOfLottery = Id(Uuid.parse(doc.getString("lottery")!!)),
-                        senderId = Id(Uuid.parse(doc.getString("sender")!!)),
-                        isRead = (doc.get("readBy") as? List<*>)?.contains(me) == true,
-                        title = doc.getString("title")?.takeIf { it.isNotBlank() },
-                        kind = NotificationKind.fromStored(doc.getString("kind")),
-                        reservationId = doc.getString("reservation")?.let { Id(Uuid.parse(it)) },
-                    )
-                }.onFailure { Log.e("DatabaseInner", "Skipping malformed notification ${doc.id}", it) }
-                    .getOrNull()
-            }.sortedByDescending { it.id.getTime() }
+            .mapNotNull { parseNotification(it, viewerId) }
+            .sortedByDescending { it.id.getTime() }
     }
+
+    /**
+     * A `notifications` document as a [Notification], or null (logged) if it is malformed.
+     * [Notification.isRead] says whether [viewerId] has read it; always false with no viewer.
+     *
+     * Who it went to is the `recipients` list (lottery results) or the single `recipient`
+     * (confirmations); owner messages have neither.
+     */
+    private fun parseNotification(
+        doc: DocumentSnapshot,
+        viewerId: Id?,
+    ): Notification? =
+        runCatching {
+            val recipients =
+                (doc.get("recipients") as? List<*>)?.filterIsInstance<String>()
+                    ?: listOfNotNull(doc.getString("recipient"))
+            Notification(
+                id = Id(Uuid.parse(doc.id)),
+                text = doc.getString("text")!!,
+                receiversOfLottery = Id(Uuid.parse(doc.getString("lottery")!!)),
+                senderId = Id(Uuid.parse(doc.getString("sender")!!)),
+                isRead = viewerId != null && (doc.get("readBy") as? List<*>)?.contains(viewerId.value.toString()) == true,
+                title = doc.getString("title")?.takeIf { it.isNotBlank() },
+                kind = NotificationKind.fromStored(doc.getString("kind")),
+                reservationId = doc.getString("reservation")?.let { Id(Uuid.parse(it)) },
+                recipientIds = recipients.mapNotNull { runCatching { Id(Uuid.parse(it)) }.getOrNull() },
+            )
+        }.onFailure { Log.e("DatabaseInner", "Skipping malformed notification ${doc.id}", it) }
+            .getOrNull()
 
     /**
      * Marks each of [notificationIds] as read by [userId] (adds the user to its `readBy`).
@@ -2787,6 +2817,8 @@ object Database {
 
     /** The notifications [ownerId] has sent, newest first. */
     suspend fun fetchSentNotifications(ownerId: Id): List<Notification> = db.fetchSentNotifications(ownerId)
+
+    suspend fun fetchAllNotifications(): List<Notification> = db.fetchAllNotifications()
 
     /** Marks the notifications as read for [userId] only. */
     suspend fun markNotificationsRead(

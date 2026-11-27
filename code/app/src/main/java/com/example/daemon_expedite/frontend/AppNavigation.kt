@@ -1394,8 +1394,20 @@ fun AppNavigation(
             }
 
             composable(Routes.ADMIN_NOTIFICATIONS) {
-                // A tab: the bar's Home tab goes home, so there's no back button.
-                NotificationsTab(userId = user?.id)
+                // A tab: no back button. Reloads every time it is shown and keeps the filters
+                // while the admin visits other tabs.
+                val vm: AdminNotificationsViewModel = viewModel()
+                LaunchedEffect(Unit) { vm.load() }
+                AdminNotificationsScreen(
+                    state = vm.notifications.collectAsState().value,
+                    owners = vm.owners.collectAsState().value,
+                    users = vm.users.collectAsState().value,
+                    selectedSender = vm.selectedSender.collectAsState().value,
+                    selectedRecipient = vm.selectedRecipient.collectAsState().value,
+                    onSenderSelect = vm::selectSender,
+                    onRecipientSelect = vm::selectRecipient,
+                    onRetry = vm::load,
+                )
             }
 
             composable(Routes.ADMIN_PROFILES) {

@@ -30,6 +30,12 @@ enum class NotificationKind(val stored: String) {
 
     /** Sent to an entrant when they book their stay (see [Database.bookLotteryStay]). */
     RESERVATION_CONFIRMED("reservation_confirmed"),
+
+    /**
+     * A lottery's draw results, saved by the `notifyLotteryResults` Cloud Function: one for the
+     * winners and one for everyone else on the waiting list. Its sender is the lottery's owner.
+     */
+    LOTTERY_RESULT("lottery_result"),
     ;
 
     companion object {
@@ -58,6 +64,9 @@ enum class NotificationKind(val stored: String) {
  * @property senderId The owner who sent it, or the campsite's owner for a confirmation.
  * @property kind What it is about.
  * @property reservationId The confirmed reservation, for [NotificationKind.RESERVATION_CONFIRMED].
+ * @property recipientIds Who it went to, when the notification records that: the entrant for a
+ *   confirmation, or the winners (or everyone else) for a [NotificationKind.LOTTERY_RESULT].
+ *   Empty for owner messages, which go to whoever was on the waiting list at the time.
  * @param isRead Whether the user *viewing* it has read it. Read state is per recipient (the
  *   database keeps a `readBy` list), so this is filled in for whoever loaded the notification.
  */
@@ -70,6 +79,7 @@ class Notification(
     val title: String? = null,
     val kind: NotificationKind = NotificationKind.OWNER_MESSAGE,
     val reservationId: Id? = null,
+    val recipientIds: List<Id> = emptyList(),
 ) {
     var isRead: Boolean = isRead
         private set

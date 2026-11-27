@@ -43,17 +43,19 @@ import androidx.compose.ui.unit.sp
  * @param message The notification text. Wraps onto as many lines as it needs.
  * @param title Optional heading shown between the sender and the message.
  * @param isNew Shows a green dot next to the sender for notifications the user hasn't seen.
- * @param onClick Called when the card is tapped.
+ * @param footer Optional small grey text under the message, for example who it went to and when.
+ * @param onClick Called when the card is tapped, or null if the card can't be tapped.
  * @param modifier Optional [Modifier] for the card.
  */
 @Composable
 fun NotificationCard(
     sender: String,
     message: String,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     title: String? = null,
     isNew: Boolean = false,
+    footer: String? = null,
 ) {
     val shape = RoundedCornerShape(14.dp)
 
@@ -67,7 +69,7 @@ fun NotificationCard(
                 color = AppColors.SurfaceDeep,
                 shape = shape
             )
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(
                 horizontal = 13.dp,
                 vertical = 11.dp
@@ -109,6 +111,16 @@ fun NotificationCard(
             fontSize = 12.sp,
             lineHeight = 17.sp
         )
+
+        if (footer != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = footer,
+                color = AppColors.TextSecondary,
+                fontSize = 11.sp,
+                lineHeight = 15.sp
+            )
+        }
     }
 }
 
