@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.DAEMONEXPEDITE" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DAEMONEXPEDITE" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Dark window so launching the app shows black, not white, before Compose draws. -->
+        <item name="android:windowBackground">@color/app_background</item>
+    </style>
 </resources>

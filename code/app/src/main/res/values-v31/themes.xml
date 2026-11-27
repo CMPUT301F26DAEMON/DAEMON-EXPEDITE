@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+        Android 12+ shows a system launch screen with the app icon before the app draws.
+        Make it dark to match the in-app splash screen (InitLoadScreen) instead of white.
+    -->
+    <style name="Theme.DAEMONEXPEDITE" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
+        <item name="android:windowSplashScreenBackground">@color/app_background</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/icon_background</item>
+    </style>
+</resources>
