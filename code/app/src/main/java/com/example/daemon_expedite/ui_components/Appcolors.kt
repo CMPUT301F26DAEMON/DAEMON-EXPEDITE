@@ -197,4 +197,36 @@ object AppColors {
     val MapGradientClear = Color(0x00161D15)
     val MapGradientBottom = Color(0xA6071008)
     // endregion
+
+    // region Easter eggs
+    /** Body of a falling marshmallow in the s'mores search easter egg. */
+    val Marshmallow = Color(0xFFFFF8EE)
+
+    /** Toasted top of a falling marshmallow in the s'mores search easter egg. */
+    val MarshmallowToasted = Color(0xFFC98A4B)
+
+    /** Silver-tipped fur along The Boss's back and hump in the "bear" search easter egg. */
+    val BearFurLight = Color(0xFFA88B6C)
+
+    /** Main fur of The Boss, a dark grizzly brown. */
+    val BearFur = Color(0xFF5E3A22)
+
+    /** Darker fur for the bear's belly, far legs and paws, so they read as shaded. */
+    val BearFurShade = Color(0xFF3A2314)
+
+    /** The bear's light muzzle. */
+    val BearMuzzle = Color(0xFFC79A6A)
+
+    /** The bear's outline, eye and nose. */
+    val BearFeatures = Color(0xFF22140C)
+
+    /** Soft shadow on the ground under the bear (black at 25%). */
+    val BearShadow = Color(0x40000000)
+
+    /** Pale battle scars on The Boss's face. */
+    val BearScar = Color(0xFFD8B894)
+
+    /** The Boss's yellow wildlife ear tag. */
+    val BearEarTag = Color(0xFFF2C230)
+    // endregion
 }

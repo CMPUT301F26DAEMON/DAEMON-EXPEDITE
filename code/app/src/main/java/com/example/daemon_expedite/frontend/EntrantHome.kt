@@ -42,9 +42,13 @@ import com.example.daemon_expedite.backend.Id
 import com.example.daemon_expedite.ui_components.AppColors
 import com.example.daemon_expedite.ui_components.AppIcons
 import com.example.daemon_expedite.ui_components.AppTextStyles
+import com.example.daemon_expedite.ui_components.BearWalk
 import com.example.daemon_expedite.ui_components.BottomNavBarSpacer
 import com.example.daemon_expedite.ui_components.ProfileImage
 import com.example.daemon_expedite.ui_components.SearchBar
+import com.example.daemon_expedite.ui_components.SmoresRain
+import com.example.daemon_expedite.ui_components.isBearQuery
+import com.example.daemon_expedite.ui_components.isSmoresQuery
 import com.example.daemon_expedite.ui_components.scanQrCode
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -96,143 +100,150 @@ fun EntrantHomeScreen(
     val openLotteryCount = (campsites as? UiState.Content)?.data
         ?.mapNotNull { it.openLotteryId }?.distinct()?.size ?: 0
 
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(AppColors.Background),
-    ) {
-        // Keeps the top bar clear of the status bar and camera cutout on every device
-        Spacer(
-            Modifier.windowInsetsTopHeight(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
-        )
-        // Top bar: greeting, profile picture, then the search row
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = "Find your next hideaway",
-                        style = AppTextStyles.PageTitleSmall,
-                        color = AppColors.TextPrimary,
-                    )
-                    Text(
-                        text = greeting(userName, openLotteryCount),
-                        style = AppTextStyles.BodySmallMultiline,
-                        color = AppColors.TextMuted,
-                    )
-                }
-                // Profile picture (falls back to a default image when the user has none)
-                ProfileImage(
-                    imageUrl = profileImageUrl,
-                    size = 44.dp,
-                    contentDescription = "Profile",
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable(onClick = onProfileClick),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    SearchBar(
-                        query = searchQuery,
-                        onQueryChange = onSearchQueryChange,
-                        placeholderText = "Where do you want to go?",
-                        showQrIcon = true,
-                        onQRCodeClicked = {
-                            scope.launch {
-                                try {
-                                    val scannedResult = scanQrCode(context)
-                                    if (!scannedResult.isNullOrBlank()) {
-                                        onQrCodeScanned(scannedResult)
-                                    }
-                                } catch (e: CancellationException) {
-                                    throw e
-                                } catch (e: Exception) {
-                                    Log.e("EntrantHomeScreen", "Failed to scan QR code", e)
-                                }
-                            }
-                        },
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(AppColors.FillField)
-                        .border(1.dp, AppColors.OutlineField, CircleShape)
-                        .clickable(role = Role.Button, onClickLabel = "Filter") { showFilterSheet = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = AppIcons.Filter,
-                        contentDescription = "Filter",
-                        tint = AppColors.TextPrimary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-        }
-
-        // Results heading with the number of campsites
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 28.dp, end = 28.dp, top = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "Campsites for you",
-                style = AppTextStyles.HeadingMedium.copy(lineHeight = 25.sp),
-                color = AppColors.TextPrimary,
-            )
-            val campsiteCount = (campsites as? UiState.Content)?.data?.size
-            if (campsiteCount != null) {
-                Text(
-                    text = campsiteCount.toString(),
-                    style = AppTextStyles.Caption.copy(fontWeight = FontWeight.SemiBold, lineHeight = 16.sp),
-                    color = AppColors.TextSecondary,
-                    modifier = Modifier
-                        .background(AppColors.FillChip, CircleShape)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                )
-            }
-        }
-
-        // Campsite cards, or a spinner/error/empty message
-        CampsiteList(
-            state = campsites,
-            emptyText =
-                if (searchQuery.isBlank()) {
-                    "No campsites to show yet"
-                } else {
-                    "No campsites match \"$searchQuery\""
-                },
-            onRetry = onRetry,
-            onCampsiteClick = onCampsiteClick,
-            horizontalPadding = 28.dp,
             modifier =
                 Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-        )
-        // Room for the shared bottom bar AppNavigation draws on top.
-        BottomNavBarSpacer()
+                    .fillMaxSize()
+                    .background(AppColors.Background),
+        ) {
+            // Keeps the top bar clear of the status bar and camera cutout on every device
+            Spacer(
+                Modifier.windowInsetsTopHeight(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
+            )
+            // Top bar: greeting, profile picture, then the search row
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "Find your next hideaway",
+                            style = AppTextStyles.PageTitleSmall,
+                            color = AppColors.TextPrimary,
+                        )
+                        Text(
+                            text = greeting(userName, openLotteryCount),
+                            style = AppTextStyles.BodySmallMultiline,
+                            color = AppColors.TextMuted,
+                        )
+                    }
+                    // Profile picture (falls back to a default image when the user has none)
+                    ProfileImage(
+                        imageUrl = profileImageUrl,
+                        size = 44.dp,
+                        contentDescription = "Profile",
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(onClick = onProfileClick),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        SearchBar(
+                            query = searchQuery,
+                            onQueryChange = onSearchQueryChange,
+                            placeholderText = "Where do you want to go?",
+                            showQrIcon = true,
+                            onQRCodeClicked = {
+                                scope.launch {
+                                    try {
+                                        val scannedResult = scanQrCode(context)
+                                        if (!scannedResult.isNullOrBlank()) {
+                                            onQrCodeScanned(scannedResult)
+                                        }
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        Log.e("EntrantHomeScreen", "Failed to scan QR code", e)
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(AppColors.FillField)
+                            .border(1.dp, AppColors.OutlineField, CircleShape)
+                            .clickable(role = Role.Button, onClickLabel = "Filter") { showFilterSheet = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = AppIcons.Filter,
+                            contentDescription = "Filter",
+                            tint = AppColors.TextPrimary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+
+            // Results heading with the number of campsites
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 28.dp, end = 28.dp, top = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Campsites for you",
+                    style = AppTextStyles.HeadingMedium.copy(lineHeight = 25.sp),
+                    color = AppColors.TextPrimary,
+                )
+                val campsiteCount = (campsites as? UiState.Content)?.data?.size
+                if (campsiteCount != null) {
+                    Text(
+                        text = campsiteCount.toString(),
+                        style = AppTextStyles.Caption.copy(fontWeight = FontWeight.SemiBold, lineHeight = 16.sp),
+                        color = AppColors.TextSecondary,
+                        modifier = Modifier
+                            .background(AppColors.FillChip, CircleShape)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
+            }
+
+            // Campsite cards, or a spinner/error/empty message
+            CampsiteList(
+                state = campsites,
+                emptyText =
+                    if (searchQuery.isBlank()) {
+                        "No campsites to show yet"
+                    } else {
+                        "No campsites match \"$searchQuery\""
+                    },
+                onRetry = onRetry,
+                onCampsiteClick = onCampsiteClick,
+                horizontalPadding = 28.dp,
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+            )
+            // Room for the shared bottom bar AppNavigation draws on top.
+            BottomNavBarSpacer()
+        }
+
+        // Easter eggs: searching "s'mores" rains toasted marshmallows over the screen,
+        // and searching "bear" sends a bear wandering across the bottom.
+        SmoresRain(trigger = isSmoresQuery(searchQuery))
+        BearWalk(trigger = isBearQuery(searchQuery))
     }
 
     if (showFilterSheet) {
