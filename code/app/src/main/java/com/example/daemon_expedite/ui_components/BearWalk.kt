@@ -1,6 +1,5 @@
 package com.example.daemon_expedite.ui_components
 
-import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
@@ -28,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -42,7 +40,6 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.geometry.CornerRadius
-import com.example.daemon_expedite.R
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -175,7 +172,6 @@ fun BearWalk(trigger: Boolean, modifier: Modifier = Modifier) {
         var walking by remember { mutableStateOf(false) }
         var showBubble by remember { mutableStateOf(false) }
         val start = -WIDTH_DP
-        val context = LocalContext.current
 
         LaunchedEffect(trigger) {
             if (!trigger) return@LaunchedEffect
@@ -188,20 +184,12 @@ fun BearWalk(trigger: Boolean, modifier: Modifier = Modifier) {
             sniff.snapTo(0f)
             x.snapTo(start)
             walking = true
-            var growl: MediaPlayer? = null
             try {
                 x.animateTo(stop, tween(walkMillis(stop - start), easing = WalkInEasing))
                 showBubble = true
-                // The Boss roars while he stops to sniff. The roar is a real grizzly from the
-                // Yellowstone sound library (NPS & MSU Acoustic Atlas / Jennifer Jerrett,
-                // public domain). Sound is a bonus, so a missing or broken player never
-                // stops the walk.
-                growl = runCatching { MediaPlayer.create(context, R.raw.boss_growl) }.getOrNull()
-                growl?.start()
                 sniff.animateTo(1f, tween(SNIFF_MILLIS, easing = LinearEasing))
                 x.animateTo(screenWidth, tween(walkMillis(screenWidth - stop), easing = FastOutLinearInEasing))
             } finally {
-                growl?.release()
                 walking = false
                 showBubble = false
             }
