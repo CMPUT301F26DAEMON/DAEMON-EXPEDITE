@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Single-colour version of ic_launcher_foreground for Android 13+ themed icons. Only the
+    alpha is used, so the window is a real hole (even-odd fill) instead of being painted over.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.056"
+        android:scaleY="0.056"
+        android:translateX="27.12"
+        android:translateY="31.71">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M228,290 L727,290 L910,750 L408,750 L265,385 L265,750 L50,750 Z M478,398 L610,398 L665,540 L533,540 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M690,45 A155,155 0 0,0 584,255 L751,255 L782,334 A155,155 0 0,0 870,245 A170,170 0 0,1 690,45 Z" />
+    </group>
+</vector>

@@ -1,30 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    App icon: the tent and crescent moon from the splash screen logo (drawable/logo.png),
+    traced as vectors so they stay sharp at every launcher size. The paths are in the logo's
+    own coordinates (8x the logo's pixels, 960 x 800); the group scales them into the 108dp
+    adaptive icon and centres them inside the 66dp safe zone.
+
+    The tent and window are drawn inset by 12 units with a 24-unit round-join stroke, which
+    grows them back to full size with rounded corners like the original.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+    <group
+        android:scaleX="0.056"
+        android:scaleY="0.056"
+        android:translateX="27.12"
+        android:translateY="31.71">
+        <!-- Tent, with the open door flap on the left. -->
+        <path
+            android:fillColor="#FFDCDCDC"
+            android:strokeColor="#FFDCDCDC"
+            android:strokeWidth="24"
+            android:strokeLineJoin="round"
+            android:pathData="M236.2,302 L718.9,302 L892.4,738 L416.3,738 L253,321.4 L253,738 L67.5,738 Z" />
+        <!-- Window, cut out in the background colour. -->
+        <path
+            android:fillColor="#FF1E211F"
+            android:strokeColor="#FF1E211F"
+            android:strokeWidth="24"
+            android:strokeLineJoin="round"
+            android:pathData="M495.5,410 L601.8,410 L647.4,528 L541.2,528 Z" />
+        <!-- Crescent moon behind the tent's top-right corner, trimmed to leave a gap. -->
+        <path
+            android:fillColor="#FFDCDCDC"
+            android:pathData="M690,45 A155,155 0 0,0 584,255 L751,255 L782,334 A155,155 0 0,0 870,245 A170,170 0 0,1 690,45 Z" />
+    </group>
 </vector>

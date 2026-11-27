@@ -7,4 +7,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- Same as AppColors.Background; the window and launch screen use it so the app never flashes white. -->
+    <color name="app_background">#FF121514</color>
+    <!-- Dark disk behind the app icon, same as the launcher icon background. -->
+    <color name="icon_background">#FF1E211F</color>
 </resources>
