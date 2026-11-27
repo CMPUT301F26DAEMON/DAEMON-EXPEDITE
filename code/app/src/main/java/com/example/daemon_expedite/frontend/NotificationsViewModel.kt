@@ -67,29 +67,9 @@ class NotificationsViewModel : ViewModel() {
         notifications: List<Notification>,
         sent: Boolean,
     ): List<NotificationEntry> = coroutineScope {
-        val lotteries: Map<Id, Lottery> =
-            notifications
-                .map { it.receiversOfLottery }
-                .distinct()
-                .map { id -> async { id to quietly("Couldn't load lottery $id") { Database.fetchLottery(id) } } }
-                .awaitAll()
-                .mapNotNull { (id, lottery) -> lottery?.let { id to it } }
-                .toMap()
+        val headings = lotteryHeadings(notifications.map { it.receiversOfLottery })
 
-        val campsiteNames: Map<Id, String> =
-            lotteries.values
-                .flatMap { it.campsites }
-                .distinct()
-                .map { id -> async { id to quietly("Couldn't load campsite $id") { Database.fetchCampsite(id).name } } }
-                .awaitAll()
-                .mapNotNull { (id, name) -> name?.takeIf { it.isNotBlank() }?.let { id to it } }
-                .toMap()
-
-        fun headingFor(n: Notification): String? =
-            lotteries[n.receiversOfLottery]
-                ?.campsites
-                ?.mapNotNull { campsiteNames[it] }
-                ?.let(::campsitesHeading)
+        fun headingFor(n: Notification): String? = headings[n.receiversOfLottery]
 
         if (sent) {
             return@coroutineScope notifications.map { n ->
@@ -124,6 +104,34 @@ class NotificationsViewModel : ViewModel() {
             )
         }
     }
+}
+
+/**
+ * Names each of [lotteryIds] by its campsites (see [campsitesHeading]), looking each lottery
+ * and campsite up once. Lotteries whose campsites can't be found (deleted, or failed to load)
+ * are left out, so callers can fall back to something else.
+ */
+internal suspend fun lotteryHeadings(lotteryIds: List<Id>): Map<Id, String> = coroutineScope {
+    val lotteries: Map<Id, Lottery> =
+        lotteryIds
+            .distinct()
+            .map { id -> async { id to quietly("Couldn't load lottery $id") { Database.fetchLottery(id) } } }
+            .awaitAll()
+            .mapNotNull { (id, lottery) -> lottery?.let { id to it } }
+            .toMap()
+
+    val campsiteNames: Map<Id, String> =
+        lotteries.values
+            .flatMap { it.campsites }
+            .distinct()
+            .map { id -> async { id to quietly("Couldn't load campsite $id") { Database.fetchCampsite(id).name } } }
+            .awaitAll()
+            .mapNotNull { (id, name) -> name?.takeIf { it.isNotBlank() }?.let { id to it } }
+            .toMap()
+
+    lotteries
+        .mapNotNull { (id, lottery) -> campsitesHeading(lottery.campsites.mapNotNull { campsiteNames[it] })?.let { id to it } }
+        .toMap()
 }
 
 /**
