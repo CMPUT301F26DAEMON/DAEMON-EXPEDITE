@@ -37,11 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.example.daemon_expedite.backend.Database
 import com.example.daemon_expedite.backend.Id
@@ -125,6 +125,10 @@ object Routes {
 
     fun editLottery(id: Id) = "owner_lottery/${id.value}/edit"
 
+    const val LOTTERY_QR = "lottery_qr/{$LOTTERY_ID_ARG}"
+
+    fun lotteryQr(id: Id) = "lottery_qr/${id.value}"
+
     /** Where an owner approves or declines another owner's invite to this lottery. */
     const val OWNER_LOTTERY_REQUEST = "owner_lottery/{$LOTTERY_ID_ARG}/request"
 
@@ -133,13 +137,17 @@ object Routes {
     const val CHAT_ID_ARG = "chatId"
     const val USER_ID_ARG = "userId"
     const val MESSAGE_DETAIL_BY_CHAT = "chat/id/{$CHAT_ID_ARG}"
+
     /** True when the current user is opening the chat as the campsite owner (e.g. from a waiting list). */
     const val AS_OWNER_ARG = "asOwner"
     const val MESSAGE_DETAIL_BY_USER = "chat/user/{$USER_ID_ARG}?$AS_OWNER_ARG={$AS_OWNER_ARG}"
 
     fun messageDetailForChat(chatId: Id) = "chat/id/${chatId.value}"
-    fun messageDetailForUser(userId: Id, asOwner: Boolean = false) =
-        "chat/user/${userId.value}?$AS_OWNER_ARG=$asOwner"
+
+    fun messageDetailForUser(
+        userId: Id,
+        asOwner: Boolean = false,
+    ) = "chat/user/${userId.value}?$AS_OWNER_ARG=$asOwner"
 
     const val CREATE_LOTTERY = "create_lottery" // opened from My Lotteries only
     const val REGISTER_CAMPSITE = "register_campsite"
@@ -619,11 +627,7 @@ fun AppNavigation(
                     onMessageOwnerClick = {
                         (state as? UiState.Content)?.let { content ->
                             val ownerId = content.data.ownerId
-                            if (ownerId != null) {
-                                navController.navigate(Routes.messageDetailForUser(ownerId))
-                            } else {
-                                toast("Cannot open chat with owner")
-                            }
+                            navController.navigate(Routes.messageDetailForUser(ownerId))
                         }
                     },
                 )
@@ -950,12 +954,13 @@ fun AppNavigation(
 
             composable(
                 Routes.MESSAGE_DETAIL_BY_USER,
-                arguments = listOf(
-                    navArgument(Routes.AS_OWNER_ARG) {
-                        type = NavType.BoolType
-                        defaultValue = false
-                    },
-                ),
+                arguments =
+                    listOf(
+                        navArgument(Routes.AS_OWNER_ARG) {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
+                    ),
             ) {
                 MessageScreen(onBackClick = { navController.popBackStack() })
             }
@@ -1037,7 +1042,9 @@ fun AppNavigation(
                                     navController.popBackStack(Routes.OWNER_LOTTERIES, inclusive = false)
                                 }
 
-                                is InviteAnswerResult.Failed -> toast(result.message)
+                                is InviteAnswerResult.Failed -> {
+                                    toast(result.message)
+                                }
                             }
                         }
                     },
@@ -1108,6 +1115,9 @@ fun AppNavigation(
                     },
                     onEditClick = {
                         (state as? UiState.Content)?.let { navController.navigate(Routes.editLottery(it.data.id)) }
+                    },
+                    onShowQrCodeClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.lotteryQr(it.data.id)) }
                     },
                     onCancelConfirmed = {
                         detail.cancel { result ->
@@ -1186,6 +1196,24 @@ fun AppNavigation(
                     onViewReservationClick = {
                         navController.navigate(Routes.RESERVATION_DETAIL)
                     },
+                    onShowQrCodeClick = {
+                        (state as? UiState.Content)?.let { navController.navigate(Routes.lotteryQr(it.data.id)) }
+                    },
+                )
+            }
+
+            composable(Routes.LOTTERY_QR) { entry ->
+                val lotteryId = entry.arguments?.getString(Routes.LOTTERY_ID_ARG).orEmpty()
+                val detailEntry =
+                    remember(entry) { runCatching { navController.getBackStackEntry(Routes.OWNER_LOTTERY_DETAIL) }.getOrNull() }
+                val detailVM: OwnerLotteryDetailViewModel? = detailEntry?.let { viewModel(it) }
+                val detailState = detailVM?.details?.collectAsState()?.value
+                val lotteryTitle = (detailState as? UiState.Content)?.data?.title ?: "Lottery QR Code"
+
+                LotteryQrCodeScreen(
+                    lotteryId = lotteryId,
+                    lotteryTitle = lotteryTitle,
+                    onBackClick = { navController.popBackStack() },
                 )
             }
 
@@ -1831,7 +1859,10 @@ private fun SplashRoute(
  *   ones they received.
  */
 @Composable
-private fun NotificationsTab(userId: Id?, sent: Boolean = false) {
+private fun NotificationsTab(
+    userId: Id?,
+    sent: Boolean = false,
+) {
     val vm: NotificationsViewModel = viewModel()
     LaunchedEffect(userId, sent) { userId?.let { vm.load(it, sent) } }
     val state by vm.notifications.collectAsState()

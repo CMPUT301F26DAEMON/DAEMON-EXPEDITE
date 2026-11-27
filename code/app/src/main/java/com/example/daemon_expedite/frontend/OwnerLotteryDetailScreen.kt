@@ -73,6 +73,7 @@ fun OwnerLotteryDetailScreen(
     onCampsiteClick: (Id) -> Unit,
     onViewWaitlistClick: () -> Unit,
     onEditClick: () -> Unit,
+    onShowQrCodeClick: () -> Unit = {},
     onCancelConfirmed: () -> Unit,
 ) {
     var askCancel by rememberSaveable { mutableStateOf(false) }
@@ -83,10 +84,16 @@ fun OwnerLotteryDetailScreen(
         state = state,
         onBackClick = onBackClick,
         onRetry = onRetry,
-        actions = if (canEdit) {
-            { HeaderIconButton(AppIcons.EditPencilOutlined, "Edit lottery", onEditClick) }
-        } else {
-            null
+        actions = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HeaderIconButton(AppIcons.QRCode, "Show QR code", onShowQrCodeClick)
+                if (canEdit) {
+                    HeaderIconButton(AppIcons.EditPencilOutlined, "Edit lottery", onEditClick)
+                }
+            }
         },
     ) { details ->
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
