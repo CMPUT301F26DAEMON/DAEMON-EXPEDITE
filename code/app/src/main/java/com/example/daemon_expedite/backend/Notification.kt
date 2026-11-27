@@ -19,6 +19,19 @@ fun reservationConfirmedText(campsiteName: String?, period: DatePeriod): String 
 }
 
 /**
+ * The message of a cancellation confirmation, for example
+ * "Your stay at Pine Lake for 2 nights, Oct 16, 2026 to check-out Oct 18, 2026, is cancelled."
+ *
+ * @param campsiteName The campsite's name, or null if it has none.
+ */
+fun reservationCancelledText(campsiteName: String?, period: DatePeriod): String {
+    val place = campsiteName?.trim()?.takeIf { it.isNotEmpty() } ?: "your campsite"
+    val nights = if (period.nights == 1) "1 night" else "${period.nights} nights"
+    return "Your stay at $place for $nights, " +
+        "${period.start.format(CONFIRMATION_DATE)} to check-out ${period.end.format(CONFIRMATION_DATE)}, is cancelled."
+}
+
+/**
  * What a [Notification] is about. Stored as the `kind` field of `notifications/<id>`;
  * documents written before the field existed have none and are [OWNER_MESSAGE]s.
  *
@@ -30,6 +43,9 @@ enum class NotificationKind(val stored: String) {
 
     /** Sent to an entrant when they book their stay (see [Database.bookLotteryStay]). */
     RESERVATION_CONFIRMED("reservation_confirmed"),
+
+    /** Sent to an entrant when they cancel their stay (see [Database.cancelReservation]). */
+    RESERVATION_CANCELLED("reservation_cancelled"),
 
     /**
      * A lottery's draw results, saved by the `notifyLotteryResults` Cloud Function: one for the
@@ -50,7 +66,8 @@ enum class NotificationKind(val stored: String) {
  * Usually a message an owner sends to everyone on one of their lotteries' waiting lists
  * ([NotificationKind.OWNER_MESSAGE]). It can also confirm an entrant's reservation
  * ([NotificationKind.RESERVATION_CONFIRMED]); then it goes to that entrant only, its sender is
- * the campsite's owner and [reservationId] is the reservation.
+ * the campsite's owner and [reservationId] is the reservation. A cancellation
+ * ([NotificationKind.RESERVATION_CANCELLED]) works the same way.
  *
  * One notification is stored once (in `notifications/<id>`) and its id is added to each
  * recipient's `receivedNotifications`. Owner messages are also added to the sender's

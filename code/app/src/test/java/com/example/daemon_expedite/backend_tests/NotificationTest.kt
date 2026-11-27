@@ -6,6 +6,7 @@ package com.example.daemon_expedite.backend_tests
 
 import com.example.daemon_expedite.backend.DatePeriod
 import com.example.daemon_expedite.backend.NotificationKind
+import com.example.daemon_expedite.backend.reservationCancelledText
 import com.example.daemon_expedite.backend.reservationConfirmedText
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -33,6 +34,18 @@ class NotificationTest {
         assertEquals(
             reservationConfirmedText(null, DatePeriod(day(16), day(17))),
             reservationConfirmedText("", DatePeriod(day(16), day(17))),
+        )
+    }
+
+    @Test
+    fun cancellationTextNamesCampsiteNightsAndDates() {
+        assertEquals(
+            "Your stay at Pine Lake for 2 nights, Oct 16, 2026 to check-out Oct 18, 2026, is cancelled.",
+            reservationCancelledText(" Pine Lake ", DatePeriod(day(16), day(18))),
+        )
+        assertEquals(
+            "Your stay at your campsite for 1 night, Oct 16, 2026 to check-out Oct 17, 2026, is cancelled.",
+            reservationCancelledText(null, DatePeriod(day(16), day(17))),
         )
     }
 

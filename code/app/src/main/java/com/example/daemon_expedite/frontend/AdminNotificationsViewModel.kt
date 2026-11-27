@@ -193,6 +193,7 @@ internal fun recipientsLine(
         n.recipientIds.size == 1 -> names[n.recipientIds.single()] ?: DELETED_USER
         n.recipientIds.isNotEmpty() -> "${n.recipientIds.size} entrants"
         n.kind == NotificationKind.RESERVATION_CONFIRMED -> "the entrant who booked"
+        n.kind == NotificationKind.RESERVATION_CANCELLED -> "the entrant who cancelled"
         else -> "waiting list"
     }
     return "To: $who" + (place?.let { " · $it" } ?: "")
@@ -203,5 +204,6 @@ internal fun kindLabel(kind: NotificationKind): String =
     when (kind) {
         NotificationKind.OWNER_MESSAGE -> "Owner message"
         NotificationKind.RESERVATION_CONFIRMED -> "Reservation confirmed"
+        NotificationKind.RESERVATION_CANCELLED -> "Reservation cancelled"
         NotificationKind.LOTTERY_RESULT -> "Lottery result"
     }

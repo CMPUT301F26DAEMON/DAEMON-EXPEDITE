@@ -1630,26 +1630,35 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     "ownerReservations",
                     FieldValue.arrayUnion(reservation.id.value.toString()),
                 )
-                addReservationConfirmation(tx, reservation, owner, campsiteName)
+                addReservationNotice(
+                    tx,
+                    reservation,
+                    owner,
+                    NotificationKind.RESERVATION_CONFIRMED,
+                    "Reservation confirmed",
+                    reservationConfirmedText(campsiteName, reservation.period),
+                )
                 null
             }.await()
         return reservation
     }
 
     /**
-     * Adds, in [tx], a [NotificationKind.RESERVATION_CONFIRMED] notification for the entrant who
-     * holds [reservation]: saved in `notifications/<id>` and added to their
-     * `receivedNotifications`, so it shows in their Notifications tab. Saving it also makes the
-     * `notifyOwnerMessage` Cloud Function push it to their phone (functions/index.js), to that
-     * entrant only, using the `recipient` field.
+     * Adds, in [tx], a [kind] notification ([NotificationKind.RESERVATION_CONFIRMED] or
+     * [NotificationKind.RESERVATION_CANCELLED]) for the entrant who holds [reservation]: saved in
+     * `notifications/<id>` and added to their `receivedNotifications`, so it shows in their
+     * Notifications tab. Saving it also makes the `notifyOwnerMessage` Cloud Function push it to
+     * their phone (functions/index.js), to that entrant only, using the `recipient` field.
      *
      * Not added to the owner's `ownerNotifications`: the owner didn't write it.
      */
-    private fun addReservationConfirmation(
+    private fun addReservationNotice(
         tx: Transaction,
         reservation: Reservation,
         owner: Id,
-        campsiteName: String?,
+        kind: NotificationKind,
+        title: String,
+        text: String,
     ) {
         val id = Id()
         val idString = id.value.toString()
@@ -1658,9 +1667,9 @@ private class DatabaseInner private constructor() : DatabaseInterface {
             notificationRef(id),
             mapOf(
                 "id" to idString,
-                "kind" to NotificationKind.RESERVATION_CONFIRMED.stored,
-                "title" to "Reservation confirmed",
-                "text" to reservationConfirmedText(campsiteName, reservation.period),
+                "kind" to kind.stored,
+                "title" to title,
+                "text" to text,
                 "lottery" to reservation.lotteryId?.value?.toString(),
                 "sender" to owner.value.toString(),
                 "recipient" to user,
@@ -1706,7 +1715,8 @@ private class DatabaseInner private constructor() : DatabaseInterface {
      * If it was won in a lottery, the same transaction takes the booking out of the lottery's
      * `bookings`, so the nights are free again and every screen stops showing it as booked.
      * During the booking window the winner may then book again; after it the cancel is final,
-     * so they're added to `declined` too.
+     * so they're added to `declined` too. It also sends the entrant a
+     * [NotificationKind.RESERVATION_CANCELLED] notification confirming the cancel.
      *
      * @return The cancelled reservation.
      * @throws BookingRejectedException if it can't be cancelled; its message says why.
@@ -1730,6 +1740,13 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     reservation.lotteryId?.let { id ->
                         tx.get(lotteryRef(id)).data?.let { parseLottery(id, it) }
                     }
+                // Read before any write (a Firestore transaction rule), for the confirmation text.
+                val campsiteName =
+                    tx
+                        .get(db.collection("campsites").document(reservation.campsite.value.toString()))
+                        .getString("name")
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
 
                 if (lottery != null) {
                     val lotteryDoc = lotteryRef(lottery.id)
@@ -1739,6 +1756,18 @@ private class DatabaseInner private constructor() : DatabaseInterface {
                     }
                 }
                 tx.update(ref, "isCancelled", true)
+                // Confirms the cancel to the entrant. Every booking is won in a lottery, which
+                // names the campsite's owner as the sender; a notification needs both.
+                if (lottery != null) {
+                    addReservationNotice(
+                        tx,
+                        reservation,
+                        lottery.ownerOf(reservation.campsite),
+                        NotificationKind.RESERVATION_CANCELLED,
+                        "Reservation cancelled",
+                        reservationCancelledText(campsiteName, reservation.period),
+                    )
+                }
                 Reservation(
                     id = reservation.id,
                     campsite = reservation.campsite,

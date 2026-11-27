@@ -88,6 +88,7 @@ class AdminNotificationsViewModelTest {
         assertEquals("Owner message", kindLabel(NotificationKind.OWNER_MESSAGE))
         assertEquals("Lottery result", kindLabel(NotificationKind.LOTTERY_RESULT))
         assertEquals("Reservation confirmed", kindLabel(NotificationKind.RESERVATION_CONFIRMED))
+        assertEquals("Reservation cancelled", kindLabel(NotificationKind.RESERVATION_CANCELLED))
     }
 
     @Test

@@ -28,7 +28,7 @@ enum class PushDestination {
         fun from(intent: Intent?): PushDestination? =
             when (intent?.getStringExtra(EXTRA_TYPE)) {
                 "lottery_result" -> LOTTERIES
-                "owner_message", "reservation_confirmed" -> NOTIFICATIONS
+                "owner_message", "reservation_confirmed", "reservation_cancelled" -> NOTIFICATIONS
                 else -> null
             }
     }
